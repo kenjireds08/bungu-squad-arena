@@ -2,9 +2,13 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { QrCode, Trophy, TrendingUp, Calendar, Menu, Camera, Star, Users } from 'lucide-react';
+import { QrCode, Trophy, TrendingUp, Calendar, Camera, Star, Users } from 'lucide-react';
 import { PlayerRanking } from './PlayerRanking';
 import { QRScanner } from './QRScanner';
+import { PlayerMenu } from './PlayerMenu';
+import { PlayerStats } from './PlayerStats';
+import { PlayerHistory } from './PlayerHistory';
+import { PlayerProfile } from './PlayerProfile';
 import mainCharacter from '@/assets/main-character.png';
 import pencilWarrior from '@/assets/pencil-warrior.png';
 import tapeNinja from '@/assets/tape-ninja.png';
@@ -27,8 +31,7 @@ const mockTournament = {
 };
 
 export const MainDashboard = () => {
-  const [showQRScanner, setShowQRScanner] = useState(false);
-  const [showRanking, setShowRanking] = useState(false);
+  const [currentPage, setCurrentPage] = useState<string>('dashboard');
 
   const getRankIcon = (rank: number) => {
     if (rank === 1) return "🥇";
@@ -37,17 +40,36 @@ export const MainDashboard = () => {
     return `${rank}位`;
   };
 
-  const handleTournamentEntry = () => {
-    setShowQRScanner(true);
+  const handleNavigate = (page: string) => {
+    setCurrentPage(page);
   };
 
-  if (showQRScanner) {
-    return <QRScanner onClose={() => setShowQRScanner(false)} />;
+  const handleTournamentEntry = () => {
+    setCurrentPage('qrscanner');
+  };
+
+  // Handle different pages
+  if (currentPage === 'qrscanner') {
+    return <QRScanner onClose={() => setCurrentPage('dashboard')} />;
   }
 
-  if (showRanking) {
-    return <PlayerRanking onClose={() => setShowRanking(false)} />;
+  if (currentPage === 'ranking') {
+    return <PlayerRanking onClose={() => setCurrentPage('dashboard')} />;
   }
+
+  if (currentPage === 'stats') {
+    return <PlayerStats onClose={() => setCurrentPage('dashboard')} />;
+  }
+
+  if (currentPage === 'history') {
+    return <PlayerHistory onClose={() => setCurrentPage('dashboard')} />;
+  }
+
+  if (currentPage === 'profile') {
+    return <PlayerProfile onClose={() => setCurrentPage('dashboard')} />;
+  }
+
+  // TODO: Add other pages (achievements, settings, help, logout)
 
   return (
     <div className="min-h-screen bg-gradient-parchment">
@@ -59,9 +81,7 @@ export const MainDashboard = () => {
               <Trophy className="h-6 w-6 text-primary" />
               <h1 className="text-xl font-bold text-foreground">BUNGU SQUAD</h1>
             </div>
-            <Button variant="ghost" size="icon">
-              <Menu className="h-5 w-5" />
-            </Button>
+            <PlayerMenu onNavigate={handleNavigate} />
           </div>
         </div>
       </header>
@@ -147,7 +167,7 @@ export const MainDashboard = () => {
           <Button 
             variant="tournament" 
             size="lg" 
-            onClick={() => setShowRanking(true)}
+            onClick={() => setCurrentPage('ranking')}
             className="h-20 flex-col"
           >
             <Trophy className="h-6 w-6 mb-1" />
