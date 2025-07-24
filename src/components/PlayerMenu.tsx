@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { BarChart3, History, Settings, HelpCircle, Trophy, User, LogOut } from 'lucide-react';
+import { BarChart3, History, Settings, HelpCircle, Trophy, User, LogOut, Shield } from 'lucide-react';
 
 interface PlayerMenuProps {
   onNavigate: (page: string) => void;
@@ -43,6 +43,12 @@ export const PlayerMenu = ({ onNavigate }: PlayerMenuProps) => {
       title: "ヘルプ",
       description: "使い方・ルール説明",
       page: "help"
+    },
+    {
+      icon: Shield,
+      title: "管理者モード",
+      description: "大会管理・承認機能",
+      page: "admin"
     }
   ];
 

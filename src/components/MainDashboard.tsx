@@ -9,6 +9,10 @@ import { PlayerMenu } from './PlayerMenu';
 import { PlayerStats } from './PlayerStats';
 import { PlayerHistory } from './PlayerHistory';
 import { PlayerProfile } from './PlayerProfile';
+import { PlayerAchievements } from './PlayerAchievements';
+import { PlayerSettings } from './PlayerSettings';
+import { PlayerHelp } from './PlayerHelp';
+import { AdminDashboard } from './AdminDashboard';
 import mainCharacter from '@/assets/main-character.png';
 import pencilWarrior from '@/assets/pencil-warrior.png';
 import tapeNinja from '@/assets/tape-ninja.png';
@@ -67,6 +71,27 @@ export const MainDashboard = () => {
 
   if (currentPage === 'profile') {
     return <PlayerProfile onClose={() => setCurrentPage('dashboard')} />;
+  }
+
+  if (currentPage === 'achievements') {
+    return <PlayerAchievements onClose={() => setCurrentPage('dashboard')} />;
+  }
+
+  if (currentPage === 'settings') {
+    return <PlayerSettings onClose={() => setCurrentPage('dashboard')} />;
+  }
+
+  if (currentPage === 'help') {
+    return <PlayerHelp onClose={() => setCurrentPage('dashboard')} />;
+  }
+
+  if (currentPage === 'admin') {
+    return <AdminDashboard onClose={() => setCurrentPage('dashboard')} />;
+  }
+
+  if (currentPage === 'logout') {
+    // TODO: Implement logout logic
+    setCurrentPage('dashboard');
   }
 
   // TODO: Add other pages (achievements, settings, help, logout)
