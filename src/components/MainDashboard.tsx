@@ -13,6 +13,10 @@ import { PlayerAchievements } from './PlayerAchievements';
 import { PlayerSettings } from './PlayerSettings';
 import { PlayerHelp } from './PlayerHelp';
 import { AdminDashboard } from './AdminDashboard';
+import { MatchWaiting } from './MatchWaiting';
+import { MatchInProgress } from './MatchInProgress';
+import { MatchResultReport } from './MatchResultReport';
+import { MatchResultSubmitted } from './MatchResultSubmitted';
 import mainCharacter from '@/assets/main-character.png';
 import pencilWarrior from '@/assets/pencil-warrior.png';
 import tapeNinja from '@/assets/tape-ninja.png';
@@ -87,6 +91,22 @@ export const MainDashboard = () => {
 
   if (currentPage === 'admin') {
     return <AdminDashboard onClose={() => setCurrentPage('dashboard')} />;
+  }
+
+  if (currentPage === 'match-waiting') {
+    return <MatchWaiting onClose={() => setCurrentPage('dashboard')} onStartMatch={() => setCurrentPage('match-in-progress')} />;
+  }
+
+  if (currentPage === 'match-in-progress') {
+    return <MatchInProgress onClose={() => setCurrentPage('dashboard')} onFinishMatch={() => setCurrentPage('match-result-report')} />;
+  }
+
+  if (currentPage === 'match-result-report') {
+    return <MatchResultReport onClose={() => setCurrentPage('dashboard')} onSubmitResult={(result) => setCurrentPage('match-result-submitted')} />;
+  }
+
+  if (currentPage === 'match-result-submitted') {
+    return <MatchResultSubmitted onClose={() => setCurrentPage('dashboard')} result="win" />;
   }
 
   if (currentPage === 'logout') {
@@ -198,9 +218,9 @@ export const MainDashboard = () => {
             <Trophy className="h-6 w-6 mb-1" />
             ランキング
           </Button>
-          <Button variant="outline" size="lg" className="h-20 flex-col">
+          <Button variant="outline" size="lg" className="h-20 flex-col" onClick={() => setCurrentPage('match-waiting')}>
             <Users className="h-6 w-6 mb-1" />
-            統計
+            対戦
           </Button>
         </div>
 
