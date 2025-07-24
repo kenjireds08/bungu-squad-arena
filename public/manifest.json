@@ -1,0 +1,22 @@
+{
+  "name": "BUNGU SQUAD ランキングシステム",
+  "short_name": "BUNGU SQUAD",
+  "description": "BUNGU SQUADボードゲームのプレイヤーランキング管理システム",
+  "theme_color": "#DAA520",
+  "background_color": "#F5F1E8",
+  "display": "standalone",
+  "orientation": "portrait",
+  "scope": "/",
+  "start_url": "/",
+  "icons": [
+    {
+      "src": "/src/assets/main-character.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["games", "sports", "utilities"],
+  "lang": "ja",
+  "dir": "ltr"
+}
