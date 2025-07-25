@@ -19,6 +19,8 @@ import {
 import { AdminTournaments } from './AdminTournaments';
 import { AdminApprovals } from './AdminApprovals';
 import { AdminPlayers } from './AdminPlayers';
+import { MatchProgressManager } from './MatchProgressManager';
+import { DataExport } from './DataExport';
 
 interface AdminDashboardProps {
   onClose: () => void;
@@ -71,15 +73,15 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
     },
     {
       icon: BarChart3,
-      title: "統計・分析",
-      description: "全体統計・レポート",
-      page: "analytics"
+      title: "試合進行管理",
+      description: "リアルタイム進行・催促機能",
+      page: "match-progress"
     },
     {
-      icon: SettingsIcon,
-      title: "システム設定",
-      description: "管理者・システム設定",
-      page: "settings"
+      icon: FileText,
+      title: "データ出力",
+      description: "CSV・PDFレポート生成",
+      page: "data-export"
     }
   ];
 
@@ -95,7 +97,13 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
     return <AdminPlayers onBack={() => setCurrentAdminPage('dashboard')} />;
   }
 
-  // TODO: Add other admin pages (analytics, settings)
+  if (currentAdminPage === 'match-progress') {
+    return <MatchProgressManager onBack={() => setCurrentAdminPage('dashboard')} />;
+  }
+
+  if (currentAdminPage === 'data-export') {
+    return <DataExport onClose={() => setCurrentAdminPage('dashboard')} />;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-parchment">
