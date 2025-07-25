@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -17,6 +17,14 @@ import { MatchWaiting } from './MatchWaiting';
 import { MatchInProgress } from './MatchInProgress';
 import { MatchResultReport } from './MatchResultReport';
 import { MatchResultSubmitted } from './MatchResultSubmitted';
+import { TournamentEntryComplete } from './TournamentEntryComplete';
+import { TournamentDetails } from './TournamentDetails';
+import { TournamentParticipants } from './TournamentParticipants';
+import { MatchMatching } from './MatchMatching';
+import { MatchCountdown } from './MatchCountdown';
+import { NotificationBanner } from './NotificationBanner';
+import { NotificationHistory } from './NotificationHistory';
+import { PWAInstallPrompt } from './PWAInstallPrompt';
 import mainCharacter from '@/assets/main-character.png';
 import pencilWarrior from '@/assets/pencil-warrior.png';
 import tapeNinja from '@/assets/tape-ninja.png';
@@ -40,6 +48,25 @@ const mockTournament = {
 
 export const MainDashboard = () => {
   const [currentPage, setCurrentPage] = useState<string>('dashboard');
+  const [showPWAPrompt, setShowPWAPrompt] = useState(false);
+  const [notifications, setNotifications] = useState([
+    {
+      id: '1',
+      type: 'tournament' as const,
+      title: '新しい大会が作成されました',
+      message: '第9回BUNGU SQUAD大会が8/22(木)に開催されます',
+      timestamp: new Date(),
+      priority: 'high' as const
+    }
+  ]);
+
+  // Check for PWA install prompt
+  useEffect(() => {
+    const hasShownPrompt = localStorage.getItem('pwa-prompt-shown');
+    if (!hasShownPrompt) {
+      setTimeout(() => setShowPWAPrompt(true), 3000);
+    }
+  }, []);
 
   const getRankIcon = (rank: number) => {
     if (rank === 1) return "🥇";
@@ -54,6 +81,15 @@ export const MainDashboard = () => {
 
   const handleTournamentEntry = () => {
     setCurrentPage('qrscanner');
+  };
+
+  const handlePWAPromptClose = () => {
+    setShowPWAPrompt(false);
+    localStorage.setItem('pwa-prompt-shown', 'true');
+  };
+
+  const dismissNotification = (id: string) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
   };
 
   // Handle different pages
@@ -109,15 +145,50 @@ export const MainDashboard = () => {
     return <MatchResultSubmitted onClose={() => setCurrentPage('dashboard')} result="win" />;
   }
 
+  if (currentPage === 'tournament-entry-complete') {
+    return <TournamentEntryComplete onClose={() => setCurrentPage('dashboard')} onViewTournament={() => setCurrentPage('tournament-details')} />;
+  }
+
+  if (currentPage === 'tournament-details') {
+    return <TournamentDetails onClose={() => setCurrentPage('dashboard')} onViewParticipants={() => setCurrentPage('tournament-participants')} />;
+  }
+
+  if (currentPage === 'tournament-participants') {
+    return <TournamentParticipants onClose={() => setCurrentPage('tournament-details')} />;
+  }
+
+  if (currentPage === 'match-matching') {
+    return <MatchMatching onClose={() => setCurrentPage('dashboard')} onStartCountdown={() => setCurrentPage('match-countdown')} />;
+  }
+
+  if (currentPage === 'match-countdown') {
+    return <MatchCountdown onClose={() => setCurrentPage('match-matching')} onStartMatch={() => setCurrentPage('match-in-progress')} />;
+  }
+
+  if (currentPage === 'notification-history') {
+    return <NotificationHistory onClose={() => setCurrentPage('dashboard')} />;
+  }
+
   if (currentPage === 'logout') {
     // TODO: Implement logout logic
     setCurrentPage('dashboard');
   }
 
-  // TODO: Add other pages (achievements, settings, help, logout)
-
   return (
     <div className="min-h-screen bg-gradient-parchment">
+      {/* PWA Install Prompt */}
+      {showPWAPrompt && (
+        <PWAInstallPrompt onClose={handlePWAPromptClose} />
+      )}
+
+      {/* Notification Banner */}
+      {notifications.length > 0 && (
+        <NotificationBanner 
+          notifications={notifications}
+          onDismiss={dismissNotification}
+          onViewAll={() => setCurrentPage('notification-history')}
+        />
+      )}
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-fantasy-frame shadow-soft">
         <div className="container mx-auto px-4 py-3">
@@ -218,7 +289,7 @@ export const MainDashboard = () => {
             <Trophy className="h-6 w-6 mb-1" />
             ランキング
           </Button>
-          <Button variant="outline" size="lg" className="h-20 flex-col" onClick={() => setCurrentPage('match-waiting')}>
+          <Button variant="outline" size="lg" className="h-20 flex-col" onClick={() => setCurrentPage('match-matching')}>
             <Users className="h-6 w-6 mb-1" />
             対戦
           </Button>

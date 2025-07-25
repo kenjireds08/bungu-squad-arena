@@ -11,6 +11,12 @@
   "icons": [
     {
       "src": "/src/assets/main-character.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/src/assets/main-character.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
