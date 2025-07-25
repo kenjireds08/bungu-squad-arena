@@ -23,7 +23,8 @@
       "Bash(git push:*)",
       "Bash(git rm:*)",
       "Bash(npm ls:*)",
-      "Bash(npm cache clean:*)"
+      "Bash(npm cache clean:*)",
+      "WebFetch(domain:bungu-squad-arena.vercel.app)"
     ],
     "deny": []
   }

@@ -63,7 +63,13 @@ class SheetsService {
       }));
     } catch (error) {
       console.error('Error fetching players:', error);
-      throw new Error('Failed to fetch players data');
+      console.error('Environment check:', {
+        hasServiceAccount: !!process.env.GOOGLE_SERVICE_ACCOUNT_KEY,
+        hasSheetId: !!process.env.GOOGLE_SHEETS_ID,
+        sheetId: process.env.GOOGLE_SHEETS_ID,
+        serviceAccountLength: process.env.GOOGLE_SERVICE_ACCOUNT_KEY?.length
+      });
+      throw new Error(`Failed to fetch players data: ${error.message}`);
     }
   }
 
@@ -136,7 +142,7 @@ class SheetsService {
       }));
     } catch (error) {
       console.error('Error fetching tournaments:', error);
-      throw new Error('Failed to fetch tournaments data');
+      throw new Error(`Failed to fetch tournaments data: ${error.message}`);
     }
   }
 
