@@ -16,6 +16,9 @@ import {
   FileText,
   LogOut
 } from 'lucide-react';
+import { AdminTournaments } from './AdminTournaments';
+import { AdminApprovals } from './AdminApprovals';
+import { AdminPlayers } from './AdminPlayers';
 
 interface AdminDashboardProps {
   onClose: () => void;
@@ -84,7 +87,15 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
     return <AdminTournaments onBack={() => setCurrentAdminPage('dashboard')} />;
   }
 
-  // TODO: Add other admin pages
+  if (currentAdminPage === 'approvals') {
+    return <AdminApprovals onBack={() => setCurrentAdminPage('dashboard')} />;
+  }
+
+  if (currentAdminPage === 'players') {
+    return <AdminPlayers onBack={() => setCurrentAdminPage('dashboard')} />;
+  }
+
+  // TODO: Add other admin pages (analytics, settings)
 
   return (
     <div className="min-h-screen bg-gradient-parchment">
@@ -225,33 +236,4 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
   );
 };
 
-// Admin Tournaments Component (placeholder)
-const AdminTournaments = ({ onBack }: { onBack: () => void }) => {
-  return (
-    <div className="min-h-screen bg-gradient-parchment">
-      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-fantasy-frame shadow-soft">
-        <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={onBack}>
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div className="flex items-center gap-2">
-              <Trophy className="h-6 w-6 text-primary" />
-              <h1 className="text-xl font-bold text-foreground">大会管理</h1>
-            </div>
-          </div>
-        </div>
-      </header>
-      
-      <main className="container mx-auto px-4 py-6">
-        <Card className="border-fantasy-frame shadow-soft">
-          <CardContent className="p-8 text-center">
-            <Trophy className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-            <h2 className="text-xl font-semibold mb-2">大会管理機能</h2>
-            <p className="text-muted-foreground">この機能は開発中です</p>
-          </CardContent>
-        </Card>
-      </main>
-    </div>
-  );
-};
+// Remove the placeholder AdminTournaments component since we now have the real one
