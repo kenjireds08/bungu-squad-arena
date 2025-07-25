@@ -1,1 +1,9 @@
-{ "functions": { "api/*.js": { "maxDuration": 10 } } }
+{
+  "functions": {
+    "api/*.js": {
+      "maxDuration": 10
+    }
+  },
+  "buildCommand": "npm run build",
+  "installCommand": "npm install"
+}
