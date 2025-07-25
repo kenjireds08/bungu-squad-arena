@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { QrCode, Trophy, TrendingUp, Calendar, Camera, Star, Users } from 'lucide-react';
+import { QrCode, Trophy, TrendingUp, Calendar, Camera, Star, Users, Loader2 } from 'lucide-react';
+import { useRankings, useTournaments } from '@/hooks/useApi';
 import { PlayerRanking } from './PlayerRanking';
 import { QRScanner } from './QRScanner';
 import { PlayerMenu } from './PlayerMenu';
@@ -29,22 +30,7 @@ import mainCharacter from '@/assets/main-character.png';
 import pencilWarrior from '@/assets/pencil-warrior.png';
 import tapeNinja from '@/assets/tape-ninja.png';
 
-// Mock data for development
-const mockUser = {
-  nickname: "プレイヤー1",
-  currentRank: 3,
-  rating: 1650,
-  nextRankPoints: 35,
-  badges: ["♠️", "➕"],
-  championBadges: ["⭐"]
-};
-
-const mockTournament = {
-  name: "第8回BUNGU SQUAD大会",
-  date: "8/15(木)",
-  time: "19:00〜",
-  location: "○○コミュニティセンター"
-};
+const CURRENT_USER_ID = "player_1";
 
 export const MainDashboard = () => {
   const [currentPage, setCurrentPage] = useState<string>('dashboard');
@@ -60,6 +46,12 @@ export const MainDashboard = () => {
     }
   ]);
 
+  const { data: rankings, isLoading: rankingsLoading } = useRankings();
+  const { data: tournaments, isLoading: tournamentsLoading } = useTournaments();
+
+  const currentUser = rankings?.find(player => player.id === CURRENT_USER_ID);
+  const nextTournament = tournaments?.[0];
+
   // Check for PWA install prompt
   useEffect(() => {
     const hasShownPrompt = localStorage.getItem('pwa-prompt-shown');
@@ -74,6 +66,17 @@ export const MainDashboard = () => {
     if (rank === 3) return "🥉";
     return `${rank}位`;
   };
+
+  if (rankingsLoading || tournamentsLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-parchment flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto" />
+          <p className="text-muted-foreground">データを読み込み中...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleNavigate = (page: string) => {
     setCurrentPage(page);
@@ -211,19 +214,19 @@ export const MainDashboard = () => {
               {/* Current Rank Display */}
               <div className="space-y-2">
                 <h2 className="text-2xl font-bold text-foreground">
-                  {getRankIcon(mockUser.currentRank)} 現在 {mockUser.currentRank}位
+                  {getRankIcon(currentUser?.rank || 0)} 現在 {currentUser?.rank || '-'}位
                 </h2>
                 <div className="flex items-center justify-center gap-2">
                   <Star className="h-5 w-5 text-primary" />
                   <span className="text-xl font-semibold text-primary">
-                    {mockUser.rating.toLocaleString()}pt
+                    {currentUser?.rating.toLocaleString() || 0}pt
                   </span>
-                  {mockUser.badges.map((badge, index) => (
+                  {currentUser?.badges.map((badge, index) => (
                     <Badge key={index} variant="outline" className="text-sm">
                       {badge}
                     </Badge>
                   ))}
-                  {mockUser.championBadges.map((badge, index) => (
+                  {currentUser?.championBadges.map((badge, index) => (
                     <Badge key={index} variant="secondary" className="text-sm bg-gradient-gold">
                       {badge}
                     </Badge>
@@ -232,20 +235,22 @@ export const MainDashboard = () => {
               </div>
 
               {/* Progress to Next Rank */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-center gap-1">
-                  <TrendingUp className="h-4 w-4 text-success" />
-                  <span className="text-sm text-muted-foreground">
-                    2位まで後{mockUser.nextRankPoints}pt！
-                  </span>
+              {currentUser && currentUser.rank > 1 && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-center gap-1">
+                    <TrendingUp className="h-4 w-4 text-success" />
+                    <span className="text-sm text-muted-foreground">
+                      {currentUser.rank - 1}位まで後少し！
+                    </span>
+                  </div>
+                  <div className="w-full bg-muted rounded-full h-2">
+                    <div 
+                      className="bg-gradient-gold h-2 rounded-full transition-all duration-500"
+                      style={{ width: '75%' }}
+                    />
+                  </div>
                 </div>
-                <div className="w-full bg-muted rounded-full h-2">
-                  <div 
-                    className="bg-gradient-gold h-2 rounded-full transition-all duration-500"
-                    style={{ width: '75%' }}
-                  />
-                </div>
-              </div>
+              )}
 
               {/* Tournament Entry Button */}
               <Button 
@@ -270,11 +275,17 @@ export const MainDashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            <h3 className="font-semibold text-lg">{mockTournament.name}</h3>
-            <div className="space-y-1 text-sm text-muted-foreground">
-              <p>{mockTournament.date} {mockTournament.time}</p>
-              <p>場所：{mockTournament.location}</p>
-            </div>
+            {nextTournament ? (
+              <>
+                <h3 className="font-semibold text-lg">{nextTournament.name}</h3>
+                <div className="space-y-1 text-sm text-muted-foreground">
+                  <p>{nextTournament.date}</p>
+                  <p>場所：{nextTournament.location}</p>
+                </div>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">次回大会の情報はありません</p>
+            )}
           </CardContent>
         </Card>
 

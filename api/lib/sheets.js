@@ -109,6 +109,167 @@ class SheetsService {
       throw new Error('Failed to update player rating');
     }
   }
+
+  async getTournaments() {
+    await this.authenticate();
+    
+    try {
+      const response = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'Tournaments!A2:L1000'
+      });
+
+      const rows = response.data.values || [];
+      return rows.map((row, index) => ({
+        id: row[0] || `tournament_${index + 1}`,
+        tournament_name: row[1] || '',
+        date: row[2] || '',
+        start_time: row[3] || '',
+        location: row[4] || '',
+        qr_code_url: row[5] || '',
+        created_by: row[6] || '',
+        created_at: row[7] || '',
+        status: row[8] || 'upcoming',
+        max_participants: parseInt(row[9]) || 20,
+        current_participants: parseInt(row[10]) || 0,
+        tournament_type: row[11] || 'random'
+      }));
+    } catch (error) {
+      console.error('Error fetching tournaments:', error);
+      throw new Error('Failed to fetch tournaments data');
+    }
+  }
+
+  async addMatchResult(matchData) {
+    await this.authenticate();
+    
+    try {
+      const timestamp = new Date().toISOString();
+      const matchId = `match_${Date.now()}`;
+      
+      const values = [[
+        matchId,
+        matchData.tournament_id || '',
+        matchData.player1_id,
+        matchData.player2_id,
+        matchData.winner_id || '',
+        matchData.loser_id || '',
+        matchData.game_rule || 'trump',
+        timestamp,
+        matchData.match_end_time || '',
+        'completed',
+        matchData.reported_by || '',
+        timestamp,
+        matchData.approved_by || '',
+        matchData.approved_at || '',
+        matchData.player1_rating_before || 0,
+        matchData.player2_rating_before || 0,
+        matchData.player1_rating_after || 0,
+        matchData.player2_rating_after || 0,
+        matchData.player1_rating_change || 0,
+        matchData.player2_rating_change || 0,
+        false, // is_proxy_input
+        '', // proxy_reason
+        '', // proxy_reason_detail
+        '', // proxy_input_by
+        true, // notification_sent
+        matchData.is_first_time_rule || false,
+        matchData.table_number || '',
+        timestamp, // notification_sent_at
+        0, // reminder_sent_count
+        '', // last_reminder_sent_at
+        'elo', // rating_calculation_method
+        matchData.notes || '',
+        matchData.weather_condition || '',
+        'web' // device_used
+      ]];
+
+      await this.sheets.spreadsheets.values.append({
+        spreadsheetId: this.spreadsheetId,
+        range: 'MatchResults!A:AH',
+        valueInputOption: 'RAW',
+        resource: { values }
+      });
+
+      if (matchData.player1_rating_after) {
+        await this.updatePlayerRating(matchData.player1_id, matchData.player1_rating_after);
+      }
+      if (matchData.player2_rating_after) {
+        await this.updatePlayerRating(matchData.player2_id, matchData.player2_rating_after);
+      }
+
+      return { success: true, matchId };
+    } catch (error) {
+      console.error('Error adding match result:', error);
+      throw new Error('Failed to add match result');
+    }
+  }
+
+  async getMatchHistory(playerId = null) {
+    await this.authenticate();
+    
+    try {
+      const response = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'MatchResults!A2:AH1000'
+      });
+
+      const rows = response.data.values || [];
+      let matches = rows.map(row => ({
+        id: row[0],
+        tournament_id: row[1],
+        player1_id: row[2],
+        player2_id: row[3],
+        winner_id: row[4],
+        loser_id: row[5],
+        game_rule: row[6],
+        match_start_time: row[7],
+        match_end_time: row[8],
+        match_status: row[9],
+        reported_by: row[10],
+        reported_at: row[11],
+        approved_by: row[12],
+        approved_at: row[13],
+        player1_rating_before: parseInt(row[14]) || 0,
+        player2_rating_before: parseInt(row[15]) || 0,
+        player1_rating_after: parseInt(row[16]) || 0,
+        player2_rating_after: parseInt(row[17]) || 0,
+        player1_rating_change: parseInt(row[18]) || 0,
+        player2_rating_change: parseInt(row[19]) || 0,
+        is_proxy_input: row[20] === 'true',
+        table_number: row[26],
+        notes: row[31],
+        weather_condition: row[32]
+      }));
+
+      if (playerId) {
+        matches = matches.filter(match => 
+          match.player1_id === playerId || match.player2_id === playerId
+        );
+      }
+
+      return matches.sort((a, b) => new Date(b.match_start_time) - new Date(a.match_start_time));
+    } catch (error) {
+      console.error('Error fetching match history:', error);
+      throw new Error('Failed to fetch match history');
+    }
+  }
+
+  calculateEloRating(player1Rating, player2Rating, result, player1Matches = 0) {
+    const K = player1Matches < 10 ? 40 : player1Matches < 30 ? 20 : 10;
+    
+    const expectedScore = 1 / (1 + Math.pow(10, (player2Rating - player1Rating) / 400));
+    const actualScore = result === 'win' ? 1 : result === 'draw' ? 0.5 : 0;
+    
+    const ratingChange = Math.round(K * (actualScore - expectedScore));
+    
+    return {
+      player1NewRating: player1Rating + ratingChange,
+      player2NewRating: player2Rating - ratingChange,
+      player1: ratingChange,
+      player2: -ratingChange
+    };
+  }
 }
 
 module.exports = SheetsService;

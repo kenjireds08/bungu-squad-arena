@@ -1,25 +1,16 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Trophy, Star, TrendingUp } from 'lucide-react';
-
-// Mock ranking data
-const mockRankings = [
-  { rank: 1, name: "鈴木さん", rating: 1850, badges: ["★", "★", "☆", "♠️", "➕"], trend: "+45" },
-  { rank: 2, name: "佐藤さん", rating: 1685, badges: ["★", "♠️"], trend: "+12" },
-  { rank: 3, name: "あなた", rating: 1650, badges: ["➕"], trend: "+8", isCurrentUser: true },
-  { rank: 4, name: "田中さん", rating: 1620, badges: ["♠️", "➕"], trend: "-15" },
-  { rank: 5, name: "山田さん", rating: 1580, badges: ["⭐", "➕"], trend: "+23" },
-  { rank: 6, name: "高橋さん", rating: 1555, badges: ["♠️"], trend: "-8" },
-  { rank: 7, name: "中村さん", rating: 1520, badges: ["➕"], trend: "+35" },
-  { rank: 8, name: "小林さん", rating: 1495, badges: ["♠️"], trend: "-22" },
-];
+import { ArrowLeft, Trophy, Star, TrendingUp, Loader2 } from 'lucide-react';
+import { useRankings } from '@/hooks/useApi';
 
 interface PlayerRankingProps {
   onClose: () => void;
 }
 
 export const PlayerRanking = ({ onClose }: PlayerRankingProps) => {
+  const { data: rankings, isLoading, error } = useRankings();
+  
   const getRankIcon = (rank: number) => {
     if (rank === 1) return "🥇";
     if (rank === 2) return "🥈"; 
@@ -32,6 +23,28 @@ export const PlayerRanking = ({ onClose }: PlayerRankingProps) => {
     if (trend.startsWith('-')) return 'text-destructive';
     return 'text-muted-foreground';
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-parchment flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto" />
+          <p className="text-muted-foreground">ランキングを読み込み中...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-parchment flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <p className="text-destructive">ランキングの読み込みに失敗しました</p>
+          <Button onClick={onClose}>戻る</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-parchment">
@@ -53,12 +66,12 @@ export const PlayerRanking = ({ onClose }: PlayerRankingProps) => {
       {/* Rankings List */}
       <main className="container mx-auto px-4 py-6">
         <div className="space-y-3">
-          {mockRankings.map((player, index) => (
+          {rankings?.map((player, index) => (
             <Card 
-              key={player.rank} 
+              key={player.id} 
               className={`
                 border-fantasy-frame shadow-soft animate-slide-up transition-all hover:shadow-golden
-                ${player.isCurrentUser ? 'ring-2 ring-primary bg-accent/50' : ''}
+                ${player.nickname === 'あなた' ? 'ring-2 ring-primary bg-accent/50' : ''}
               `}
               style={{ animationDelay: `${index * 100}ms` }}
             >
@@ -67,15 +80,15 @@ export const PlayerRanking = ({ onClose }: PlayerRankingProps) => {
                   {/* Rank and Player Info */}
                   <div className="flex items-center gap-3">
                     <div className="text-xl font-bold w-12 text-center">
-                      {getRankIcon(player.rank)}
+                      {getRankIcon(player.rank || index + 1)}
                     </div>
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className={`font-semibold ${player.isCurrentUser ? 'text-primary' : 'text-foreground'}`}>
-                          {player.name}
+                        <span className={`font-semibold ${player.nickname === 'あなた' ? 'text-primary' : 'text-foreground'}`}>
+                          {player.nickname}
                         </span>
                         <div className="flex gap-1">
-                          {player.badges.map((badge, badgeIndex) => (
+                          {[...player.badges, ...player.championBadges].map((badge, badgeIndex) => (
                             <Badge 
                               key={badgeIndex} 
                               variant={badge.match(/[★☆⭐]/) ? "default" : "outline"}
@@ -89,16 +102,15 @@ export const PlayerRanking = ({ onClose }: PlayerRankingProps) => {
                       <div className="flex items-center gap-2">
                         <Star className="h-4 w-4 text-primary" />
                         <span className="font-mono text-sm">{player.rating.toLocaleString()}pt</span>
-                        <div className={`flex items-center gap-1 ${getTrendColor(player.trend)}`}>
-                          <TrendingUp className="h-3 w-3" />
-                          <span className="text-xs font-mono">{player.trend}</span>
+                        <div className="text-xs text-muted-foreground">
+                          {player.matches}試合
                         </div>
                       </div>
                     </div>
                   </div>
 
                   {/* Additional Info for Current User */}
-                  {player.isCurrentUser && (
+                  {player.nickname === 'あなた' && (
                     <div className="text-right">
                       <Badge variant="secondary" className="bg-gradient-gold">
                         あなた

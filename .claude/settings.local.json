@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:christina04.hatenablog.com)",
+      "Bash(echo $SHELL)",
+      "Bash(mkdir:*)",
+      "Bash(npm install)",
+      "Bash(cp:*)",
+      "Bash(rm:*)",
+      "WebFetch(domain:note.com)",
+      "Bash(find:*)",
+      "Bash(ls:*)",
+      "Bash(grep:*)",
+      "Bash(git pull:*)",
+      "WebFetch(domain:docs.google.com)",
+      "Bash(env)",
+      "Bash(node:*)",
+      "Bash(npm install:*)",
+      "Bash(npx vercel:*)",
+      "Bash(mv:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git rm:*)"
+    ],
+    "deny": []
+  }
+}
