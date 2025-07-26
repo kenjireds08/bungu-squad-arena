@@ -88,8 +88,8 @@ export const NotificationBanner = ({ notifications, onDismiss, onViewAll }: Noti
   }
 
   return (
-    <div className={`fixed top-16 left-4 right-4 z-40 mx-auto max-w-md transform transition-all duration-300 ${
-      isVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'
+    <div className={`fixed bottom-4 left-4 right-4 z-40 mx-auto max-w-md transform transition-all duration-300 ${
+      isVisible ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'
     }`}>
       <div className={`rounded-lg border shadow-lg backdrop-blur-sm ${getBannerStyle(currentNotification.priority)}`}>
         <div className="p-4">
