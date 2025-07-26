@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { ArrowLeft, HelpCircle, Book, Users, Trophy, QrCode, Star } from 'lucide-react';
+import { ArrowLeft, HelpCircle, Book, Users, Trophy, QrCode, Star, Smartphone, Calendar } from 'lucide-react';
 
 interface PlayerHelpProps {
   onClose: () => void;
@@ -56,13 +56,13 @@ export const PlayerHelp = ({ onClose }: PlayerHelpProps) => {
           <CardContent>
             <Accordion type="single" collapsible className="w-full">
               <AccordionItem value="tournament-entry">
-                <AccordionTrigger className="flex items-center gap-2">
-                  <QrCode className="h-4 w-4 text-primary" />
-                  大会への参加方法は？
+                <AccordionTrigger className="flex items-center gap-2 text-left">
+                  <QrCode className="h-4 w-4 text-primary flex-shrink-0" />
+                  <span>大会への参加方法は？</span>
                 </AccordionTrigger>
-                <AccordionContent className="space-y-2">
+                <AccordionContent className="space-y-2 pl-6">
                   <p className="text-sm">大会に参加するには以下の手順を行ってください：</p>
-                  <ol className="text-sm space-y-1 ml-4 list-decimal text-muted-foreground">
+                  <ol className="text-sm space-y-1 pl-6 list-decimal text-muted-foreground">
                     <li>メイン画面の「大会にエントリー」ボタンをタップ</li>
                     <li>QRコードリーダーが起動します</li>
                     <li>会場で配布されたQRコードを読み取り</li>
@@ -72,15 +72,15 @@ export const PlayerHelp = ({ onClose }: PlayerHelpProps) => {
               </AccordionItem>
 
               <AccordionItem value="rating-system">
-                <AccordionTrigger className="flex items-center gap-2">
-                  <Star className="h-4 w-4 text-primary" />
-                  レーティングシステムについて
+                <AccordionTrigger className="flex items-center gap-2 text-left">
+                  <Star className="h-4 w-4 text-primary flex-shrink-0" />
+                  <span>レーティングシステムについて</span>
                 </AccordionTrigger>
-                <AccordionContent className="space-y-2">
+                <AccordionContent className="space-y-2 pl-6">
                   <p className="text-sm text-muted-foreground">
                     このシステムではEloレーティング方式を採用しています。
                   </p>
-                  <ul className="text-sm space-y-1 ml-4 list-disc text-muted-foreground">
+                  <ul className="text-sm space-y-1 pl-6 list-disc text-muted-foreground">
                     <li>対戦相手の強さを考慮してポイント変動を計算</li>
                     <li>強い相手に勝つとより多くのポイントを獲得</li>
                     <li>弱い相手に負けるとより多くのポイントを失う</li>
@@ -90,15 +90,15 @@ export const PlayerHelp = ({ onClose }: PlayerHelpProps) => {
               </AccordionItem>
 
               <AccordionItem value="badges">
-                <AccordionTrigger className="flex items-center gap-2">
-                  <Trophy className="h-4 w-4 text-primary" />
-                  バッジの意味は？
+                <AccordionTrigger className="flex items-center gap-2 text-left">
+                  <Trophy className="h-4 w-4 text-primary flex-shrink-0" />
+                  <span>バッジの意味は？</span>
                 </AccordionTrigger>
-                <AccordionContent className="space-y-2">
+                <AccordionContent className="space-y-2 pl-6">
                   <div className="text-sm space-y-2">
                     <div>
                       <p className="font-medium">チャンピオンバッジ:</p>
-                      <ul className="ml-4 list-disc text-muted-foreground">
+                      <ul className="pl-6 list-disc text-muted-foreground">
                         <li>🥇: 年間1位（金メダル）</li>
                         <li>🥈: 年間2位（銀メダル）</li>
                         <li>🥉: 年間3位（銅メダル）</li>
@@ -106,7 +106,7 @@ export const PlayerHelp = ({ onClose }: PlayerHelpProps) => {
                     </div>
                     <div>
                       <p className="font-medium">ルールバッジ:</p>
-                      <ul className="ml-4 list-disc text-muted-foreground">
+                      <ul className="pl-6 list-disc text-muted-foreground">
                         <li>♠️: トランプルール習得済み</li>
                         <li>➕: カードプラスルール習得済み</li>
                       </ul>
@@ -116,12 +116,12 @@ export const PlayerHelp = ({ onClose }: PlayerHelpProps) => {
               </AccordionItem>
 
               <AccordionItem value="game-flow">
-                <AccordionTrigger className="flex items-center gap-2">
-                  <Users className="h-4 w-4 text-primary" />
-                  試合の流れは？
+                <AccordionTrigger className="flex items-center gap-2 text-left">
+                  <Users className="h-4 w-4 text-primary flex-shrink-0" />
+                  <span>試合の流れは？</span>
                 </AccordionTrigger>
-                <AccordionContent className="space-y-2">
-                  <ol className="text-sm space-y-1 ml-4 list-decimal text-muted-foreground">
+                <AccordionContent className="space-y-2 pl-6">
+                  <ol className="text-sm space-y-1 pl-6 list-decimal text-muted-foreground">
                     <li>大会エントリー後、対戦相手が決定</li>
                     <li>指定された卓で試合開始</li>
                     <li>試合終了後、勝者・敗者が結果を申告</li>
@@ -132,18 +132,21 @@ export const PlayerHelp = ({ onClose }: PlayerHelpProps) => {
               </AccordionItem>
 
               <AccordionItem value="pwa-install">
-                <AccordionTrigger>ホーム画面への追加方法</AccordionTrigger>
-                <AccordionContent className="space-y-2">
+                <AccordionTrigger className="flex items-center gap-2 text-left">
+                  <Smartphone className="h-4 w-4 text-primary flex-shrink-0" />
+                  <span>ホーム画面への追加方法</span>
+                </AccordionTrigger>
+                <AccordionContent className="space-y-2 pl-6">
                   <div className="text-sm space-y-2">
                     <p className="font-medium">iPhone (Safari):</p>
-                    <ol className="ml-4 list-decimal text-muted-foreground space-y-1">
+                    <ol className="pl-6 list-decimal text-muted-foreground space-y-1">
                       <li>下部の共有ボタン（□↑）をタップ</li>
                       <li>「ホーム画面に追加」を選択</li>
                       <li>「追加」をタップ</li>
                     </ol>
                     
                     <p className="font-medium mt-3">Android (Chrome):</p>
-                    <ol className="ml-4 list-decimal text-muted-foreground space-y-1">
+                    <ol className="pl-6 list-decimal text-muted-foreground space-y-1">
                       <li>右上のメニュー（⋮）をタップ</li>
                       <li>「ホーム画面に追加」を選択</li>
                       <li>「追加」をタップ</li>
@@ -153,9 +156,12 @@ export const PlayerHelp = ({ onClose }: PlayerHelpProps) => {
               </AccordionItem>
 
               <AccordionItem value="year-cycle">
-                <AccordionTrigger>年間サイクルについて</AccordionTrigger>
-                <AccordionContent className="space-y-2">
-                  <ul className="text-sm space-y-1 ml-4 list-disc text-muted-foreground">
+                <AccordionTrigger className="flex items-center gap-2 text-left">
+                  <Calendar className="h-4 w-4 text-primary flex-shrink-0" />
+                  <span>年間サイクルについて</span>
+                </AccordionTrigger>
+                <AccordionContent className="space-y-2 pl-6">
+                  <ul className="text-sm space-y-1 pl-6 list-disc text-muted-foreground">
                     <li>毎年1月1日に年間レーティングがリセット</li>
                     <li>12月31日時点の順位で年間チャンピオンを決定</li>
                     <li>累積データは永続保存されます</li>
