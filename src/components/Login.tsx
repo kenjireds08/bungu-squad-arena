@@ -56,7 +56,7 @@ export const Login = ({ onLoginSuccess }: LoginProps) => {
           'yosshio@example.com'
         ];
         
-        const isAdmin = adminEmails.includes(formData.email) && formData.password === 'bungu-admin-2024';
+        const isAdmin = adminEmails.includes(formData.email) && formData.password === 'bungu-2025';
         
         if (isAdmin || !formData.password) {
           // 管理者または一般ユーザーのログイン成功
