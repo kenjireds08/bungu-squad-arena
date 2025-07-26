@@ -11,36 +11,6 @@ interface MatchMatchingProps {
   onStartCountdown: () => void;
 }
 
-const mockMatches = [
-  {
-    id: 1,
-    player1: { name: "鈴木さん", rating: 1850, badges: ["★", "★", "♠️", "➕"] },
-    player2: { name: "佐藤さん", rating: 1685, badges: ["★", "♠️"] },
-    table: "卓1",
-    rule: "トランプルール"
-  },
-  {
-    id: 2,
-    player1: { name: "田中さん", rating: 1620, badges: ["♠️", "➕"] },
-    player2: { name: "山田さん", rating: 1580, badges: ["⭐", "➕"] },
-    table: "卓2", 
-    rule: "カードプラスルール"
-  },
-  {
-    id: 3,
-    player1: { name: "高橋さん", rating: 1540, badges: ["♠️"] },
-    player2: { name: "中村さん", rating: 1510, badges: ["➕"] },
-    table: "卓3",
-    rule: "トランプルール"
-  },
-  {
-    id: 4,
-    player1: { name: "小林さん", rating: 1480, badges: [] },
-    player2: { name: "加藤さん", rating: 1450, badges: ["♠️"] },
-    table: "卓4",
-    rule: "トランプルール"
-  }
-];
 
 export const MatchMatching = ({ onClose, onStartCountdown }: MatchMatchingProps) => {
   const [shuffling, setShuffling] = useState(false);
