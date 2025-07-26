@@ -46,31 +46,53 @@ export const Login = ({ onLoginSuccess }: LoginProps) => {
         // 仮のユーザーIDとadminフラグ
         onLoginSuccess('new_player_id', false);
       } else {
-        // ログイン処理
-        // TODO: API call to verify login
-        
-        // 管理者チェック（仮）
-        const adminEmails = [
-          'kenji.reds08@gmail.com',
-          'warabisako@example.com',
-          'yosshio@example.com'
-        ];
-        
-        const isAdmin = adminEmails.includes(formData.email) && formData.password === 'bungu-2025';
-        
-        if (isAdmin || !formData.password) {
-          // 管理者または一般ユーザーのログイン成功
-          toast({
-            title: "ログイン成功",
-            description: isAdmin ? "管理者としてログインしました" : "ログインしました",
-          });
+        // ログイン処理 - メールアドレスからプレイヤーを検索
+        try {
+          const response = await fetch('/api/rankings');
+          const players = await response.json();
           
-          // TODO: Get actual user ID from API
-          onLoginSuccess('player_001', isAdmin);
-        } else {
+          // メールアドレスでプレイヤーを検索
+          const player = players.find((p: any) => p.email === formData.email);
+          
+          if (!player) {
+            toast({
+              title: "ログイン失敗",
+              description: "このメールアドレスは登録されていません",
+              variant: "destructive"
+            });
+            setIsLoading(false);
+            return;
+          }
+          
+          // 管理者チェック
+          const adminEmails = [
+            'kenji.reds08@gmail.com',
+            'warabisako@example.com',
+            'yosshio@example.com'
+          ];
+          
+          const isAdmin = adminEmails.includes(formData.email) && formData.password === 'bungu-2025';
+          
+          if (isAdmin || !formData.password) {
+            // 管理者または一般ユーザーのログイン成功
+            toast({
+              title: "ログイン成功",
+              description: isAdmin ? "管理者としてログインしました" : "ログインしました",
+            });
+            
+            // 実際のプレイヤーIDを使用
+            onLoginSuccess(player.id, isAdmin);
+          } else {
+            toast({
+              title: "ログイン失敗",
+              description: "パスワードが正しくありません",
+              variant: "destructive"
+            });
+          }
+        } catch (error) {
           toast({
-            title: "ログイン失敗",
-            description: "メールアドレスまたはパスワードが正しくありません",
+            title: "エラー",
+            description: "ユーザー情報の取得に失敗しました",
             variant: "destructive"
           });
         }

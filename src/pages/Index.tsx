@@ -33,7 +33,7 @@ const Index = () => {
     return <Login onLoginSuccess={handleLoginSuccess} />;
   }
 
-  return <MainDashboard />;
+  return <MainDashboard currentUserId={currentUserId} isAdmin={isAdmin} />;
 };
 
 export default Index;

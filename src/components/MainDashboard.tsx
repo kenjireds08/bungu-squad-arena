@@ -30,9 +30,14 @@ import mainCharacter from '@/assets/main-character.png';
 import pencilWarrior from '@/assets/pencil-warrior.png';
 import tapeNinja from '@/assets/tape-ninja.png';
 
-const CURRENT_USER_ID = "player_001";
+interface MainDashboardProps {
+  currentUserId: string | null;
+  isAdmin: boolean;
+}
 
-export const MainDashboard = () => {
+export const MainDashboard = ({ currentUserId, isAdmin }: MainDashboardProps) => {
+  // Fallback to default if no user ID provided
+  const CURRENT_USER_ID = currentUserId || "player_001";
   const [currentPage, setCurrentPage] = useState<string>('dashboard');
   const [showPWAPrompt, setShowPWAPrompt] = useState(false);
   const [notifications, setNotifications] = useState([
