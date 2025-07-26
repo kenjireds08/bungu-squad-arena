@@ -33,51 +33,20 @@ export const useUpdatePlayerRating = () => {
   });
 };
 
-// Rankings hooks - using mock data for now
+// Rankings hooks
 export const useRankings = () => {
-  const mockData = [
-    {
-      id: "player_1",
-      nickname: "ちーけん",
-      current_rating: 1650,
-      total_wins: 15,
-      total_losses: 8,
-      champion_badges: "文具王,カードプラス初勝利",
-      rank: 1
-    },
-    {
-      id: "player_2", 
-      nickname: "ワラビサコ",
-      current_rating: 1580,
-      total_wins: 12,
-      total_losses: 6,
-      champion_badges: "連勝王",
-      rank: 2
-    }
-  ];
-
   return useQuery({
     queryKey: ['rankings'],
-    queryFn: () => Promise.resolve(mockData),
+    queryFn: api.getRankings,
     staleTime: 1000 * 60 * 2, // 2 minutes
   });
 };
 
-// Tournaments hooks - using mock data for now
+// Tournaments hooks
 export const useTournaments = () => {
-  const mockData = [
-    {
-      id: "tournament_1",
-      name: "第9回BUNGU SQUAD大会", 
-      date: "2024-08-22",
-      location: "メイン会場",
-      participants: ["player_1", "player_2"]
-    }
-  ];
-
   return useQuery({
     queryKey: ['tournaments'],
-    queryFn: () => Promise.resolve(mockData),
+    queryFn: api.getTournaments,
     staleTime: 1000 * 60 * 10, // 10 minutes
   });
 };

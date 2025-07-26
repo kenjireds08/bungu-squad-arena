@@ -3,11 +3,28 @@ const API_BASE_URL = '/api';
 export interface Player {
   id: string;
   nickname: string;
+  email: string;
   current_rating: number;
+  annual_wins: number;
+  annual_losses: number;
   total_wins: number;
   total_losses: number;
   champion_badges: string;
-  rank?: number;
+  trump_rule_experienced: boolean;
+  first_trump_game_date: string;
+  cardplus_rule_experienced: boolean;
+  first_cardplus_game_date: string;
+  registration_date: string;
+  profile_image_url: string;
+  is_active: boolean;
+  last_activity_date: string;
+  player_status: string;
+  notification_preferences: string;
+  device_tokens: string;
+  last_login_date: string;
+  profile_image_uploaded: boolean;
+  preferred_language: string;
+  rank: number;
 }
 
 export interface Tournament {
