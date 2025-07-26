@@ -257,6 +257,7 @@ export const MatchMatching = ({ onClose, onStartCountdown }: MatchMatchingProps)
             対戦開始
           </Button>
         </div>
+        </>
         )}
       </main>
     </div>
