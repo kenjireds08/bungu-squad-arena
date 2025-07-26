@@ -30,7 +30,7 @@ import mainCharacter from '@/assets/main-character.png';
 import pencilWarrior from '@/assets/pencil-warrior.png';
 import tapeNinja from '@/assets/tape-ninja.png';
 
-const CURRENT_USER_ID = "player_1";
+const CURRENT_USER_ID = "player_001";
 
 export const MainDashboard = () => {
   const [currentPage, setCurrentPage] = useState<string>('dashboard');
