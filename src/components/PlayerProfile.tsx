@@ -4,10 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, User, Camera, Save, Star, Calendar, Trophy } from 'lucide-react';
+import { ArrowLeft, User, Camera, Save, Star, Calendar, Trophy, Loader2 } from 'lucide-react';
+import { usePlayer } from '@/hooks/useApi';
 
 interface PlayerProfileProps {
   onClose: () => void;
+  currentUserId: string;
 }
 
 // Mock profile data
@@ -29,9 +31,15 @@ const mockProfile = {
   ]
 };
 
-export const PlayerProfile = ({ onClose }: PlayerProfileProps) => {
-  const [nickname, setNickname] = useState(mockProfile.nickname);
+export const PlayerProfile = ({ onClose, currentUserId }: PlayerProfileProps) => {
+  const { data: player, isLoading, error } = usePlayer(currentUserId);
+  const [nickname, setNickname] = useState('');
   const [isEditing, setIsEditing] = useState(false);
+
+  // Update nickname when player data loads
+  if (player && nickname !== player.nickname) {
+    setNickname(player.nickname || '');
+  }
 
   const handleSave = () => {
     // TODO: Save profile changes
@@ -46,6 +54,28 @@ export const PlayerProfile = ({ onClose }: PlayerProfileProps) => {
       day: 'numeric'
     });
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-parchment flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto" />
+          <p className="text-muted-foreground">プロフィールを読み込み中...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !player) {
+    return (
+      <div className="min-h-screen bg-gradient-parchment flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <p className="text-destructive">プロフィールの読み込みに失敗しました</p>
+          <Button onClick={onClose}>戻る</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-parchment">
@@ -84,8 +114,8 @@ export const PlayerProfile = ({ onClose }: PlayerProfileProps) => {
               {/* Profile Image */}
               <div className="relative">
                 <div className="w-24 h-24 mx-auto bg-muted rounded-full flex items-center justify-center border-2 border-fantasy-frame">
-                  {mockProfile.profileImage ? (
-                    <img src={mockProfile.profileImage} alt="Profile" className="w-full h-full rounded-full object-cover" />
+                  {player.profile_image_url ? (
+                    <img src={player.profile_image_url} alt="Profile" className="w-full h-full rounded-full object-cover" />
                   ) : (
                     <User className="h-12 w-12 text-muted-foreground" />
                   )}
@@ -119,13 +149,8 @@ export const PlayerProfile = ({ onClose }: PlayerProfileProps) => {
                 
                 {/* Badges */}
                 <div className="flex items-center justify-center gap-2">
-                  {mockProfile.championBadges.map((badge, index) => (
+                  {player.champion_badges?.split(',').filter(Boolean).map((badge, index) => (
                     <Badge key={index} variant="secondary" className="bg-gradient-gold">
-                      {badge}
-                    </Badge>
-                  ))}
-                  {mockProfile.ruleBadges.map((badge, index) => (
-                    <Badge key={index} variant="outline">
                       {badge}
                     </Badge>
                   ))}
@@ -135,14 +160,14 @@ export const PlayerProfile = ({ onClose }: PlayerProfileProps) => {
               {/* Basic Info */}
               <div className="grid grid-cols-2 gap-4 text-center">
                 <div className="space-y-1">
-                  <div className="text-2xl font-bold text-primary">{mockProfile.currentRating}</div>
+                  <div className="text-2xl font-bold text-primary">{player.current_rating}</div>
                   <div className="text-sm text-muted-foreground">現在レート</div>
-                  <div className="text-xs text-muted-foreground">最高: {mockProfile.highestRating}</div>
+                  <div className="text-xs text-muted-foreground">最高: {player.current_rating}</div>
                 </div>
                 <div className="space-y-1">
-                  <div className="text-2xl font-bold text-foreground">{mockProfile.totalGames}</div>
+                  <div className="text-2xl font-bold text-foreground">{(player.total_wins + player.total_losses)}</div>
                   <div className="text-sm text-muted-foreground">総対戦数</div>
-                  <div className="text-xs text-muted-foreground">参加日: {formatDate(mockProfile.joinDate)}</div>
+                  <div className="text-xs text-muted-foreground">参加日: {formatDate(player.registration_date)}</div>
                 </div>
               </div>
             </div>
@@ -160,13 +185,13 @@ export const PlayerProfile = ({ onClose }: PlayerProfileProps) => {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label className="text-sm text-muted-foreground">メールアドレス</Label>
-              <div className="p-2 bg-muted/30 rounded border text-sm">{mockProfile.email}</div>
+              <div className="p-2 bg-muted/30 rounded border text-sm">{player.email}</div>
             </div>
             <div className="space-y-2">
               <Label className="text-sm text-muted-foreground">参加日</Label>
               <div className="p-2 bg-muted/30 rounded border text-sm flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-primary" />
-                {formatDate(mockProfile.joinDate)}
+                {formatDate(player.registration_date)}
               </div>
             </div>
           </CardContent>

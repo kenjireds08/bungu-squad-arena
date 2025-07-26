@@ -119,7 +119,7 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
   }
 
   if (currentPage === 'profile') {
-    return <PlayerProfile onClose={() => setCurrentPage('dashboard')} />;
+    return <PlayerProfile onClose={() => setCurrentPage('dashboard')} currentUserId={CURRENT_USER_ID} />;
   }
 
   if (currentPage === 'achievements') {
