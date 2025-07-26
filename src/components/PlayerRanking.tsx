@@ -88,7 +88,7 @@ export const PlayerRanking = ({ onClose }: PlayerRankingProps) => {
                           {player.nickname}
                         </span>
                         <div className="flex gap-1">
-                          {[...player.badges, ...player.championBadges].map((badge, badgeIndex) => (
+                          {player.champion_badges?.split(',').filter(Boolean).map((badge, badgeIndex) => (
                             <Badge 
                               key={badgeIndex} 
                               variant={badge.match(/[★☆⭐]/) ? "default" : "outline"}
@@ -101,9 +101,9 @@ export const PlayerRanking = ({ onClose }: PlayerRankingProps) => {
                       </div>
                       <div className="flex items-center gap-2">
                         <Star className="h-4 w-4 text-primary" />
-                        <span className="font-mono text-sm">{player.rating.toLocaleString()}pt</span>
+                        <span className="font-mono text-sm">{player.current_rating.toLocaleString()}pt</span>
                         <div className="text-xs text-muted-foreground">
-                          {player.matches}試合
+                          {(player.total_wins + player.total_losses)}試合
                         </div>
                       </div>
                     </div>
