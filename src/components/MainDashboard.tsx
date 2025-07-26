@@ -219,18 +219,13 @@ export const MainDashboard = () => {
                 <div className="flex items-center justify-center gap-2">
                   <Star className="h-5 w-5 text-primary" />
                   <span className="text-xl font-semibold text-primary">
-                    {currentUser?.rating.toLocaleString() || 0}pt
-                  </span>
-                  {currentUser?.badges.map((badge, index) => (
-                    <Badge key={index} variant="outline" className="text-sm">
-                      {badge}
-                    </Badge>
-                  ))}
-                  {currentUser?.championBadges.map((badge, index) => (
-                    <Badge key={index} variant="secondary" className="text-sm bg-gradient-gold">
-                      {badge}
-                    </Badge>
-                  ))}
+                     {currentUser?.current_rating.toLocaleString() || 0}pt
+                   </span>
+                   {currentUser?.champion_badges?.split(',').filter(Boolean).map((badge, index) => (
+                     <Badge key={index} variant="secondary" className="text-sm bg-gradient-gold">
+                       {badge}
+                     </Badge>
+                   )) || []}
                 </div>
               </div>
 

@@ -3,10 +3,10 @@ const API_BASE_URL = '/api';
 export interface Player {
   id: string;
   nickname: string;
-  rating: number;
-  matches: number;
-  badges: string[];
-  championBadges: string[];
+  current_rating: number;
+  total_wins: number;
+  total_losses: number;
+  champion_badges: string;
   rank?: number;
 }
 
