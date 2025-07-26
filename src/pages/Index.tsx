@@ -29,11 +29,21 @@ const Index = () => {
     localStorage.setItem('isAdmin', admin.toString());
   };
 
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setCurrentUserId(null);
+    setIsAdmin(false);
+    
+    // Clear localStorage
+    localStorage.removeItem('userId');
+    localStorage.removeItem('isAdmin');
+  };
+
   if (!isAuthenticated) {
     return <Login onLoginSuccess={handleLoginSuccess} />;
   }
 
-  return <MainDashboard currentUserId={currentUserId} isAdmin={isAdmin} />;
+  return <MainDashboard currentUserId={currentUserId} isAdmin={isAdmin} onLogout={handleLogout} />;
 };
 
 export default Index;

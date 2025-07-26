@@ -33,9 +33,10 @@ import tapeNinja from '@/assets/tape-ninja.png';
 interface MainDashboardProps {
   currentUserId: string | null;
   isAdmin: boolean;
+  onLogout: () => void;
 }
 
-export const MainDashboard = ({ currentUserId, isAdmin }: MainDashboardProps) => {
+export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboardProps) => {
   // Fallback to default if no user ID provided
   const CURRENT_USER_ID = currentUserId || "player_001";
   const [currentPage, setCurrentPage] = useState<string>('dashboard');
@@ -178,8 +179,11 @@ export const MainDashboard = ({ currentUserId, isAdmin }: MainDashboardProps) =>
   }
 
   if (currentPage === 'logout') {
-    // TODO: Implement logout logic
-    setCurrentPage('dashboard');
+    // Clear localStorage and trigger logout
+    localStorage.removeItem('userId');
+    localStorage.removeItem('isAdmin');
+    onLogout();
+    return null;
   }
 
   return (
