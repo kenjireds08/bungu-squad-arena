@@ -147,7 +147,7 @@ export const PlayerAchievements = ({ onClose }: PlayerAchievementsProps) => {
                   <h3 className="font-semibold text-lg">{year.year}年度</h3>
                   {year.badge !== "進行中" ? (
                     <Badge variant="secondary" className="bg-gradient-gold text-sm">
-                      {year.badge} {year.rank}位
+                      {year.rank <= 3 ? year.badge : ""} {year.rank}位
                     </Badge>
                   ) : (
                     <Badge variant="outline" className="text-sm">
