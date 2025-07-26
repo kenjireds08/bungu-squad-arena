@@ -16,7 +16,7 @@ const mockParticipants = [
     name: "鈴木さん", 
     rating: 1850, 
     rank: 1,
-    badges: ["★", "★", "☆", "♠️", "➕"],
+    badges: ["🥇", "🥇", "🥈", "♠️", "➕"],
     joinDate: "2024/01/15",
     totalMatches: 48,
     winRate: 78
@@ -26,7 +26,7 @@ const mockParticipants = [
     name: "佐藤さん", 
     rating: 1685, 
     rank: 2,
-    badges: ["★", "♠️"],
+    badges: ["🥇", "♠️"],
     joinDate: "2024/02/03",
     totalMatches: 35,
     winRate: 71
@@ -46,7 +46,7 @@ const mockParticipants = [
     name: "山田さん", 
     rating: 1580, 
     rank: 5,
-    badges: ["⭐", "➕"],
+    badges: ["🥉", "➕"],
     joinDate: "2024/01/08",
     totalMatches: 42,
     winRate: 60
@@ -181,7 +181,7 @@ export const TournamentParticipants = ({ onClose }: TournamentParticipantsProps)
                           {participant.badges.map((badge, badgeIndex) => (
                             <Badge 
                               key={badgeIndex} 
-                              variant={badge.includes('★') || badge.includes('☆') || badge.includes('⭐') ? "default" : "outline"}
+                              variant={badge.includes('🥇') || badge.includes('🥈') || badge.includes('🥉') ? "default" : "outline"}
                               className="text-xs px-1 py-0"
                             >
                               {badge}
@@ -241,7 +241,7 @@ export const TournamentParticipants = ({ onClose }: TournamentParticipantsProps)
               </div>
               <div>
                 <p className="text-2xl font-bold text-info">
-                  {mockParticipants.filter(p => p.badges.some(b => b.includes('★') || b.includes('☆') || b.includes('⭐'))).length}
+                  {mockParticipants.filter(p => p.badges.some(b => b.includes('🥇') || b.includes('🥈') || b.includes('🥉'))).length}
                 </p>
                 <p className="text-xs text-muted-foreground">チャンピオン経験者</p>
               </div>

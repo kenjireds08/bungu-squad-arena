@@ -10,7 +10,7 @@ interface PlayerAchievementsProps {
 // Mock achievements data
 const mockAchievements = {
   championBadges: [
-    { badge: "⭐", title: "2023年度 3位", description: "年間ランキング3位を獲得", date: "2023-12-31" }
+    { badge: "🥉", title: "2023年度 3位", description: "年間ランキング3位を獲得", date: "2023-12-31" }
   ],
   milestones: [
     { icon: Trophy, title: "初勝利", description: "記念すべき初勝利を達成", date: "2024-04-20", completed: true },
@@ -22,7 +22,7 @@ const mockAchievements = {
   ],
   yearlyStats: [
     { year: 2024, rank: 3, rating: 1650, games: 45, wins: 31, badge: "進行中" },
-    { year: 2023, rank: 5, rating: 1580, games: 32, wins: 18, badge: "⭐" }
+    { year: 2023, rank: 5, rating: 1580, games: 32, wins: 18, badge: "🥉" }
   ]
 };
 

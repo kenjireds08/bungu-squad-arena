@@ -19,7 +19,7 @@ const mockProfile = {
   currentRating: 1650,
   highestRating: 1720,
   totalGames: 45,
-  championBadges: ["⭐"], // 昨年3位
+  championBadges: ["🥉"], // 昨年3位
   ruleBadges: ["➕"], // カードプラスルール習得済み
   achievements: [
     { title: "初勝利", description: "初めての勝利を達成", date: "2024-04-20" },

@@ -91,8 +91,8 @@ export const PlayerRanking = ({ onClose }: PlayerRankingProps) => {
                           {player.champion_badges?.split(',').filter(Boolean).map((badge, badgeIndex) => (
                             <Badge 
                               key={badgeIndex} 
-                              variant={badge.match(/[★☆⭐]/) ? "default" : "outline"}
-                              className={`text-xs ${badge.match(/[★☆⭐]/) ? 'bg-gradient-gold' : ''}`}
+                              variant={badge.match(/[🥇🥈🥉]/) ? "default" : "outline"}
+                              className={`text-xs ${badge.match(/[🥇🥈🥉]/) ? 'bg-gradient-gold' : ''}`}
                             >
                               {badge}
                             </Badge>
@@ -127,7 +127,7 @@ export const PlayerRanking = ({ onClose }: PlayerRankingProps) => {
         <div className="mt-8 text-center space-y-2">
           <div className="text-xs text-muted-foreground space-y-1">
             <p><strong>バッジの意味:</strong></p>
-            <p>★☆⭐: 年間チャンピオンバッジ（金・銀・銅）</p>
+            <p>🥇🥈🥉: 年間チャンピオンバッジ（金・銀・銅）</p>
             <p>♠️: トランプルール習得済み　➕: カードプラスルール習得済み</p>
           </div>
         </div>

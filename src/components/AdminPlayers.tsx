@@ -20,7 +20,7 @@ const mockPlayers = [
     totalGames: 52,
     winRate: 73.1,
     status: "active",
-    badges: ["★", "★", "☆", "♠️", "➕"],
+    badges: ["🥇", "🥇", "🥈", "♠️", "➕"],
     lastSeen: "2024-07-25 20:30"
   },
   {
@@ -32,7 +32,7 @@ const mockPlayers = [
     totalGames: 48,
     winRate: 64.6,
     status: "active",
-    badges: ["★", "♠️"],
+    badges: ["🥇", "♠️"],
     lastSeen: "2024-07-25 20:25"
   },
   {
@@ -249,8 +249,8 @@ export const AdminPlayers = ({ onBack }: AdminPlayersProps) => {
                     {player.badges.map((badge, badgeIndex) => (
                       <Badge 
                         key={badgeIndex} 
-                        variant={badge.match(/[★☆⭐]/) ? "default" : "outline"}
-                        className={`text-xs ${badge.match(/[★☆⭐]/) ? 'bg-gradient-gold' : ''}`}
+                        variant={badge.match(/[🥇🥈🥉]/) ? "default" : "outline"}
+                        className={`text-xs ${badge.match(/[🥇🥈🥉]/) ? 'bg-gradient-gold' : ''}`}
                       >
                         {badge}
                       </Badge>

@@ -99,9 +99,9 @@ export const PlayerHelp = ({ onClose }: PlayerHelpProps) => {
                     <div>
                       <p className="font-medium">チャンピオンバッジ:</p>
                       <ul className="ml-4 list-disc text-muted-foreground">
-                        <li>★: 年間1位（金メダル）</li>
-                        <li>☆: 年間2位（銀メダル）</li>
-                        <li>⭐: 年間3位（銅メダル）</li>
+                        <li>🥇: 年間1位（金メダル）</li>
+                        <li>🥈: 年間2位（銀メダル）</li>
+                        <li>🥉: 年間3位（銅メダル）</li>
                       </ul>
                     </div>
                     <div>
