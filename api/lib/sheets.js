@@ -116,6 +116,40 @@ class SheetsService {
     }
   }
 
+  async updatePlayerEmail(playerId, email) {
+    await this.authenticate();
+    
+    try {
+      // First, find the player's row
+      const playersResponse = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'Players!A2:A1000'
+      });
+
+      const playerIds = playersResponse.data.values || [];
+      const rowIndex = playerIds.findIndex(row => row[0] === playerId);
+      
+      if (rowIndex === -1) {
+        throw new Error('Player not found');
+      }
+
+      // Update the email (column C = index 2)
+      await this.sheets.spreadsheets.values.update({
+        spreadsheetId: this.spreadsheetId,
+        range: `Players!C${rowIndex + 2}`,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+          values: [[email]]
+        }
+      });
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error updating player email:', error);
+      throw new Error('Failed to update player email');
+    }
+  }
+
   async getTournaments() {
     await this.authenticate();
     

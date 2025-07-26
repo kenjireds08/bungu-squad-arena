@@ -26,13 +26,24 @@ module.exports = async function handler(req, res) {
           return res.status(400).json({ error: 'Player ID is required' });
         }
         
-        const { current_rating } = req.body;
-        if (typeof current_rating !== 'number') {
-          return res.status(400).json({ error: 'Rating must be a number' });
+        const { current_rating, email } = req.body;
+        
+        // Update rating if provided
+        if (current_rating !== undefined) {
+          if (typeof current_rating !== 'number') {
+            return res.status(400).json({ error: 'Rating must be a number' });
+          }
+          const result = await sheetsService.updatePlayerRating(req.query.id, current_rating);
+          return res.status(200).json(result);
         }
-
-        const result = await sheetsService.updatePlayerRating(req.query.id, current_rating);
-        return res.status(200).json(result);
+        
+        // Update email if provided
+        if (email !== undefined) {
+          const result = await sheetsService.updatePlayerEmail(req.query.id, email);
+          return res.status(200).json(result);
+        }
+        
+        return res.status(400).json({ error: 'No valid fields to update' });
 
       default:
         return res.status(405).json({ error: 'Method not allowed' });
