@@ -1,8 +1,9 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, MapPin, Users, Clock, Trophy, ArrowLeft, Share2 } from 'lucide-react';
+import { Calendar, MapPin, Users, Clock, Trophy, ArrowLeft, Share2, Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { useRankings, useTournaments } from '@/hooks/useApi';
 
 interface TournamentDetailsProps {
   onClose: () => void;
@@ -28,15 +29,16 @@ const mockTournament = {
     "2位：シルバーバッジ☆ + 記念品", 
     "3位：ブロンズバッジ⭐ + 記念品"
   ],
-  recentParticipants: [
-    { name: "鈴木さん", rating: 1850, badges: ["★", "★", "☆"] },
-    { name: "佐藤さん", rating: 1685, badges: ["★"] },
-    { name: "田中さん", rating: 1620, badges: ["♠️", "➕"] },
-    { name: "山田さん", rating: 1580, badges: ["⭐", "➕"] }
-  ]
+  recentParticipants: []
 };
 
 export const TournamentDetails = ({ onClose, onViewParticipants }: TournamentDetailsProps) => {
+  const { data: rankings, isLoading: rankingsLoading } = useRankings();
+  const { data: tournaments, isLoading: tournamentsLoading } = useTournaments();
+  
+  const currentTournament = tournaments?.[0] || mockTournament;
+  const topPlayers = rankings?.slice(0, 4) || [];
+
   const handleShare = async () => {
     if (navigator.share) {
       try {
@@ -174,37 +176,44 @@ export const TournamentDetails = ({ onClose, onViewParticipants }: TournamentDet
             </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {mockTournament.recentParticipants.slice(0, 4).map((participant, index) => (
-                <div key={index} className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback className="text-xs bg-muted">
-                        {participant.name.slice(0, 2)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="font-medium text-sm">{participant.name}</p>
-                      <div className="flex items-center gap-1">
-                        {participant.badges.map((badge, badgeIndex) => (
-                          <Badge key={badgeIndex} variant="outline" className="text-xs px-1 py-0">
-                            {badge}
-                          </Badge>
-                        ))}
+            {rankingsLoading ? (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span className="ml-2 text-sm text-muted-foreground">読み込み中...</span>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {topPlayers.map((player, index) => (
+                  <div key={player.id} className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-8 w-8">
+                        <AvatarFallback className="text-xs bg-muted">
+                          {player.nickname.slice(0, 2)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="font-medium text-sm">{player.nickname}</p>
+                        <div className="flex items-center gap-1">
+                          {player.champion_badges?.split(',').filter(Boolean).map((badge, badgeIndex) => (
+                            <Badge key={badgeIndex} variant="outline" className="text-xs px-1 py-0">
+                              {badge}
+                            </Badge>
+                          ))}
+                        </div>
                       </div>
                     </div>
+                    <div className="text-sm font-medium text-primary">
+                      {player.current_rating}pt
+                    </div>
                   </div>
-                  <div className="text-sm font-medium text-primary">
-                    {participant.rating}pt
-                  </div>
-                </div>
-              ))}
-              {mockTournament.participants > 4 && (
-                <p className="text-center text-sm text-muted-foreground">
-                  他{mockTournament.participants - 4}名
-                </p>
-              )}
-            </div>
+                ))}
+                {topPlayers.length === 0 && (
+                  <p className="text-center text-sm text-muted-foreground py-4">
+                    参加予定者はまだいません
+                  </p>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 

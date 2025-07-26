@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Users, Shuffle, Play } from 'lucide-react';
+import { ArrowLeft, Users, Shuffle, Play, Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { useRankings } from '@/hooks/useApi';
 
 interface MatchMatchingProps {
   onClose: () => void;
@@ -43,13 +44,73 @@ const mockMatches = [
 
 export const MatchMatching = ({ onClose, onStartCountdown }: MatchMatchingProps) => {
   const [shuffling, setShuffling] = useState(false);
-  const [currentMatches, setCurrentMatches] = useState(mockMatches);
+  const [currentMatches, setCurrentMatches] = useState<any[]>([]);
+  const { data: rankings, isLoading } = useRankings();
+
+  // Generate matches from real player data
+  useEffect(() => {
+    if (rankings && rankings.length >= 2) {
+      const generateMatches = () => {
+        const players = [...rankings];
+        const newMatches = [];
+        const rules = ['トランプルール', 'カードプラスルール'];
+        
+        for (let i = 0; i < Math.min(players.length - 1, 4); i += 2) {
+          if (players[i] && players[i + 1]) {
+            newMatches.push({
+              id: i / 2 + 1,
+              player1: {
+                name: players[i].nickname,
+                rating: players[i].current_rating,
+                badges: players[i].champion_badges?.split(',').filter(Boolean) || []
+              },
+              player2: {
+                name: players[i + 1].nickname,
+                rating: players[i + 1].current_rating,
+                badges: players[i + 1].champion_badges?.split(',').filter(Boolean) || []
+              },
+              table: `卓${i / 2 + 1}`,
+              rule: rules[i / 2 % 2]
+            });
+          }
+        }
+        return newMatches;
+      };
+      
+      setCurrentMatches(generateMatches());
+    }
+  }, [rankings]);
 
   const handleShuffle = () => {
+    if (!rankings || rankings.length < 2) return;
+    
     setShuffling(true);
     // Simulate shuffling animation
     setTimeout(() => {
-      // Here you would implement actual shuffling logic
+      const shuffledPlayers = [...rankings].sort(() => Math.random() - 0.5);
+      const newMatches = [];
+      const rules = ['トランプルール', 'カードプラスルール'];
+      
+      for (let i = 0; i < Math.min(shuffledPlayers.length - 1, 4); i += 2) {
+        if (shuffledPlayers[i] && shuffledPlayers[i + 1]) {
+          newMatches.push({
+            id: i / 2 + 1,
+            player1: {
+              name: shuffledPlayers[i].nickname,
+              rating: shuffledPlayers[i].current_rating,
+              badges: shuffledPlayers[i].champion_badges?.split(',').filter(Boolean) || []
+            },
+            player2: {
+              name: shuffledPlayers[i + 1].nickname,
+              rating: shuffledPlayers[i + 1].current_rating,
+              badges: shuffledPlayers[i + 1].champion_badges?.split(',').filter(Boolean) || []
+            },
+            table: `卓${i / 2 + 1}`,
+            rule: rules[i / 2 % 2]
+          });
+        }
+      }
+      setCurrentMatches(newMatches);
       setShuffling(false);
     }, 2000);
   };
@@ -76,6 +137,13 @@ export const MatchMatching = ({ onClose, onStartCountdown }: MatchMatchingProps)
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6 space-y-6">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin" />
+            <span className="ml-2 text-muted-foreground">対戦組み合わせを生成中...</span>
+          </div>
+        ) : (
+          <>
         {/* Tournament Info */}
         <Card className="border-fantasy-frame shadow-soft animate-fade-in">
           <CardContent className="pt-4">
@@ -219,6 +287,7 @@ export const MatchMatching = ({ onClose, onStartCountdown }: MatchMatchingProps)
             対戦開始
           </Button>
         </div>
+        )}
       </main>
     </div>
   );
