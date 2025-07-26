@@ -73,13 +73,13 @@ export const NotificationBanner = ({ notifications, onDismiss, onViewAll }: Noti
   const getBannerStyle = (priority: string) => {
     switch (priority) {
       case 'high':
-        return 'bg-destructive/90 text-destructive-foreground border-destructive';
+        return 'bg-gradient-parchment border-fantasy-frame text-foreground shadow-elegant';
       case 'medium':
-        return 'bg-primary/90 text-primary-foreground border-primary';
+        return 'bg-card/95 border-border text-card-foreground shadow-md';
       case 'low':
-        return 'bg-info/90 text-info-foreground border-info';
+        return 'bg-muted/95 text-muted-foreground border-border shadow-sm';
       default:
-        return 'bg-muted/90 text-muted-foreground border-muted';
+        return 'bg-background/95 text-foreground border-border shadow-sm';
     }
   };
 
