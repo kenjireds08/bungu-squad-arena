@@ -274,8 +274,22 @@ export const MainDashboard = () => {
               <>
                 <h3 className="font-semibold text-lg">{nextTournament.name}</h3>
                 <div className="space-y-1 text-sm text-muted-foreground">
-                  <p>{nextTournament.date}</p>
-                  <p>場所：{nextTournament.location}</p>
+                  <p className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    {nextTournament.date}
+                    {nextTournament.time && (
+                      <span className="ml-2 font-medium text-primary">
+                        {nextTournament.time}〜
+                      </span>
+                    )}
+                  </p>
+                  <p className="flex items-center gap-2">
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    場所：{nextTournament.location}
+                  </p>
                 </div>
               </>
             ) : (

@@ -42,11 +42,22 @@ export const useRankings = () => {
   });
 };
 
-// Tournaments hooks
+// Tournaments hooks - using mock data for now
 export const useTournaments = () => {
+  const mockData = [
+    {
+      id: "tournament_1",
+      name: "第9回BUNGU SQUAD大会", 
+      date: "2024-08-22",
+      time: "13:30",
+      location: "メイン会場",
+      participants: ["player_1", "player_2"]
+    }
+  ];
+
   return useQuery({
     queryKey: ['tournaments'],
-    queryFn: api.getTournaments,
+    queryFn: () => Promise.resolve(mockData),
     staleTime: 1000 * 60 * 10, // 10 minutes
   });
 };
