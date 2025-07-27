@@ -88,15 +88,28 @@ export const PlayerRanking = ({ onClose }: PlayerRankingProps) => {
                           {player.nickname}
                         </span>
                         <div className="flex gap-1">
-                          {player.champion_badges?.split(',').filter(Boolean).map((badge, badgeIndex) => (
-                            <Badge 
-                              key={badgeIndex} 
-                              variant={badge.match(/[🥇🥈🥉]/) ? "default" : "outline"}
-                              className={`text-xs ${badge.match(/[🥇🥈🥉]/) ? 'bg-gradient-gold' : ''}`}
-                            >
-                              {badge}
-                            </Badge>
-                          ))}
+                          {player.champion_badges?.split(',').filter(Boolean).map((badge, badgeIndex) => {
+                            // Convert champion symbols to emoji badges (Lovable's improvement)
+                            const convertToEmoji = (symbol: string) => {
+                              const trimmed = symbol.trim();
+                              if (trimmed === '★') return '🥇';
+                              if (trimmed === '☆') return '🥈';
+                              if (trimmed === '⭐') return '🥉';
+                              return trimmed; // Keep game rule badges as is (♠️, ➕)
+                            };
+                            
+                            const displayBadge = convertToEmoji(badge);
+                            
+                            return (
+                              <Badge 
+                                key={badgeIndex} 
+                                variant={displayBadge.match(/[🥇🥈🥉]/) ? "default" : "outline"}
+                                className={`text-xs ${displayBadge.match(/[🥇🥈🥉]/) ? 'bg-gradient-gold' : ''}`}
+                              >
+                                {displayBadge}
+                              </Badge>
+                            );
+                          })}
                         </div>
                       </div>
                       <div className="flex items-center gap-2">

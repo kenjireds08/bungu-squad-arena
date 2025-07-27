@@ -149,11 +149,22 @@ export const PlayerProfile = ({ onClose, currentUserId }: PlayerProfileProps) =>
                 
                 {/* Badges */}
                 <div className="flex items-center justify-center gap-2">
-                  {player.champion_badges?.split(',').filter(Boolean).map((badge, index) => (
-                    <Badge key={index} variant="secondary" className="bg-gradient-gold">
-                      {badge}
-                    </Badge>
-                  ))}
+                  {player.champion_badges?.split(',').filter(Boolean).map((badge, index) => {
+                    // Convert symbols to emoji badges (Lovable's improvement)
+                    const convertToEmoji = (symbol: string) => {
+                      const trimmed = symbol.trim();
+                      if (trimmed === '★') return '🥇';
+                      if (trimmed === '☆') return '🥈';
+                      if (trimmed === '⭐') return '🥉';
+                      return trimmed; // Keep other badges as is (♠️, ➕)
+                    };
+                    
+                    return (
+                      <Badge key={index} variant="secondary" className="bg-gradient-gold">
+                        {convertToEmoji(badge)}
+                      </Badge>
+                    );
+                  })}
                 </div>
               </div>
 

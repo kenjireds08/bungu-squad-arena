@@ -230,11 +230,22 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
                   <span className="text-xl font-semibold text-primary">
                     {currentUser?.current_rating.toLocaleString() || 0}pt
                   </span>
-                  {currentUser?.champion_badges?.split(',').filter(Boolean).map((badge, index) => (
-                    <Badge key={index} variant="outline" className="text-sm">
-                      {badge}
-                    </Badge>
-                  ))}
+                  {currentUser?.champion_badges?.split(',').filter(Boolean).map((badge, index) => {
+                    // Convert symbols to emoji badges (Lovable's improvement)
+                    const convertToEmoji = (symbol: string) => {
+                      const trimmed = symbol.trim();
+                      if (trimmed === '★') return '🥇';
+                      if (trimmed === '☆') return '🥈';
+                      if (trimmed === '⭐') return '🥉';
+                      return trimmed; // Keep other badges as is (♠️, ➕)
+                    };
+                    
+                    return (
+                      <Badge key={index} variant="outline" className="text-sm">
+                        {convertToEmoji(badge)}
+                      </Badge>
+                    );
+                  })}
                 </div>
               </div>
 
