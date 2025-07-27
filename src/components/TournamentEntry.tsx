@@ -30,16 +30,15 @@ export const TournamentEntry = () => {
         setIsLoading(true);
         
         // TODO: Replace with actual API call
-        // Mock tournament data for now - use date parameter if available
-        const tournamentDate = date || '2025-07-27';
+        // Mock tournament data for now
         const mockTournament: Tournament = {
-          id: tournamentId || date || '1',
-          name: `第8回BUNGU SQUAD大会`,
-          date: tournamentDate,
+          id: tournamentId || '1',
+          name: '第9回BUNGU SQUAD大会',
+          date: '2024-08-08',
           time: '19:00',
-          location: '○○コミュニティセンター',
-          participants: 1,
-          status: '開催中'
+          location: '△△コミュニティセンター',
+          participants: 12,
+          status: '募集中'
         };
         
         // Simulate API delay
@@ -78,8 +77,7 @@ export const TournamentEntry = () => {
           variant: "destructive"
         });
         // Redirect to login with return URL
-        const returnUrl = date ? `/tournament/${date}` : `/tournament-entry/${tournamentId}`;
-        navigate(`/?returnTo=${returnUrl}`);
+        navigate(`/?returnTo=/tournament-entry/${tournamentId}`);
         return;
       }
 
