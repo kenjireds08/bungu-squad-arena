@@ -210,6 +210,44 @@ class SheetsService {
     }
   }
 
+  async resetAllTournamentActive() {
+    await this.authenticate();
+    
+    try {
+      // Get all players to know how many rows to update
+      const playersResponse = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'Players!A2:A1000'
+      });
+
+      const playerRows = playersResponse.data.values || [];
+      const rowCount = playerRows.length;
+      
+      if (rowCount === 0) {
+        return { success: true, updatedCount: 0 };
+      }
+
+      // Create array of FALSE values for all players
+      const falseValues = Array(rowCount).fill(['FALSE']);
+      
+      // Update all tournament_active values to FALSE (column L)
+      await this.sheets.spreadsheets.values.update({
+        spreadsheetId: this.spreadsheetId,
+        range: `Players!L2:L${rowCount + 1}`,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+          values: falseValues
+        }
+      });
+
+      console.log(`Reset tournament_active for ${rowCount} players`);
+      return { success: true, updatedCount: rowCount };
+    } catch (error) {
+      console.error('Error resetting tournament active:', error);
+      throw new Error('Failed to reset tournament active status');
+    }
+  }
+
   async getTournaments() {
     await this.authenticate();
     

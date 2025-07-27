@@ -25,7 +25,7 @@ export const AdminPlayers = ({ onBack }: AdminPlayersProps) => {
     return matchesSearch && matchesStatus;
   }) || [];
 
-  const activePlayersCount = players?.filter(p => p.is_active).length || 0;
+  const activePlayersCount = players?.filter(p => p.tournament_active).length || 0;
   const totalPlayersCount = players?.length || 0;
 
   const getStatusBadge = (isActive: boolean) => {
@@ -113,6 +113,41 @@ export const AdminPlayers = ({ onBack }: AdminPlayersProps) => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Admin Actions */}
+        <Card className="border-warning shadow-soft">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold text-warning">管理者操作</h3>
+                <p className="text-sm text-muted-foreground">大会エントリー状態をリセット</p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  if (confirm('全プレイヤーの大会エントリー状態をリセットしますか？')) {
+                    try {
+                      const response = await fetch('/api/admin/reset-tournament-active', {
+                        method: 'POST'
+                      });
+                      const result = await response.json();
+                      if (result.success) {
+                        alert(`${result.updatedCount}名のプレイヤーをリセットしました`);
+                        window.location.reload();
+                      }
+                    } catch (error) {
+                      alert('リセットに失敗しました');
+                    }
+                  }
+                }}
+                className="border-warning text-warning hover:bg-warning hover:text-warning-foreground"
+              >
+                エントリー状態リセット
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Search and Filter */}
         <Card className="border-fantasy-frame shadow-soft">

@@ -3,5 +3,11 @@
     "api/*.js": {
       "maxDuration": 10
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/reset-tournament-active",
+      "schedule": "0 15 * * *"
+    }
+  ]
 }
