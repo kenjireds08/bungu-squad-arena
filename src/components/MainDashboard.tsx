@@ -221,23 +221,17 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
             <div className="text-center space-y-4">
               {/* Current Rank Display */}
               <div className="space-y-2">
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground mb-1">2024年度ランキング</p>
+                  <p className="text-lg font-medium text-foreground mb-2">{currentUser?.nickname || 'プレイヤー'}</p>
+                </div>
                 <h2 className="text-2xl font-bold text-foreground">
                   {getRankIcon(currentUser?.rank || 0)} 現在 {currentUser?.rank || '-'}位
                 </h2>
-                <div className="flex items-center justify-center gap-2">
-                  <Star className="h-5 w-5 text-primary" />
+                <div className="flex items-center justify-center">
                   <span className="text-xl font-semibold text-primary">
                     {currentUser?.current_rating.toLocaleString() || 0}pt
                   </span>
-                  {currentUser?.champion_badges?.split(',').filter(Boolean).map((badge, index) => (
-                    <span 
-                      key={index} 
-                      className="text-lg leading-none"
-                      title={badge.trim().match(/[🥇🥈🥉]/) ? "チャンピオンバッジ" : "ルール習得バッジ"}
-                    >
-                      {badge.trim()}
-                    </span>
-                  ))}
                 </div>
               </div>
 
@@ -259,16 +253,6 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
                 </div>
               )}
 
-              {/* Tournament Entry Button */}
-              <Button 
-                variant="heroic" 
-                size="xl" 
-                onClick={handleTournamentEntry}
-                className="w-full max-w-xs mx-auto animate-bounce-gentle"
-              >
-                <Camera className="h-5 w-5" />
-                大会にエントリー
-              </Button>
             </div>
           </CardContent>
         </Card>
@@ -281,28 +265,39 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
               次回大会予定
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="space-y-4">
             {nextTournament ? (
               <>
-                <h3 className="font-semibold text-lg">{nextTournament.name}</h3>
-                <div className="space-y-1 text-sm text-muted-foreground">
-                  <p className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4" />
-                    {nextTournament.date}
-                    {nextTournament.time && (
-                      <span className="ml-2 font-medium text-primary">
-                        {nextTournament.time}〜
-                      </span>
-                    )}
-                  </p>
-                  <p className="flex items-center gap-2">
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    場所：{nextTournament.location}
-                  </p>
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-lg">{nextTournament.name}</h3>
+                  <div className="space-y-1 text-sm text-muted-foreground">
+                    <p className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      {nextTournament.date}
+                      {nextTournament.time && (
+                        <span className="ml-2 font-medium text-primary">
+                          {nextTournament.time}〜
+                        </span>
+                      )}
+                    </p>
+                    <p className="flex items-center gap-2">
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      場所：{nextTournament.location}
+                    </p>
+                  </div>
                 </div>
+                <Button 
+                  variant="heroic" 
+                  size="lg" 
+                  onClick={handleTournamentEntry}
+                  className="w-full animate-bounce-gentle"
+                >
+                  <Camera className="h-5 w-5" />
+                  大会にエントリー
+                </Button>
               </>
             ) : (
               <p className="text-sm text-muted-foreground">次回大会の情報はありません</p>
@@ -311,7 +306,7 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
         </Card>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4">
           <Button 
             variant="tournament" 
             size="lg" 
@@ -320,10 +315,6 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
           >
             <Trophy className="h-6 w-6 mb-1" />
             ランキング
-          </Button>
-          <Button variant="outline" size="lg" className="h-20 flex-col" onClick={() => setCurrentPage('match-matching')}>
-            <Users className="h-6 w-6 mb-1" />
-            対戦
           </Button>
         </div>
 
