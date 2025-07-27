@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { MainDashboard } from '@/components/MainDashboard';
 import { Login } from '@/components/Login';
 
@@ -6,6 +7,8 @@ const Index = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
     // Check if user is already logged in (from localStorage)
@@ -27,6 +30,12 @@ const Index = () => {
     // Save to localStorage
     localStorage.setItem('userId', userId);
     localStorage.setItem('isAdmin', admin.toString());
+    
+    // Handle return URL after login
+    const returnTo = searchParams.get('returnTo');
+    if (returnTo) {
+      navigate(returnTo);
+    }
   };
 
   const handleLogout = () => {

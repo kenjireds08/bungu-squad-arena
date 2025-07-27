@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ArrowLeft, Plus, Calendar, MapPin, QrCode, Users, Settings } from 'lucide-react';
+import { QRCodeDisplay } from './QRCodeDisplay';
 
 interface AdminTournamentsProps {
   onBack: () => void;
@@ -54,6 +55,8 @@ const mockTournaments = {
 export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
   const [currentView, setCurrentView] = useState<'list' | 'create'>('list');
   const [selectedTournament, setSelectedTournament] = useState<any>(null);
+  const [showQRCode, setShowQRCode] = useState(false);
+  const [qrTournament, setQrTournament] = useState<any>(null);
   const [newTournament, setNewTournament] = useState({
     name: '',
     date: '',
@@ -75,6 +78,16 @@ export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
       matchType: 'random',
       description: ''
     });
+  };
+
+  const handleShowQR = (tournament: any) => {
+    setQrTournament(tournament);
+    setShowQRCode(true);
+  };
+
+  const handleCloseQR = () => {
+    setShowQRCode(false);
+    setQrTournament(null);
   };
 
   if (currentView === 'create') {
@@ -257,7 +270,7 @@ export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
                       <Settings className="h-3 w-3" />
                       組み合わせ
                     </Button>
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" onClick={() => handleShowQR(tournament)}>
                       <QrCode className="h-3 w-3" />
                       QRコード
                     </Button>
@@ -311,6 +324,10 @@ export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
                 <div className="flex gap-2 mt-3">
                   <Button variant="outline" size="sm">編集</Button>
                   <Button variant="outline" size="sm">削除</Button>
+                  <Button variant="outline" size="sm" onClick={() => handleShowQR(tournament)}>
+                    <QrCode className="h-3 w-3" />
+                    QRコード
+                  </Button>
                 </div>
               </div>
             ))}
@@ -425,6 +442,16 @@ export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
             )}
           </DialogContent>
         </Dialog>
+
+        {/* QR Code Display Modal */}
+        {qrTournament && (
+          <QRCodeDisplay
+            tournamentId={qrTournament.id.toString()}
+            tournamentName={qrTournament.name}
+            onClose={handleCloseQR}
+            isOpen={showQRCode}
+          />
+        )}
       </main>
     </div>
   );
