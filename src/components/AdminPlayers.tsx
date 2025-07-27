@@ -5,91 +5,73 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ArrowLeft, Users, UserPlus, Search, Mail, Trophy, Calendar, Eye } from 'lucide-react';
+import { ArrowLeft, Users, UserPlus, Search, Mail, Trophy, Calendar, Eye, Loader2 } from 'lucide-react';
+import { useRankings } from '@/hooks/useApi';
 
 interface AdminPlayersProps {
   onBack: () => void;
 }
 
-// Mock players data
-const mockPlayers = [
-  {
-    id: 1,
-    nickname: "鈴木さん",
-    email: "suzuki@example.com",
-    currentRating: 1850,
-    joinDate: "2024-04-15",
-    totalGames: 52,
-    winRate: 73.1,
-    status: "active",
-    badges: ["🥇", "🥇", "🥈", "♠️", "➕"],
-    lastSeen: "2024-07-25 20:30"
-  },
-  {
-    id: 2,
-    nickname: "佐藤さん",
-    email: "sato@example.com",
-    currentRating: 1685,
-    joinDate: "2024-04-20",
-    totalGames: 48,
-    winRate: 64.6,
-    status: "active",
-    badges: ["🥇", "♠️"],
-    lastSeen: "2024-07-25 20:25"
-  },
-  {
-    id: 3,
-    nickname: "田中さん",
-    email: "tanaka@example.com",
-    currentRating: 1620,
-    joinDate: "2024-05-01",
-    totalGames: 35,
-    winRate: 60.0,
-    status: "active",
-    badges: ["♠️", "➕"],
-    lastSeen: "2024-07-25 19:45"
-  },
-  {
-    id: 4,
-    nickname: "新規ユーザー",
-    email: "newuser@example.com",
-    currentRating: 1500,
-    joinDate: "2024-07-25",
-    totalGames: 0,
-    winRate: 0,
-    status: "pending",
-    badges: [],
-    lastSeen: "申請中"
-  }
-];
-
 export const AdminPlayers = ({ onBack }: AdminPlayersProps) => {
+  const { data: players, isLoading, error } = useRankings();
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'pending'>('all');
-  const [selectedPlayer, setSelectedPlayer] = useState<typeof mockPlayers[0] | null>(null);
+  const [filterStatus, setFilterStatus] = useState<'all' | 'active'>('all');
+  const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
 
-  const filteredPlayers = mockPlayers.filter(player => {
+  const filteredPlayers = players?.filter(player => {
     const matchesSearch = player.nickname.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          player.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filterStatus === 'all' || player.status === filterStatus;
+    const matchesStatus = filterStatus === 'all' || (filterStatus === 'active' && player.is_active);
     return matchesSearch && matchesStatus;
-  });
+  }) || [];
 
-  const activePlayersCount = mockPlayers.filter(p => p.status === 'active').length;
-  const pendingPlayersCount = mockPlayers.filter(p => p.status === 'pending').length;
+  const activePlayersCount = players?.filter(p => p.is_active).length || 0;
+  const totalPlayersCount = players?.length || 0;
 
-  const handleApprovePlayer = (playerId: number) => {
-    // TODO: Implement player approval
-    console.log('Approving player:', playerId);
+  const getStatusBadge = (isActive: boolean) => {
+    return isActive ? (
+      <Badge className="bg-green-500 text-white">アクティブ</Badge>
+    ) : (
+      <Badge variant="secondary">承認待ち</Badge>
+    );
   };
 
-  const handleRejectPlayer = (playerId: number) => {
-    // TODO: Implement player rejection
-    console.log('Rejecting player:', playerId);
+  const calculateWinRate = (wins: number, losses: number) => {
+    const total = wins + losses;
+    if (total === 0) return 0;
+    return ((wins / total) * 100).toFixed(1);
   };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('ja-JP');
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-parchment flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto" />
+          <p className="text-muted-foreground">プレイヤーデータを読み込み中...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-parchment flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <p className="text-destructive">データの読み込みに失敗しました</p>
+          <Button onClick={onBack}>戻る</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-parchment">
+      {/* Header */}
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-fantasy-frame shadow-soft">
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center gap-3">
@@ -105,44 +87,46 @@ export const AdminPlayers = ({ onBack }: AdminPlayersProps) => {
       </header>
 
       <main className="container mx-auto px-4 py-6 space-y-6">
-        {/* Stats Overview */}
-        <div className="grid grid-cols-3 gap-4">
-          <Card className="border-fantasy-frame shadow-soft animate-fade-in">
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-success">{activePlayersCount}</div>
-              <div className="text-sm text-muted-foreground">アクティブプレイヤー</div>
-            </CardContent>
-          </Card>
-          
-          <Card className="border-fantasy-frame shadow-soft animate-fade-in" style={{ animationDelay: '100ms' }}>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-warning">{pendingPlayersCount}</div>
-              <div className="text-sm text-muted-foreground">承認待ち</div>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Card className="border-fantasy-frame shadow-soft">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">アクティブプレイヤー</p>
+                  <p className="text-2xl font-bold text-primary">{activePlayersCount}</p>
+                </div>
+                <Users className="h-8 w-8 text-primary opacity-20" />
+              </div>
             </CardContent>
           </Card>
 
-          <Card className="border-fantasy-frame shadow-soft animate-fade-in" style={{ animationDelay: '200ms' }}>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-primary">{mockPlayers.length}</div>
-              <div className="text-sm text-muted-foreground">総プレイヤー数</div>
+          <Card className="border-fantasy-frame shadow-soft">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">総プレイヤー数</p>
+                  <p className="text-2xl font-bold text-foreground">{totalPlayersCount}</p>
+                </div>
+                <Trophy className="h-8 w-8 text-muted-foreground opacity-20" />
+              </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Search and Filters */}
-        <Card className="border-fantasy-frame shadow-soft animate-slide-up">
-          <CardContent className="p-4">
-            <div className="flex gap-4">
-              <div className="flex-1">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="プレイヤー名またはメールアドレスで検索..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
+        {/* Search and Filter */}
+        <Card className="border-fantasy-frame shadow-soft">
+          <CardContent className="pt-6">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="プレイヤーを検索..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
               </div>
               <div className="flex gap-2">
                 <Button
@@ -159,109 +143,49 @@ export const AdminPlayers = ({ onBack }: AdminPlayersProps) => {
                 >
                   アクティブ
                 </Button>
-                <Button
-                  variant={filterStatus === 'pending' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setFilterStatus('pending')}
-                >
-                  承認待ち
-                </Button>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Players List - Compact Table */}
-        <Card className="border-fantasy-frame shadow-soft animate-slide-up" style={{ animationDelay: '200ms' }}>
+        {/* Players Table */}
+        <Card className="border-fantasy-frame shadow-soft">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center justify-between">
               <span>プレイヤー一覧 ({filteredPlayers.length}人)</span>
-              <Button variant="fantasy" size="sm">
-                <UserPlus className="h-4 w-4" />
+              <Button variant="heroic" size="sm">
+                <UserPlus className="h-4 w-4 mr-2" />
                 新規追加
               </Button>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="rounded-md border border-fantasy-frame">
+            <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[250px] whitespace-nowrap">プレイヤー名</TableHead>
-                    <TableHead className="text-center w-[150px] whitespace-nowrap">レーティング</TableHead>
-                    <TableHead className="text-center w-[120px] whitespace-nowrap">ステータス</TableHead>
-                    <TableHead className="text-center w-[100px] whitespace-nowrap">バッジ</TableHead>
-                    <TableHead className="text-center w-[80px] whitespace-nowrap">操作</TableHead>
+                    <TableHead>プレイヤー名</TableHead>
+                    <TableHead className="text-center">レーティング</TableHead>
+                    <TableHead className="text-center hidden sm:table-cell">ステータス</TableHead>
+                    <TableHead className="text-center">操作</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredPlayers.map((player) => (
-                    <TableRow key={player.id} className="hover:bg-muted/30">
-                      <TableCell className="whitespace-nowrap">
-                        <button
+                    <TableRow key={player.id} className="hover:bg-muted/50">
+                      <TableCell className="font-medium">{player.nickname}</TableCell>
+                      <TableCell className="text-center font-mono text-sm">{player.current_rating}</TableCell>
+                      <TableCell className="text-center hidden sm:table-cell">
+                        {getStatusBadge(player.is_active)}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={() => setSelectedPlayer(player)}
-                          className="text-left hover:underline focus:outline-none"
                         >
-                          <div className="font-medium text-foreground">{player.nickname}</div>
-                        </button>
-                      </TableCell>
-                      <TableCell className="text-center whitespace-nowrap">
-                        <div className="font-semibold text-primary">{player.currentRating}</div>
-                      </TableCell>
-                      <TableCell className="text-center whitespace-nowrap">{player.status === 'pending' ? (
-                          <Badge variant="outline" className="text-warning border-warning whitespace-nowrap">
-                            承認待ち
-                          </Badge>
-                        ) : (
-                          <Badge variant="default" className="bg-success whitespace-nowrap">
-                            アクティブ
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <div className="flex justify-center gap-1">
-                          {player.badges.slice(0, 3).map((badge, badgeIndex) => (
-                            <span key={badgeIndex} className="text-sm">
-                              {badge}
-                            </span>
-                          ))}
-                          {player.badges.length > 3 && (
-                            <span className="text-xs text-muted-foreground">+{player.badges.length - 3}</span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <div className="flex justify-center gap-1">
-                          {player.status === 'pending' ? (
-                            <>
-                              <Button 
-                                variant="default" 
-                                size="sm"
-                                className="bg-success hover:bg-success/90 text-xs px-2 py-1 h-7"
-                                onClick={() => handleApprovePlayer(player.id)}
-                              >
-                                承認
-                              </Button>
-                              <Button 
-                                variant="destructive" 
-                                size="sm"
-                                className="text-xs px-2 py-1 h-7"
-                                onClick={() => handleRejectPlayer(player.id)}
-                              >
-                                却下
-                              </Button>
-                            </>
-                          ) : (
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => setSelectedPlayer(player)}
-                              className="h-7 w-7 p-0"
-                            >
-                              <Eye className="h-3 w-3" />
-                            </Button>
-                          )}
-                        </div>
+                          <Eye className="h-4 w-4" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -271,103 +195,83 @@ export const AdminPlayers = ({ onBack }: AdminPlayersProps) => {
           </CardContent>
         </Card>
 
-        {/* Player Detail Modal */}
+        {/* Player Detail Dialog */}
         <Dialog open={!!selectedPlayer} onOpenChange={() => setSelectedPlayer(null)}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                {selectedPlayer?.nickname} の詳細情報
-              </DialogTitle>
+              <DialogTitle className="text-xl">プレイヤー詳細</DialogTitle>
             </DialogHeader>
-            
             {selectedPlayer && (
               <div className="space-y-6">
                 {/* Basic Info */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">プレイヤー名</label>
-                    <p className="text-lg font-semibold">{selectedPlayer.nickname}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">メールアドレス</label>
-                    <p className="flex items-center gap-1">
-                      <Mail className="h-4 w-4" />
-                      {selectedPlayer.email}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Stats Grid */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <Card className="p-3 text-center">
-                    <div className="text-2xl font-bold text-primary">{selectedPlayer.currentRating}</div>
-                    <div className="text-sm text-muted-foreground">レーティング</div>
-                  </Card>
-                  <Card className="p-3 text-center">
-                    <div className="text-2xl font-bold text-foreground">{selectedPlayer.totalGames}</div>
-                    <div className="text-sm text-muted-foreground">総対戦数</div>
-                  </Card>
-                  <Card className="p-3 text-center">
-                    <div className="text-2xl font-bold text-success">{selectedPlayer.winRate}%</div>
-                    <div className="text-sm text-muted-foreground">勝率</div>
-                  </Card>
-                  <Card className="p-3 text-center">
-                    <div className="text-sm font-bold text-foreground flex items-center justify-center gap-1">
-                      <Calendar className="h-4 w-4" />
-                      {selectedPlayer.joinDate}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-semibold">{selectedPlayer.nickname}</h3>
+                      <p className="text-sm text-muted-foreground flex items-center gap-1">
+                        <Mail className="h-3 w-3" />
+                        {selectedPlayer.email}
+                      </p>
                     </div>
-                    <div className="text-sm text-muted-foreground">参加日</div>
-                  </Card>
-                </div>
+                    {getStatusBadge(selectedPlayer.is_active)}
+                  </div>
 
-                {/* Badges */}
-                {selectedPlayer.badges.length > 0 && (
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground mb-2 block">獲得バッジ</label>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedPlayer.badges.map((badge, badgeIndex) => (
-                        <Badge 
-                          key={badgeIndex} 
-                          variant={badge.match(/[🥇🥈🥉]/) ? "default" : "outline"}
-                          className={`${badge.match(/[🥇🥈🥉]/) ? 'bg-gradient-gold' : ''}`}
-                        >
-                          {badge}
-                        </Badge>
-                      ))}
+                  {/* Stats Grid */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground">レーティング</p>
+                      <p className="text-2xl font-bold text-primary">{selectedPlayer.current_rating}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground">総対戦数</p>
+                      <p className="text-2xl font-bold">{selectedPlayer.total_wins + selectedPlayer.total_losses}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground">勝率</p>
+                      <p className="text-2xl font-bold text-success">
+                        {calculateWinRate(selectedPlayer.total_wins, selectedPlayer.total_losses)}%
+                      </p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground">参加日</p>
+                      <p className="text-sm flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
+                        {formatDate(selectedPlayer.registration_date)}
+                      </p>
                     </div>
                   </div>
-                )}
 
-                {/* Status and Actions */}
-                <div className="flex items-center justify-between pt-4 border-t">
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">最終ログイン</label>
-                    <p className="text-sm">{selectedPlayer.lastSeen}</p>
+                  {/* Badges */}
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">バッジ</p>
+                    <div className="flex gap-2 flex-wrap">
+                      {selectedPlayer.champion_badges?.split(',').filter(Boolean).map((badge, index) => (
+                        <span key={index} className="text-2xl" title={
+                          badge.trim().match(/[🥇🥈🥉]/) ? "チャンピオンバッジ" : "ルール習得バッジ"
+                        }>
+                          {badge.trim()}
+                        </span>
+                      )) || <span className="text-sm text-muted-foreground">なし</span>}
+                    </div>
                   </div>
-                  <div className="flex gap-2">
-                    {selectedPlayer.status === 'pending' ? (
-                      <>
-                        <Button 
-                          variant="default" 
-                          className="bg-success hover:bg-success/90"
-                          onClick={() => handleApprovePlayer(selectedPlayer.id)}
-                        >
-                          承認
-                        </Button>
-                        <Button 
-                          variant="destructive"
-                          onClick={() => handleRejectPlayer(selectedPlayer.id)}
-                        >
-                          却下
-                        </Button>
-                      </>
-                    ) : (
-                      <>
-                        <Button variant="outline">編集</Button>
-                        <Button variant="outline">対戦履歴</Button>
-                      </>
-                    )}
+
+                  {/* Last Login */}
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">最終ログイン</p>
+                    <p className="text-sm">{selectedPlayer.last_login || '未ログイン'}</p>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-3 pt-4">
+                    <Button variant="outline" className="flex-1">
+                      詳細
+                    </Button>
+                    <Button variant="outline" className="flex-1">
+                      編集
+                    </Button>
+                    <Button variant="outline" className="flex-1">
+                      履歴
+                    </Button>
                   </div>
                 </div>
               </div>
