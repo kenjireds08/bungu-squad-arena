@@ -9,5 +9,11 @@
       "path": "/api/cron/reset-tournament-active",
       "schedule": "0 15 * * *"
     }
+  ],
+  "rewrites": [
+    {
+      "source": "/((?!api).*)",
+      "destination": "/index.html"
+    }
   ]
 }

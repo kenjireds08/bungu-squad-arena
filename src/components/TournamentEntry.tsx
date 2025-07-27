@@ -16,7 +16,7 @@ interface Tournament {
 }
 
 export const TournamentEntry = () => {
-  const { tournamentId } = useParams<{ tournamentId: string }>();
+  const { tournamentId, date } = useParams<{ tournamentId?: string; date?: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [tournament, setTournament] = useState<Tournament | null>(null);
