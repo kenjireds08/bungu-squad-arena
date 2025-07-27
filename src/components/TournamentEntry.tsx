@@ -76,8 +76,9 @@ export const TournamentEntry = () => {
           description: "大会にエントリーするにはログインしてください",
           variant: "destructive"
         });
-        // Redirect to login with return URL
-        navigate(`/?returnTo=/tournament-entry/${tournamentId}`);
+        // Redirect to login with return URL  
+        const currentUrl = window.location.pathname;
+        navigate(`/?returnTo=${currentUrl}`);
         return;
       }
 
@@ -241,11 +242,29 @@ export const TournamentEntry = () => {
                 )}
               </Button>
 
-              {/* Note */}
-              <div className="text-center">
-                <p className="text-xs text-muted-foreground">
-                  ※ エントリーにはログインが必要です
-                </p>
+              {/* Login/Signup buttons */}
+              <div className="space-y-2">
+                <div className="text-center">
+                  <p className="text-xs text-muted-foreground mb-3">
+                    ※ エントリーにはログインが必要です
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => navigate(`/?returnTo=${window.location.pathname}`)}
+                    className="text-sm"
+                  >
+                    ログイン
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => navigate(`/?returnTo=${window.location.pathname}`)}
+                    className="text-sm"
+                  >
+                    サインアップ
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
