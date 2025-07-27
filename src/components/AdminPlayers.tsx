@@ -131,13 +131,26 @@ export const AdminPlayers = ({ onBack }: AdminPlayersProps) => {
                       const response = await fetch('/api/admin/reset-tournament-active', {
                         method: 'POST'
                       });
+                      
+                      console.log('Response status:', response.status);
+                      console.log('Response headers:', response.headers);
+                      
+                      if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                      }
+                      
                       const result = await response.json();
+                      console.log('API result:', result);
+                      
                       if (result.success) {
                         alert(`${result.updatedCount}名のプレイヤーをリセットしました`);
                         window.location.reload();
+                      } else {
+                        alert(`リセットに失敗しました: ${result.error || result.message}`);
                       }
                     } catch (error) {
-                      alert('リセットに失敗しました');
+                      console.error('Reset error:', error);
+                      alert(`リセットに失敗しました: ${error.message}`);
                     }
                   }
                 }}

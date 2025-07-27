@@ -1,6 +1,6 @@
-const { SheetsService } = require('../lib/sheets.js');
+const SheetsService = require('../lib/sheets');
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   // Cron jobsは通常GETリクエストで実行される
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
