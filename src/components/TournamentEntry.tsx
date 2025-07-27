@@ -89,13 +89,18 @@ export const TournamentEntry = () => {
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       // Update tournament active status via API
+      console.log('Sending API request for user:', userId);
       const response = await fetch(`/api/players?id=${userId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tournament_active: true })
       });
 
+      console.log('API response status:', response.status);
+      console.log('API response ok:', response.ok);
+
       if (response.ok) {
+        console.log('Tournament entry successful for user:', userId);
         setIsEntered(true);
         toast({
           title: "エントリー完了",
@@ -107,7 +112,9 @@ export const TournamentEntry = () => {
           navigate('/');
         }, 3000);
       } else {
-        throw new Error('Failed to update tournament status');
+        const errorText = await response.text();
+        console.error('API error response:', errorText);
+        throw new Error(`Failed to update tournament status: ${response.status} - ${errorText}`);
       }
       
     } catch (error) {
