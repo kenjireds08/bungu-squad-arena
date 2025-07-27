@@ -187,9 +187,9 @@ export const AdminPlayers = ({ onBack }: AdminPlayersProps) => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[200px]">プレイヤー名</TableHead>
-                    <TableHead className="text-center w-[120px]">レーティング</TableHead>
-                    <TableHead className="text-center w-[100px]">ステータス</TableHead>
+                    <TableHead className="w-[250px]">プレイヤー名</TableHead>
+                    <TableHead className="text-center w-[150px]">レーティング</TableHead>
+                    <TableHead className="text-center w-[120px]">ステータス</TableHead>
                     <TableHead className="text-center w-[100px]">バッジ</TableHead>
                     <TableHead className="text-center w-[80px]">操作</TableHead>
                   </TableRow>
@@ -203,7 +203,6 @@ export const AdminPlayers = ({ onBack }: AdminPlayersProps) => {
                           className="text-left hover:underline focus:outline-none"
                         >
                           <div className="font-medium text-foreground">{player.nickname}</div>
-                          <div className="text-sm text-muted-foreground">{player.email}</div>
                         </button>
                       </TableCell>
                       <TableCell className="text-center">
