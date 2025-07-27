@@ -26,7 +26,7 @@ module.exports = async function handler(req, res) {
           return res.status(400).json({ error: 'Player ID is required' });
         }
         
-        const { current_rating, email, updateLastLogin } = req.body;
+        const { current_rating, email, updateLastLogin, updateTournamentActive } = req.body;
         
         // Update rating if provided
         if (current_rating !== undefined) {
@@ -46,6 +46,12 @@ module.exports = async function handler(req, res) {
         // Update last login if requested
         if (updateLastLogin) {
           const result = await sheetsService.updateLastLogin(req.query.id);
+          return res.status(200).json(result);
+        }
+
+        // Update tournament active status if requested
+        if (updateTournamentActive !== undefined) {
+          const result = await sheetsService.updateTournamentActive(req.query.id, updateTournamentActive);
           return res.status(200).json(result);
         }
         

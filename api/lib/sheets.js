@@ -48,18 +48,8 @@ class SheetsService {
         champion_badges: row[8] || '',
         trump_rule_experienced: row[9] === 'true',
         first_trump_game_date: row[10] || '',
-        cardplus_rule_experienced: row[11] === 'true',
-        first_cardplus_game_date: row[12] || '',
-        registration_date: row[13] || '',
-        profile_image_url: row[14] || '',
-        is_active: row[15] === 'true',
-        last_activity_date: row[16] || '',
-        player_status: row[17] || 'active',
-        notification_preferences: row[18] || '{}',
-        device_tokens: row[19] || '[]',
-        last_login_date: row[20] || '',
-        profile_image_uploaded: row[21] === 'true',
-        preferred_language: row[22] || 'ja'
+        last_login: row[10] || '',
+        tournament_active: row[11] === 'TRUE'
       }));
     } catch (error) {
       console.error('Error fetching players:', error);
@@ -183,6 +173,40 @@ class SheetsService {
     } catch (error) {
       console.error('Error updating last login:', error);
       throw new Error('Failed to update last login');
+    }
+  }
+
+  async updateTournamentActive(playerId, isActive) {
+    await this.authenticate();
+    
+    try {
+      // First, find the player's row
+      const playersResponse = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'Players!A2:A1000'
+      });
+
+      const playerIds = playersResponse.data.values || [];
+      const rowIndex = playerIds.findIndex(row => row[0] === playerId);
+      
+      if (rowIndex === -1) {
+        throw new Error('Player not found');
+      }
+      
+      // Update tournament_active (column L = index 11)
+      await this.sheets.spreadsheets.values.update({
+        spreadsheetId: this.spreadsheetId,
+        range: `Players!L${rowIndex + 2}`,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+          values: [[isActive ? 'TRUE' : 'FALSE']]
+        }
+      });
+
+      return { success: true, playerId, isActive };
+    } catch (error) {
+      console.error('Error updating tournament active:', error);
+      throw new Error('Failed to update tournament active status');
     }
   }
 

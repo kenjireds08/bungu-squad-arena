@@ -6,18 +6,34 @@ import { ArrowLeft, Camera, QrCode, AlertCircle } from 'lucide-react';
 interface QRScannerProps {
   onClose: () => void;
   onEntryComplete?: () => void;
+  currentUserId?: string;
 }
 
-export const QRScanner = ({ onClose, onEntryComplete }: QRScannerProps) => {
+export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScannerProps) => {
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState<'success' | 'error' | null>(null);
 
-  const handleStartScan = () => {
+  const handleStartScan = async () => {
     setIsScanning(true);
     // Simulate scanning process
-    setTimeout(() => {
+    setTimeout(async () => {
       setIsScanning(false);
       setScanResult('success');
+      
+      // Update tournament active status
+      if (currentUserId) {
+        try {
+          await fetch(`/api/players?id=${currentUserId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ updateTournamentActive: true })
+          });
+          console.log('Tournament active status updated for player:', currentUserId);
+        } catch (error) {
+          console.error('Failed to update tournament active status:', error);
+        }
+      }
+      
       // Navigate to TournamentEntryComplete via MainDashboard
       if (onEntryComplete) {
         onEntryComplete();

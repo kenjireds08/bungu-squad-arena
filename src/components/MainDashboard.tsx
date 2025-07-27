@@ -108,6 +108,7 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
     return <QRScanner 
       onClose={() => setCurrentPage('dashboard')} 
       onEntryComplete={() => setCurrentPage('tournament-entry-complete')}
+      currentUserId={CURRENT_USER_ID}
     />;
   }
 
