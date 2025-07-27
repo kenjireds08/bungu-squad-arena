@@ -18,6 +18,7 @@ import { MatchInProgress } from './MatchInProgress';
 import { MatchResultReport } from './MatchResultReport';
 import { MatchResultSubmitted } from './MatchResultSubmitted';
 import { TournamentEntryComplete } from './TournamentEntryComplete';
+import { TournamentWaiting } from './TournamentWaiting';
 import { TournamentDetails } from './TournamentDetails';
 import { TournamentParticipants } from './TournamentParticipants';
 import { MatchMatching } from './MatchMatching';
@@ -154,7 +155,11 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
   }
 
   if (currentPage === 'tournament-entry-complete') {
-    return <TournamentEntryComplete onClose={() => setCurrentPage('dashboard')} onViewTournament={() => setCurrentPage('tournament-details')} />;
+    return <TournamentEntryComplete onClose={() => setCurrentPage('dashboard')} onViewTournament={() => setCurrentPage('tournament-waiting')} />;
+  }
+
+  if (currentPage === 'tournament-waiting') {
+    return <TournamentWaiting onClose={() => setCurrentPage('dashboard')} onViewRanking={() => setCurrentPage('ranking')} />;
   }
 
   if (currentPage === 'tournament-details') {
