@@ -6,6 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ArrowLeft, Plus, Calendar, MapPin, QrCode, Users, Settings } from 'lucide-react';
 
 interface AdminTournamentsProps {
@@ -51,6 +53,7 @@ const mockTournaments = {
 
 export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
   const [currentView, setCurrentView] = useState<'list' | 'create'>('list');
+  const [selectedTournament, setSelectedTournament] = useState<any>(null);
   const [newTournament, setNewTournament] = useState({
     name: '',
     date: '',
@@ -322,33 +325,106 @@ export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
               過去の大会
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            {mockTournaments.completed.slice(0, 3).map((tournament, index) => (
-              <div key={tournament.id} className="p-4 bg-muted/20 border border-muted/40 rounded-lg">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold text-foreground">{tournament.name}</h3>
-                  <Badge variant="outline">
-                    {tournament.status}
-                  </Badge>
-                </div>
-                <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-1">
-                    <Calendar className="h-3 w-3" />
-                    {tournament.date}
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Users className="h-3 w-3" />
-                    参加者: {tournament.participants}名
-                  </div>
-                </div>
-                <div className="flex gap-2 mt-3">
-                  <Button variant="ghost" size="sm">結果確認</Button>
-                  <Button variant="ghost" size="sm">データ出力</Button>
-                </div>
-              </div>
-            ))}
+          <CardContent>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[250px] whitespace-nowrap">大会名</TableHead>
+                    <TableHead className="text-center w-[120px] whitespace-nowrap">開催日</TableHead>
+                    <TableHead className="text-center w-[100px] whitespace-nowrap">参加者</TableHead>
+                    <TableHead className="text-center w-[80px] whitespace-nowrap">ステータス</TableHead>
+                    <TableHead className="text-center w-[120px] whitespace-nowrap">操作</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {mockTournaments.completed.map((tournament) => (
+                    <TableRow key={tournament.id} className="hover:bg-muted/30">
+                      <TableCell className="whitespace-nowrap">
+                        <button
+                          onClick={() => setSelectedTournament(tournament)}
+                          className="text-left hover:underline focus:outline-none"
+                        >
+                          <div className="font-medium text-foreground">{tournament.name}</div>
+                        </button>
+                      </TableCell>
+                      <TableCell className="text-center whitespace-nowrap">
+                        <div className="text-muted-foreground">{tournament.date}</div>
+                      </TableCell>
+                      <TableCell className="text-center whitespace-nowrap">
+                        <div className="font-medium">{tournament.participants}名</div>
+                      </TableCell>
+                      <TableCell className="text-center whitespace-nowrap">
+                        <Badge variant="outline" className="whitespace-nowrap">
+                          {tournament.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center whitespace-nowrap">
+                        <div className="flex gap-1 justify-center">
+                          <Button variant="ghost" size="sm" className="text-xs px-2">
+                            結果確認
+                          </Button>
+                          <Button variant="ghost" size="sm" className="text-xs px-2">
+                            データ出力
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
+
+        {/* Tournament Detail Modal */}
+        <Dialog open={!!selectedTournament} onOpenChange={() => setSelectedTournament(null)}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>大会詳細</DialogTitle>
+            </DialogHeader>
+            {selectedTournament && (
+              <div className="space-y-4">
+                <div>
+                  <h3 className="font-semibold text-lg">{selectedTournament.name}</h3>
+                  <Badge variant="outline" className="mt-1">
+                    {selectedTournament.status}
+                  </Badge>
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm">
+                      {selectedTournament.date} {selectedTournament.time}〜
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm">{selectedTournament.location}</span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm">参加者: {selectedTournament.participants}名</span>
+                  </div>
+                </div>
+
+                <div className="pt-4 space-y-2">
+                  <Button variant="outline" className="w-full">
+                    <Calendar className="h-4 w-4 mr-2" />
+                    結果確認
+                  </Button>
+                  <Button variant="outline" className="w-full">
+                    <QrCode className="h-4 w-4 mr-2" />
+                    データ出力
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );
