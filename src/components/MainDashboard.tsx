@@ -27,8 +27,6 @@ import { NotificationBanner } from './NotificationBanner';
 import { NotificationHistory } from './NotificationHistory';
 import { PWAInstallPrompt } from './PWAInstallPrompt';
 import mainCharacter from '@/assets/main-character.png';
-import pencilWarrior from '@/assets/pencil-warrior.png';
-import tapeNinja from '@/assets/tape-ninja.png';
 
 interface MainDashboardProps {
   currentUserId: string | null;
@@ -329,32 +327,14 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
           </Button>
         </div>
 
-        {/* Decorative Characters */}
-        <div className="relative text-center py-8">
-          <div className="absolute inset-0 flex items-center justify-center opacity-20 pointer-events-none">
-            <div className="flex gap-8">
-              <img 
-                src={pencilWarrior} 
-                alt="Pencil Warrior" 
-                className="w-16 h-16 object-contain animate-bounce-gentle"
-                style={{ animationDelay: '0s' }}
-              />
-              <img 
-                src={tapeNinja} 
-                alt="Tape Ninja" 
-                className="w-16 h-16 object-contain animate-bounce-gentle"
-                style={{ animationDelay: '1s' }}
-              />
-            </div>
-          </div>
-          <div className="relative z-10">
-            <p className="text-sm text-muted-foreground font-medium mb-2">
-              つなげるんだ。キミの武ん具で。
-            </p>
-            <p className="text-xs text-muted-foreground/70">
-              BUNGU SQUAD ランキングシステム v1.0
-            </p>
-          </div>
+        {/* Footer */}
+        <div className="text-center py-8">
+          <p className="text-sm text-muted-foreground font-medium mb-2">
+            つなげるんだ。キミの武ん具で。
+          </p>
+          <p className="text-xs text-muted-foreground/70">
+            BUNGU SQUAD ランキングシステム v1.0
+          </p>
         </div>
       </main>
     </div>

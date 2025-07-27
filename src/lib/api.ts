@@ -24,6 +24,7 @@ export interface Player {
   last_login_date: string;
   profile_image_uploaded: boolean;
   preferred_language: string;
+  tournament_active: boolean;
   rank: number;
 }
 
