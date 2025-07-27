@@ -103,7 +103,10 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
 
   // Handle different pages
   if (currentPage === 'qrscanner') {
-    return <QRScanner onClose={() => setCurrentPage('dashboard')} />;
+    return <QRScanner 
+      onClose={() => setCurrentPage('dashboard')} 
+      onEntryComplete={() => setCurrentPage('tournament-entry-complete')}
+    />;
   }
 
   if (currentPage === 'ranking') {
