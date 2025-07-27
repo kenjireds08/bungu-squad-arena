@@ -21,7 +21,7 @@ export const AdminPlayers = ({ onBack }: AdminPlayersProps) => {
   const filteredPlayers = players?.filter(player => {
     const matchesSearch = player.nickname.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          player.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filterStatus === 'all' || (filterStatus === 'active' && player.is_active);
+    const matchesStatus = filterStatus === 'all' || (filterStatus === 'active' && player.tournament_active);
     return matchesSearch && matchesStatus;
   }) || [];
 
