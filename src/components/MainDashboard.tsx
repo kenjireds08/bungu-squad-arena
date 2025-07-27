@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { QrCode, Trophy, TrendingUp, Calendar, Camera, Star, Users, Loader2 } from 'lucide-react';
 import { useRankings, useTournaments } from '@/hooks/useApi';
 import { PlayerRanking } from './PlayerRanking';
