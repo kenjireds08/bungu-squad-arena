@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { ArrowLeft, Plus, Calendar, MapPin, QrCode, Users, Settings } from 'lucide-react';
 import { QRCodeDisplay } from './QRCodeDisplay';
 import { TournamentMatchmaking } from './TournamentMatchmaking';
-import { useRankings, useTournaments } from '@/hooks/useApi';
+import { useRankings } from '@/hooks/useApi';
 
 interface AdminTournamentsProps {
   onBack: () => void;
@@ -60,7 +60,6 @@ export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
   const [showQRCode, setShowQRCode] = useState(false);
   const [activeParticipants, setActiveParticipants] = useState(0);
   const { data: rankings } = useRankings();
-  const { data: tournaments } = useTournaments();
   const [qrTournament, setQrTournament] = useState<any>(null);
   const [matchmakingTournament, setMatchmakingTournament] = useState<any>(null);
   const [newTournament, setNewTournament] = useState({
@@ -271,11 +270,11 @@ export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {tournaments?.filter(t => t.status === 'active').length > 0 ? (
-              tournaments.filter(t => t.status === 'active').map((tournament, index) => (
+            {mockTournaments.active.length > 0 ? (
+              mockTournaments.active.map((tournament, index) => (
                 <div key={tournament.id} className="p-4 bg-success/10 border border-success/20 rounded-lg">
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-semibold text-foreground">{tournament.tournament_name}</h3>
+                    <h3 className="font-semibold text-foreground">{tournament.name}</h3>
                     <Badge variant="default" className="bg-success">
                       {tournament.status}
                     </Badge>
@@ -284,7 +283,7 @@ export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
                     <div className="space-y-1">
                       <div className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
-                        {tournament.date} {tournament.start_time}〜
+                        {tournament.date} {tournament.time}〜
                       </div>
                       <div className="flex items-center gap-1">
                         <MapPin className="h-3 w-3" />
@@ -294,7 +293,7 @@ export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
                     <div className="space-y-1">
                       <div className="flex items-center gap-1">
                         <Users className="h-3 w-3" />
-                        参加者: {tournament.status === 'active' ? activeParticipants : tournament.current_participants}名
+                        参加者: {tournament.status === '開催中' ? activeParticipants : tournament.participants}名
                       </div>
                     </div>
                   </div>
@@ -328,10 +327,10 @@ export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {tournaments?.filter(t => t.status === 'upcoming').map((tournament, index) => (
+            {mockTournaments.upcoming.map((tournament, index) => (
               <div key={tournament.id} className="p-4 bg-info/10 border border-info/20 rounded-lg">
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold text-foreground">{tournament.tournament_name}</h3>
+                  <h3 className="font-semibold text-foreground">{tournament.name}</h3>
                   <Badge variant="outline" className="text-info border-info">
                     {tournament.status}
                   </Badge>
@@ -340,7 +339,7 @@ export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
                   <div className="space-y-1">
                     <div className="flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
-                      {tournament.date} {tournament.start_time}〜
+                      {tournament.date} {tournament.time}〜
                     </div>
                     <div className="flex items-center gap-1">
                       <MapPin className="h-3 w-3" />
@@ -350,7 +349,7 @@ export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
                   <div className="space-y-1">
                     <div className="flex items-center gap-1">
                       <Users className="h-3 w-3" />
-                      参加者: {tournament.current_participants}名
+                      参加者: {tournament.participants}名
                     </div>
                   </div>
                 </div>
@@ -388,21 +387,21 @@ export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {tournaments?.filter(t => t.status === 'completed').map((tournament) => (
+                  {mockTournaments.completed.map((tournament) => (
                     <TableRow key={tournament.id} className="hover:bg-muted/30">
                       <TableCell className="whitespace-nowrap">
                         <button
                           onClick={() => setSelectedTournament(tournament)}
                           className="text-left hover:underline focus:outline-none"
                         >
-                          <div className="font-medium text-foreground">{tournament.tournament_name}</div>
+                          <div className="font-medium text-foreground">{tournament.name}</div>
                         </button>
                       </TableCell>
                       <TableCell className="text-center whitespace-nowrap">
                         <div className="text-muted-foreground">{tournament.date}</div>
                       </TableCell>
                       <TableCell className="text-center whitespace-nowrap">
-                        <div className="font-medium">{tournament.status === 'active' ? activeParticipants : tournament.current_participants}名</div>
+                        <div className="font-medium">{tournament.status === '開催中' ? activeParticipants : tournament.participants}名</div>
                       </TableCell>
                       <TableCell className="text-center whitespace-nowrap">
                         <Badge variant="outline" className="whitespace-nowrap">
