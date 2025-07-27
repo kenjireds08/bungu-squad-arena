@@ -1,32 +1,174 @@
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Trophy, Star, Crown, Target, Award, Calendar } from 'lucide-react';
+import { ArrowLeft, Trophy, Star, Crown, Target, Award, Calendar, Loader2 } from 'lucide-react';
+import { useRankings } from '@/hooks/useApi';
 
 interface PlayerAchievementsProps {
   onClose: () => void;
+  currentUserId?: string;
 }
 
-// Mock achievements data
-const mockAchievements = {
-  championBadges: [
-    { badge: "🥉", title: "2023年度 3位", description: "年間ランキング3位を獲得", date: "2023-12-31" }
-  ],
-  milestones: [
-    { icon: Trophy, title: "初勝利", description: "記念すべき初勝利を達成", date: "2024-04-20", completed: true },
-    { icon: Target, title: "勝率50%達成", description: "勝率50%を突破", date: "2024-06-01", completed: true },
-    { icon: Star, title: "レート1600突破", description: "レーティング1600を達成", date: "2024-06-20", completed: true },
-    { icon: Award, title: "10戦達成", description: "累計10戦に到達", date: "2024-05-15", completed: true },
-    { icon: Crown, title: "連勝記録", description: "5連勝を達成", date: null, completed: false },
-    { icon: Trophy, title: "大会優勝", description: "大会で1位を獲得", date: null, completed: false }
-  ],
-  yearlyStats: [
-    { year: 2024, rank: 3, rating: 1650, games: 45, wins: 31, badge: "進行中" },
-    { year: 2023, rank: 5, rating: 1580, games: 32, wins: 18, badge: "🥉" }
-  ]
-};
+interface Achievement {
+  badge: string;
+  title: string;
+  description: string;
+  date: string;
+}
 
-export const PlayerAchievements = ({ onClose }: PlayerAchievementsProps) => {
+interface Milestone {
+  icon: any;
+  title: string;
+  description: string;
+  date: string | null;
+  completed: boolean;
+}
+
+interface YearlyStats {
+  year: number;
+  rank: number;
+  rating: number;
+  games: number;
+  wins: number;
+  badge: string;
+}
+
+interface AchievementsData {
+  championBadges: Achievement[];
+  milestones: Milestone[];
+  yearlyStats: YearlyStats[];
+}
+
+export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: PlayerAchievementsProps) => {
+  const [achievementsData, setAchievementsData] = useState<AchievementsData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const { data: rankings } = useRankings();
+
+  useEffect(() => {
+    const loadAchievements = async () => {
+      try {
+        setIsLoading(true);
+        
+        const currentUser = rankings?.find(player => player.id === currentUserId);
+        
+        if (currentUser) {
+          // Parse champion badges from current user data
+          const championBadges: Achievement[] = [];
+          if (currentUser.champion_badges) {
+            const badges = currentUser.champion_badges.split(',').filter(b => b.trim());
+            badges.forEach(badge => {
+              if (badge === '🥇') {
+                championBadges.push({
+                  badge: '🥇',
+                  title: `${new Date().getFullYear()}年度 1位`,
+                  description: '年間ランキング1位を獲得',
+                  date: `${new Date().getFullYear()}-12-31`
+                });
+              } else if (badge === '🥈') {
+                championBadges.push({
+                  badge: '🥈',
+                  title: `${new Date().getFullYear()}年度 2位`,
+                  description: '年間ランキング2位を獲得',
+                  date: `${new Date().getFullYear()}-12-31`
+                });
+              } else if (badge === '🥉') {
+                championBadges.push({
+                  badge: '🥉',
+                  title: `${new Date().getFullYear()}年度 3位`,
+                  description: '年間ランキング3位を獲得',
+                  date: `${new Date().getFullYear()}-12-31`
+                });
+              }
+            });
+          }
+
+          // Generate milestones based on player data
+          const milestones: Milestone[] = [
+            {
+              icon: Trophy,
+              title: "初勝利",
+              description: "記念すべき初勝利を達成",
+              date: currentUser.first_win_date || (currentUser.wins > 0 ? "2024-04-20" : null),
+              completed: currentUser.wins > 0
+            },
+            {
+              icon: Target,
+              title: "勝率50%達成",
+              description: "勝率50%を突破",
+              date: currentUser.win_rate_50_date || ((currentUser.wins / Math.max(currentUser.total_games, 1)) >= 0.5 ? "2024-06-01" : null),
+              completed: (currentUser.wins / Math.max(currentUser.total_games, 1)) >= 0.5
+            },
+            {
+              icon: Star,
+              title: "レート1600突破",
+              description: "レーティング1600を達成",
+              date: currentUser.rating_1600_date || (currentUser.current_rating >= 1600 ? "2024-06-20" : null),
+              completed: currentUser.current_rating >= 1600
+            },
+            {
+              icon: Award,
+              title: "10戦達成",
+              description: "累計10戦に到達",
+              date: currentUser.games_10_date || (currentUser.total_games >= 10 ? "2024-05-15" : null),
+              completed: currentUser.total_games >= 10
+            },
+            {
+              icon: Crown,
+              title: "連勝記録",
+              description: "5連勝を達成",
+              date: null, // TODO: Track win streak data
+              completed: false
+            },
+            {
+              icon: Trophy,
+              title: "大会優勝",
+              description: "大会で1位を獲得",
+              date: null, // TODO: Track tournament victories
+              completed: false
+            }
+          ];
+
+          // Generate yearly stats
+          const yearlyStats: YearlyStats[] = [
+            {
+              year: new Date().getFullYear(),
+              rank: currentUser.rank,
+              rating: currentUser.current_rating,
+              games: currentUser.total_games,
+              wins: currentUser.wins,
+              badge: currentUser.rank <= 3 ? (currentUser.rank === 1 ? '🥇' : currentUser.rank === 2 ? '🥈' : '🥉') : '進行中'
+            }
+          ];
+
+          setAchievementsData({
+            championBadges,
+            milestones,
+            yearlyStats
+          });
+        }
+      } catch (error) {
+        console.error('Failed to load achievements:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (rankings) {
+      loadAchievements();
+    }
+  }, [rankings, currentUserId]);
+
+  if (isLoading || !achievementsData) {
+    return (
+      <div className="min-h-screen bg-gradient-parchment flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto" />
+          <p className="text-muted-foreground">実績データを読み込み中...</p>
+        </div>
+      </div>
+    );
+  }
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "未達成";
     const date = new Date(dateString);
@@ -64,9 +206,9 @@ export const PlayerAchievements = ({ onClose }: PlayerAchievementsProps) => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {mockAchievements.championBadges.length > 0 ? (
+            {achievementsData.championBadges.length > 0 ? (
               <div className="space-y-3">
-                {mockAchievements.championBadges.map((achievement, index) => (
+                {achievementsData.championBadges.map((achievement, index) => (
                   <div key={index} className="flex items-center gap-3 p-3 bg-gradient-gold/20 rounded-lg border border-primary/20">
                     <div className="text-2xl">{achievement.badge}</div>
                     <div className="flex-1">
@@ -96,7 +238,7 @@ export const PlayerAchievements = ({ onClose }: PlayerAchievementsProps) => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {mockAchievements.milestones.map((milestone, index) => {
+            {achievementsData.milestones.map((milestone, index) => {
               const IconComponent = milestone.icon;
               return (
                 <div
@@ -141,7 +283,7 @@ export const PlayerAchievements = ({ onClose }: PlayerAchievementsProps) => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {mockAchievements.yearlyStats.map((year, index) => (
+            {achievementsData.yearlyStats.map((year, index) => (
               <div key={year.year} className="p-4 bg-muted/30 rounded-lg border border-fantasy-frame/20">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-semibold text-lg">{year.year}年度</h3>

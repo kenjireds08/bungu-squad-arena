@@ -115,7 +115,7 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
   }
 
   if (currentPage === 'stats') {
-    return <PlayerStats onClose={() => setCurrentPage('dashboard')} />;
+    return <PlayerStats onClose={() => setCurrentPage('dashboard')} currentUserId={CURRENT_USER_ID} />;
   }
 
   if (currentPage === 'history') {
@@ -127,7 +127,7 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
   }
 
   if (currentPage === 'achievements') {
-    return <PlayerAchievements onClose={() => setCurrentPage('dashboard')} />;
+    return <PlayerAchievements onClose={() => setCurrentPage('dashboard')} currentUserId={CURRENT_USER_ID} />;
   }
 
   if (currentPage === 'settings') {
@@ -217,7 +217,7 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
               <Trophy className="h-6 w-6 text-primary" />
               <h1 className="text-xl font-bold text-foreground">BUNGU SQUAD</h1>
             </div>
-            <PlayerMenu onNavigate={handleNavigate} />
+            <PlayerMenu onNavigate={handleNavigate} isAdmin={isAdmin} />
           </div>
         </div>
       </header>
@@ -231,7 +231,7 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
               {/* Current Rank Display */}
               <div className="space-y-2">
                 <div className="text-center">
-                  <p className="text-sm text-muted-foreground mb-1">2024年度ランキング</p>
+                  <p className="text-sm text-muted-foreground mb-1">{new Date().getFullYear()}年度ランキング</p>
                   <p className="text-lg font-medium text-foreground mb-2">{currentUser?.nickname || 'プレイヤー'}</p>
                 </div>
                 <h2 className="text-2xl font-bold text-foreground">
@@ -245,22 +245,28 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
               </div>
 
               {/* Progress to Next Rank */}
-              {currentUser && currentUser.rank > 1 && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-center gap-1">
-                    <TrendingUp className="h-4 w-4 text-success" />
-                    <span className="text-sm text-muted-foreground">
-                      {currentUser.rank - 1}位まで後少し！
-                    </span>
+              {currentUser && currentUser.rank > 1 && (() => {
+                const nextRankPlayer = rankings?.find(player => player.rank === currentUser.rank - 1);
+                const pointDifference = nextRankPlayer ? nextRankPlayer.current_rating - currentUser.current_rating : 0;
+                const progressPercentage = Math.min(75, Math.max(25, 100 - (pointDifference / 100) * 25));
+                
+                return (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-center gap-1">
+                      <TrendingUp className="h-4 w-4 text-success" />
+                      <span className="text-sm text-muted-foreground">
+                        {currentUser.rank - 1}位まであと{pointDifference}ポイント！
+                      </span>
+                    </div>
+                    <div className="w-full bg-muted rounded-full h-2">
+                      <div 
+                        className="bg-gradient-gold h-2 rounded-full transition-all duration-500"
+                        style={{ width: `${progressPercentage}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="w-full bg-muted rounded-full h-2">
-                    <div 
-                      className="bg-gradient-gold h-2 rounded-full transition-all duration-500"
-                      style={{ width: '75%' }}
-                    />
-                  </div>
-                </div>
-              )}
+                );
+              })()}
 
             </div>
           </CardContent>

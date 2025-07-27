@@ -4,9 +4,10 @@ import { BarChart3, History, Settings, HelpCircle, Trophy, User, LogOut, Shield 
 
 interface PlayerMenuProps {
   onNavigate: (page: string) => void;
+  isAdmin?: boolean;
 }
 
-export const PlayerMenu = ({ onNavigate }: PlayerMenuProps) => {
+export const PlayerMenu = ({ onNavigate, isAdmin = false }: PlayerMenuProps) => {
   const menuItems = [
     {
       icon: BarChart3,
@@ -43,14 +44,19 @@ export const PlayerMenu = ({ onNavigate }: PlayerMenuProps) => {
       title: "ヘルプ",
       description: "使い方・ルール説明",
       page: "help"
-    },
-    {
-      icon: Shield,
-      title: "管理者モード",
-      description: "大会管理・承認機能",
-      page: "admin"
     }
   ];
+
+  // 管理者専用メニューアイテム
+  const adminMenuItem = {
+    icon: Shield,
+    title: "管理者モード",
+    description: "大会管理・承認機能",
+    page: "admin"
+  };
+
+  // 管理者の場合のみ管理者メニューを追加
+  const allMenuItems = isAdmin ? [...menuItems, adminMenuItem] : menuItems;
 
   return (
     <Sheet>
@@ -70,7 +76,7 @@ export const PlayerMenu = ({ onNavigate }: PlayerMenuProps) => {
         </SheetHeader>
         
         <div className="space-y-2">
-          {menuItems.map((item, index) => (
+          {allMenuItems.map((item, index) => (
             <Button
               key={item.page}
               variant="ghost"

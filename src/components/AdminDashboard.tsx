@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -14,40 +14,109 @@ import {
   Calendar,
   BarChart3,
   FileText,
-  LogOut
+  LogOut,
+  Loader2
 } from 'lucide-react';
 import { AdminTournaments } from './AdminTournaments';
 import { AdminApprovals } from './AdminApprovals';
 import { AdminPlayers } from './AdminPlayers';
 import { MatchProgressManager } from './MatchProgressManager';
 import { DataExport } from './DataExport';
+import { useRankings, useTournaments } from '@/hooks/useApi';
 
 interface AdminDashboardProps {
   onClose: () => void;
 }
 
-// Mock admin data
-const mockAdminData = {
+interface AdminData {
   tournaments: {
-    active: 1,
-    upcoming: 2,
-    total: 7
-  },
+    active: number;
+    upcoming: number;
+    total: number;
+  };
   players: {
-    registered: 24,
-    active: 18,
-    newThisMonth: 3
-  },
-  pendingApprovals: 5,
-  recentActivity: [
-    { type: 'game', description: '鈴木さん vs 佐藤さん の結果を承認', time: '5分前' },
-    { type: 'tournament', description: '第8回BUNGU SQUAD大会を作成', time: '2時間前' },
-    { type: 'player', description: '新規プレイヤー「田中さん」を承認', time: '1日前' }
-  ]
-};
+    registered: number;
+    active: number;
+    newThisMonth: number;
+  };
+  pendingApprovals: number;
+  recentActivity: Array<{
+    type: string;
+    description: string;
+    time: string;
+  }>;
+}
 
 export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
   const [currentAdminPage, setCurrentAdminPage] = useState('dashboard');
+  const [adminData, setAdminData] = useState<AdminData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const { data: rankings } = useRankings();
+  const { data: tournaments } = useTournaments();
+
+  useEffect(() => {
+    const loadAdminData = async () => {
+      try {
+        setIsLoading(true);
+        
+        if (rankings && tournaments) {
+          // Calculate active players (tournament_active = true)
+          const activePlayers = rankings.filter(player => player.tournament_active === true).length;
+          
+          // Calculate players registered this month
+          const thisMonth = new Date().getMonth();
+          const thisYear = new Date().getFullYear();
+          const newThisMonth = rankings.filter(player => {
+            if (!player.created_at) return false;
+            const createdDate = new Date(player.created_at);
+            return createdDate.getMonth() === thisMonth && createdDate.getFullYear() === thisYear;
+          }).length;
+
+          // Calculate tournament stats
+          const activeTournaments = tournaments.filter(t => t.status === 'active').length;
+          const upcomingTournaments = tournaments.filter(t => t.status === 'upcoming').length;
+
+          const data: AdminData = {
+            tournaments: {
+              active: activeTournaments,
+              upcoming: upcomingTournaments,
+              total: tournaments.length
+            },
+            players: {
+              registered: rankings.length,
+              active: activePlayers,
+              newThisMonth: newThisMonth
+            },
+            pendingApprovals: 0, // TODO: Get from match results API
+            recentActivity: [
+              { type: 'system', description: 'システムが稼働中です', time: '現在' }
+            ] // TODO: Get from activity log API
+          };
+
+          setAdminData(data);
+        }
+      } catch (error) {
+        console.error('Failed to load admin data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (rankings && tournaments) {
+      loadAdminData();
+    }
+  }, [rankings, tournaments]);
+
+  if (isLoading || !adminData) {
+    return (
+      <div className="min-h-screen bg-gradient-parchment flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto" />
+          <p className="text-muted-foreground">管理データを読み込み中...</p>
+        </div>
+      </div>
+    );
+  }
 
   const adminMenuItems = [
     {
@@ -55,21 +124,21 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
       title: "大会管理",
       description: "大会作成・組み合わせ設定",
       page: "tournaments",
-      count: mockAdminData.tournaments.active
+      count: adminData.tournaments.active
     },
     {
       icon: Users,
       title: "プレイヤー管理",
       description: "登録・承認・統計",
       page: "players",
-      count: mockAdminData.players.registered
+      count: adminData.players.registered
     },
     {
       icon: FileText,
       title: "対戦結果承認",
       description: "試合結果の確認・承認",
       page: "approvals",
-      count: mockAdminData.pendingApprovals
+      count: adminData.pendingApprovals
     },
     {
       icon: BarChart3,
@@ -132,28 +201,28 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card className="border-fantasy-frame shadow-soft animate-fade-in">
             <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-primary">{mockAdminData.tournaments.active}</div>
+              <div className="text-2xl font-bold text-primary">{adminData.tournaments.active}</div>
               <div className="text-sm text-muted-foreground">開催中の大会</div>
             </CardContent>
           </Card>
           
           <Card className="border-fantasy-frame shadow-soft animate-fade-in" style={{ animationDelay: '100ms' }}>
             <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-success">{mockAdminData.players.active}</div>
+              <div className="text-2xl font-bold text-success">{adminData.players.active}</div>
               <div className="text-sm text-muted-foreground">アクティブプレイヤー</div>
             </CardContent>
           </Card>
 
           <Card className="border-fantasy-frame shadow-soft animate-fade-in" style={{ animationDelay: '200ms' }}>
             <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-warning">{mockAdminData.pendingApprovals}</div>
+              <div className="text-2xl font-bold text-warning">{adminData.pendingApprovals}</div>
               <div className="text-sm text-muted-foreground">承認待ち</div>
             </CardContent>
           </Card>
 
           <Card className="border-fantasy-frame shadow-soft animate-fade-in" style={{ animationDelay: '300ms' }}>
             <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-info">{mockAdminData.tournaments.total}</div>
+              <div className="text-2xl font-bold text-info">{adminData.tournaments.total}</div>
               <div className="text-sm text-muted-foreground">総大会数</div>
             </CardContent>
           </Card>
@@ -204,7 +273,7 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {mockAdminData.recentActivity.map((activity, index) => (
+            {adminData.recentActivity.map((activity, index) => (
               <div
                 key={index}
                 className="flex items-center gap-3 p-3 bg-muted/20 rounded-lg border border-fantasy-frame/10"
