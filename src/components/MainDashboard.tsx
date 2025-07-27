@@ -40,6 +40,7 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
   // Fallback to default if no user ID provided
   const CURRENT_USER_ID = currentUserId || "player_001";
   const [currentPage, setCurrentPage] = useState<string>('dashboard');
+  const [previousPage, setPreviousPage] = useState<string>('dashboard');
   const [showPWAPrompt, setShowPWAPrompt] = useState(false);
   const [notifications, setNotifications] = useState([
     {
@@ -85,6 +86,7 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
   }
 
   const handleNavigate = (page: string) => {
+    setPreviousPage(currentPage);
     setCurrentPage(page);
   };
 
@@ -110,7 +112,7 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
   }
 
   if (currentPage === 'ranking') {
-    return <PlayerRanking onClose={() => setCurrentPage('dashboard')} />;
+    return <PlayerRanking onClose={() => setCurrentPage(previousPage)} />;
   }
 
   if (currentPage === 'stats') {
@@ -162,7 +164,7 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
   }
 
   if (currentPage === 'tournament-waiting') {
-    return <TournamentWaiting onClose={() => setCurrentPage('dashboard')} onViewRanking={() => setCurrentPage('ranking')} />;
+    return <TournamentWaiting onClose={() => setCurrentPage('dashboard')} onViewRanking={() => { setPreviousPage('tournament-waiting'); setCurrentPage('ranking'); }} />;
   }
 
   if (currentPage === 'tournament-details') {
@@ -318,7 +320,7 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
           <Button 
             variant="tournament" 
             size="lg" 
-            onClick={() => setCurrentPage('ranking')}
+            onClick={() => { setPreviousPage('dashboard'); setCurrentPage('ranking'); }}
             className="h-20 flex-col"
           >
             <Trophy className="h-6 w-6 mb-1" />
