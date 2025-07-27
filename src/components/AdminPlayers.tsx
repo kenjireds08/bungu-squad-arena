@@ -143,7 +143,10 @@ export const AdminPlayers = ({ onBack }: AdminPlayersProps) => {
                       console.log('API result:', result);
                       
                       if (result.success) {
-                        alert(`${result.updatedCount}名のプレイヤーをリセットしました`);
+                        const message = result.archivedCount > 0 
+                          ? `${result.updatedCount}名のプレイヤーをリセットし、${result.archivedCount}名の大会参加記録をアーカイブしました`
+                          : `${result.updatedCount}名のプレイヤーをリセットしました`;
+                        alert(message);
                         window.location.reload();
                       } else {
                         alert(`リセットに失敗しました: ${result.error || result.message}`);

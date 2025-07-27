@@ -225,6 +225,14 @@ class SheetsService {
     await this.authenticate();
     
     try {
+      // First, get current active players for archiving
+      const activePlayers = await this.getActiveTournamentPlayers();
+      
+      // Archive today's tournament data if there are active players
+      if (activePlayers.length > 0) {
+        await this.archiveTournamentDay(activePlayers);
+      }
+      
       // Get all players to know how many rows to update
       const playersResponse = await this.sheets.spreadsheets.values.get({
         spreadsheetId: this.spreadsheetId,
@@ -235,7 +243,7 @@ class SheetsService {
       const rowCount = playerRows.length;
       
       if (rowCount === 0) {
-        return { success: true, updatedCount: 0 };
+        return { success: true, updatedCount: 0, archivedCount: 0 };
       }
 
       // Create array of FALSE values for all players
@@ -251,11 +259,103 @@ class SheetsService {
         }
       });
 
-      console.log(`Reset tournament_active for ${rowCount} players`);
-      return { success: true, updatedCount: rowCount };
+      console.log(`Reset tournament_active for ${rowCount} players, archived ${activePlayers.length} active players`);
+      return { 
+        success: true, 
+        updatedCount: rowCount, 
+        archivedCount: activePlayers.length 
+      };
     } catch (error) {
       console.error('Error resetting tournament active:', error);
       throw new Error('Failed to reset tournament active status');
+    }
+  }
+
+  async getActiveTournamentPlayers() {
+    await this.authenticate();
+    
+    try {
+      const players = await this.getPlayers();
+      return players.filter(player => player.tournament_active);
+    } catch (error) {
+      console.error('Error getting active tournament players:', error);
+      throw new Error('Failed to get active tournament players');
+    }
+  }
+
+  async archiveTournamentDay(activePlayers) {
+    await this.authenticate();
+    
+    try {
+      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+      const timestamp = new Date().toISOString();
+      const totalParticipants = activePlayers.length;
+      
+      // Create archive entries for each active player
+      const archiveEntries = activePlayers.map(player => [
+        `archive_${Date.now()}_${player.id}`, // archive_id
+        today, // tournament_date
+        player.id, // player_id
+        player.nickname, // player_nickname
+        timestamp, // entry_timestamp (using current time as approximation)
+        totalParticipants, // total_participants_that_day
+        timestamp // created_at
+      ]);
+
+      // Append to TournamentDailyArchive sheet
+      await this.sheets.spreadsheets.values.append({
+        spreadsheetId: this.spreadsheetId,
+        range: 'TournamentDailyArchive!A:G',
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+          values: archiveEntries
+        }
+      });
+
+      console.log(`Archived ${activePlayers.length} players for ${today}`);
+      return { success: true, archivedCount: activePlayers.length, date: today };
+    } catch (error) {
+      console.error('Error archiving tournament day:', error);
+      // Don't throw here - we still want the reset to continue even if archiving fails
+      console.warn('Archiving failed, but continuing with reset...');
+      return { success: false, error: error.message };
+    }
+  }
+
+  async getTournamentDailyArchive(dateFrom = null, dateTo = null) {
+    await this.authenticate();
+    
+    try {
+      const response = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'TournamentDailyArchive!A2:G1000'
+      });
+
+      const rows = response.data.values || [];
+      let archive = rows.map(row => ({
+        archive_id: row[0] || '',
+        tournament_date: row[1] || '',
+        player_id: row[2] || '',
+        player_nickname: row[3] || '',
+        entry_timestamp: row[4] || '',
+        total_participants_that_day: parseInt(row[5]) || 0,
+        created_at: row[6] || ''
+      }));
+
+      // Filter by date range if provided
+      if (dateFrom || dateTo) {
+        archive = archive.filter(entry => {
+          const entryDate = entry.tournament_date;
+          if (dateFrom && entryDate < dateFrom) return false;
+          if (dateTo && entryDate > dateTo) return false;
+          return true;
+        });
+      }
+
+      return archive.sort((a, b) => new Date(b.tournament_date) - new Date(a.tournament_date));
+    } catch (error) {
+      console.error('Error fetching tournament daily archive:', error);
+      throw new Error(`Failed to fetch tournament daily archive: ${error.message}`);
     }
   }
 
