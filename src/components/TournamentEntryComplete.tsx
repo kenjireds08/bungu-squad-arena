@@ -21,7 +21,7 @@ const mockTournament = {
 };
 
 export const TournamentEntryComplete = ({ onClose, onViewTournament }: TournamentEntryCompleteProps) => {
-  const [countdown, setCountdown] = useState(3);
+  const [countdown, setCountdown] = useState(5);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -136,7 +136,7 @@ export const TournamentEntryComplete = ({ onClose, onViewTournament }: Tournamen
               <div className="w-full bg-muted rounded-full h-2 mb-2">
                 <div 
                   className="bg-primary h-2 rounded-full transition-all duration-1000 ease-linear"
-                  style={{ width: `${((3 - countdown) / 3) * 100}%` }}
+                  style={{ width: `${((5 - countdown) / 5) * 100}%` }}
                 />
               </div>
               <p className="text-xs text-muted-foreground">
