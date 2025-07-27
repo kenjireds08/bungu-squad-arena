@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -20,6 +21,23 @@ const mockTournament = {
 };
 
 export const TournamentEntryComplete = ({ onClose, onViewTournament }: TournamentEntryCompleteProps) => {
+  const [countdown, setCountdown] = useState(5);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          onViewTournament(); // 自動的に待機画面へ遷移
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [onViewTournament]);
+
   return (
     <div className="min-h-screen bg-gradient-parchment">
       {/* Header */}
@@ -47,9 +65,14 @@ export const TournamentEntryComplete = ({ onClose, onViewTournament }: Tournamen
               </div>
               <div>
                 <h2 className="text-2xl font-bold text-success mb-2">エントリー完了！</h2>
-                <p className="text-muted-foreground">
+                <p className="text-muted-foreground mb-3">
                   大会への参加登録が完了しました
                 </p>
+                <div className="bg-info/10 px-4 py-2 rounded-lg border border-info/20">
+                  <p className="text-sm text-info">
+                    {countdown}秒後に待機画面に移動します
+                  </p>
+                </div>
               </div>
             </div>
           </CardContent>
@@ -118,26 +141,25 @@ export const TournamentEntryComplete = ({ onClose, onViewTournament }: Tournamen
           </CardContent>
         </Card>
 
-        {/* Action Buttons */}
-        <div className="space-y-3">
-          <Button 
-            onClick={onViewTournament}
-            className="w-full"
-            size="lg"
-          >
-            <Users className="h-5 w-5 mr-2" />
-            参加者一覧を見る
-          </Button>
-
-          <Button 
-            variant="outline" 
-            onClick={onClose}
-            className="w-full"
-            size="lg"
-          >
-            メイン画面に戻る
-          </Button>
-        </div>
+        {/* Auto-transition info */}
+        <Card className="border-primary/20 bg-primary/5 shadow-soft animate-slide-up">
+          <CardContent className="pt-4">
+            <div className="text-center">
+              <p className="text-sm text-muted-foreground mb-2">
+                このまま待機画面で組み合わせの発表をお待ちください
+              </p>
+              <div className="w-full bg-muted rounded-full h-2 mb-2">
+                <div 
+                  className="bg-primary h-2 rounded-full transition-all duration-1000 ease-linear"
+                  style={{ width: `${((5 - countdown) / 5) * 100}%` }}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                待機画面でランキング・ルール・計算方式が確認できます
+              </p>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Character */}
         <div className="text-center py-4">
@@ -149,7 +171,7 @@ export const TournamentEntryComplete = ({ onClose, onViewTournament }: Tournamen
             />
           </div>
           <p className="text-sm text-muted-foreground">
-            テープ忍者：「参加ありがとうございます！当日お待ちしています！」
+            テープ忍者：「参加ありがとうございます！待機画面で組み合わせを確認しましょう！」
           </p>
         </div>
       </main>
