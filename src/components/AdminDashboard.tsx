@@ -15,11 +15,13 @@ import {
   BarChart3,
   FileText,
   LogOut,
-  Loader2
+  Loader2,
+  Database
 } from 'lucide-react';
 import { AdminTournaments } from './AdminTournaments';
 import { AdminApprovals } from './AdminApprovals';
 import { AdminPlayers } from './AdminPlayers';
+import { AdminSheets } from './AdminSheets';
 import { MatchProgressManager } from './MatchProgressManager';
 import { DataExport } from './DataExport';
 import { useRankings, useTournaments } from '@/hooks/useApi';
@@ -151,6 +153,12 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
       title: "データ出力",
       description: "CSV・PDFレポート生成",
       page: "data-export"
+    },
+    {
+      icon: Database,
+      title: "シート管理",
+      description: "Google Sheetsの設定",
+      page: "sheets"
     }
   ];
 
@@ -172,6 +180,10 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
 
   if (currentAdminPage === 'data-export') {
     return <DataExport onClose={() => setCurrentAdminPage('dashboard')} />;
+  }
+
+  if (currentAdminPage === 'sheets') {
+    return <AdminSheets onBack={() => setCurrentAdminPage('dashboard')} />;
   }
 
   return (

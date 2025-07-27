@@ -519,6 +519,147 @@ class SheetsService {
       player2: -ratingChange
     };
   }
+
+  async createTournamentMatchesSheet() {
+    await this.authenticate();
+    
+    try {
+      // Get spreadsheet metadata to check if sheet exists
+      const spreadsheet = await this.sheets.spreadsheets.get({
+        spreadsheetId: this.spreadsheetId
+      });
+
+      // Check if TournamentMatches sheet already exists
+      const sheetExists = spreadsheet.data.sheets.some(
+        sheet => sheet.properties.title === 'TournamentMatches'
+      );
+
+      if (sheetExists) {
+        console.log('TournamentMatches sheet already exists');
+        return { success: true, message: 'Sheet already exists' };
+      }
+
+      // Create the sheet
+      await this.sheets.spreadsheets.batchUpdate({
+        spreadsheetId: this.spreadsheetId,
+        requestBody: {
+          requests: [{
+            addSheet: {
+              properties: {
+                title: 'TournamentMatches',
+                gridProperties: {
+                  rowCount: 1000,
+                  columnCount: 26 // A-Z columns
+                }
+              }
+            }
+          }]
+        }
+      });
+
+      // Add headers
+      const headers = [
+        'match_id',           // A
+        'tournament_id',      // B
+        'player1_id',         // C
+        'player2_id',         // D
+        'table_number',       // E
+        'match_status',       // F
+        'created_at',         // G
+        'winner_id',          // H
+        'loser_id',           // I
+        'match_start_time',   // J
+        'match_end_time',     // K
+        'reported_by',        // L
+        'reported_at',        // M
+        'approved_by',        // N
+        'approved_at',        // O
+        'player1_rating_before', // P
+        'player2_rating_before', // Q
+        'player1_rating_after',  // R
+        'player2_rating_after',  // S
+        'player1_rating_change', // T
+        'player2_rating_change', // U
+        'notes',              // V
+        'created_by'          // W
+      ];
+
+      await this.sheets.spreadsheets.values.update({
+        spreadsheetId: this.spreadsheetId,
+        range: 'TournamentMatches!A1:W1',
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+          values: [headers]
+        }
+      });
+
+      console.log('TournamentMatches sheet created successfully');
+      return { 
+        success: true, 
+        message: 'TournamentMatches sheet created with headers',
+        sheetName: 'TournamentMatches',
+        columnCount: headers.length
+      };
+    } catch (error) {
+      console.error('Error creating TournamentMatches sheet:', error);
+      throw new Error(`Failed to create TournamentMatches sheet: ${error.message}`);
+    }
+  }
+
+  async saveTournamentMatches(tournamentId, matches) {
+    await this.authenticate();
+    
+    try {
+      const timestamp = new Date().toISOString();
+      
+      // Create entries for each match
+      const matchEntries = matches.map((match, index) => [
+        `tournament_match_${tournamentId}_${Date.now()}_${index}`, // match_id
+        tournamentId, // tournament_id
+        match.player1.id, // player1_id
+        match.player2.id, // player2_id
+        match.tableNumber, // table_number
+        'pending', // match_status
+        timestamp, // created_at
+        '', // winner_id (empty initially)
+        '', // loser_id (empty initially)
+        '', // match_start_time (empty initially)
+        '', // match_end_time (empty initially)
+        '', // reported_by (empty initially)
+        '', // reported_at (empty initially)
+        '', // approved_by (empty initially)
+        '', // approved_at (empty initially)
+        match.player1.current_rating, // player1_rating_before
+        match.player2.current_rating, // player2_rating_before
+        '', // player1_rating_after (empty initially)
+        '', // player2_rating_after (empty initially)
+        '', // player1_rating_change (empty initially)
+        '', // player2_rating_change (empty initially)
+        '', // notes (empty initially)
+        'system' // created_by
+      ]);
+
+      // Save to TournamentMatches sheet
+      await this.sheets.spreadsheets.values.append({
+        spreadsheetId: this.spreadsheetId,
+        range: 'TournamentMatches!A:W',
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+          values: matchEntries
+        }
+      });
+
+      console.log(`Saved ${matches.length} tournament matches for tournament ${tournamentId}`);
+      return { 
+        success: true, 
+        matchCount: matches.length, 
+        tournamentId 
+      };
+    } catch (error) {
+      console.error('Error saving tournament matches:', error);
+      throw new Error(`Failed to save tournament matches: ${error.message}`);
+    }
+  }
 }
 
 module.exports = SheetsService;

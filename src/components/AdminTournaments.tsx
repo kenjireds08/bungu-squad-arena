@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ArrowLeft, Plus, Calendar, MapPin, QrCode, Users, Settings } from 'lucide-react';
 import { QRCodeDisplay } from './QRCodeDisplay';
+import { TournamentMatchmaking } from './TournamentMatchmaking';
 
 interface AdminTournamentsProps {
   onBack: () => void;
@@ -53,10 +54,11 @@ const mockTournaments = {
 };
 
 export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
-  const [currentView, setCurrentView] = useState<'list' | 'create'>('list');
+  const [currentView, setCurrentView] = useState<'list' | 'create' | 'matchmaking'>('list');
   const [selectedTournament, setSelectedTournament] = useState<any>(null);
   const [showQRCode, setShowQRCode] = useState(false);
   const [qrTournament, setQrTournament] = useState<any>(null);
+  const [matchmakingTournament, setMatchmakingTournament] = useState<any>(null);
   const [newTournament, setNewTournament] = useState({
     name: '',
     date: '',
@@ -89,6 +91,25 @@ export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
     setShowQRCode(false);
     setQrTournament(null);
   };
+
+  const handleShowMatchmaking = (tournament: any) => {
+    setMatchmakingTournament(tournament);
+    setCurrentView('matchmaking');
+  };
+
+  const handleBackFromMatchmaking = () => {
+    setCurrentView('list');
+    setMatchmakingTournament(null);
+  };
+
+  if (currentView === 'matchmaking' && matchmakingTournament) {
+    return (
+      <TournamentMatchmaking
+        onBack={handleBackFromMatchmaking}
+        tournamentId={matchmakingTournament.id.toString()}
+      />
+    );
+  }
 
   if (currentView === 'create') {
     return (
@@ -266,7 +287,7 @@ export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
                     </div>
                   </div>
                   <div className="flex gap-2 mt-3">
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" onClick={() => handleShowMatchmaking(tournament)}>
                       <Settings className="h-3 w-3" />
                       組み合わせ
                     </Button>
