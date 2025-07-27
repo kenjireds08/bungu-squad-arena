@@ -187,17 +187,17 @@ export const AdminPlayers = ({ onBack }: AdminPlayersProps) => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[250px]">プレイヤー名</TableHead>
-                    <TableHead className="text-center w-[150px]">レーティング</TableHead>
-                    <TableHead className="text-center w-[120px]">ステータス</TableHead>
-                    <TableHead className="text-center w-[100px]">バッジ</TableHead>
-                    <TableHead className="text-center w-[80px]">操作</TableHead>
+                    <TableHead className="w-[250px] whitespace-nowrap">プレイヤー名</TableHead>
+                    <TableHead className="text-center w-[150px] whitespace-nowrap">レーティング</TableHead>
+                    <TableHead className="text-center w-[120px] whitespace-nowrap">ステータス</TableHead>
+                    <TableHead className="text-center w-[100px] whitespace-nowrap">バッジ</TableHead>
+                    <TableHead className="text-center w-[80px] whitespace-nowrap">操作</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredPlayers.map((player) => (
                     <TableRow key={player.id} className="hover:bg-muted/30">
-                      <TableCell>
+                      <TableCell className="whitespace-nowrap">
                         <button
                           onClick={() => setSelectedPlayer(player)}
                           className="text-left hover:underline focus:outline-none"
@@ -205,16 +205,15 @@ export const AdminPlayers = ({ onBack }: AdminPlayersProps) => {
                           <div className="font-medium text-foreground">{player.nickname}</div>
                         </button>
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className="text-center whitespace-nowrap">
                         <div className="font-semibold text-primary">{player.currentRating}</div>
                       </TableCell>
-                      <TableCell className="text-center">
-                        {player.status === 'pending' ? (
-                          <Badge variant="outline" className="text-warning border-warning">
+                      <TableCell className="text-center whitespace-nowrap">{player.status === 'pending' ? (
+                          <Badge variant="outline" className="text-warning border-warning whitespace-nowrap">
                             承認待ち
                           </Badge>
                         ) : (
-                          <Badge variant="default" className="bg-success">
+                          <Badge variant="default" className="bg-success whitespace-nowrap">
                             アクティブ
                           </Badge>
                         )}
