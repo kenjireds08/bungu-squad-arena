@@ -231,9 +231,13 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
                     {currentUser?.current_rating.toLocaleString() || 0}pt
                   </span>
                   {currentUser?.champion_badges?.split(',').filter(Boolean).map((badge, index) => (
-                    <Badge key={index} variant="outline" className="text-sm">
+                    <span 
+                      key={index} 
+                      className="text-lg leading-none"
+                      title={badge.trim().match(/[🥇🥈🥉]/) ? "チャンピオンバッジ" : "ルール習得バッジ"}
+                    >
                       {badge.trim()}
-                    </Badge>
+                    </span>
                   ))}
                 </div>
               </div>

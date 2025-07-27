@@ -195,9 +195,13 @@ export const TournamentDetails = ({ onClose, onViewParticipants }: TournamentDet
                         <p className="font-medium text-sm">{player.nickname}</p>
                         <div className="flex items-center gap-1">
                           {player.champion_badges?.split(',').filter(Boolean).map((badge, badgeIndex) => (
-                            <Badge key={badgeIndex} variant="outline" className="text-xs px-1 py-0">
+                            <span 
+                              key={badgeIndex} 
+                              className="text-sm leading-none"
+                              title={badge.trim().match(/[🥇🥈🥉]/) ? "チャンピオンバッジ" : "ルール習得バッジ"}
+                            >
                               {badge.trim()}
-                            </Badge>
+                            </span>
                           ))}
                         </div>
                       </div>

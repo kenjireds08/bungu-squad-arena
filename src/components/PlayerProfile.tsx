@@ -150,9 +150,13 @@ export const PlayerProfile = ({ onClose, currentUserId }: PlayerProfileProps) =>
                 {/* Badges */}
                 <div className="flex items-center justify-center gap-2">
                   {player.champion_badges?.split(',').filter(Boolean).map((badge, index) => (
-                    <Badge key={index} variant="secondary" className="bg-gradient-gold">
+                    <span 
+                      key={index} 
+                      className="text-lg leading-none"
+                      title={badge.trim().match(/[🥇🥈🥉]/) ? "チャンピオンバッジ" : "ルール習得バッジ"}
+                    >
                       {badge.trim()}
-                    </Badge>
+                    </span>
                   ))}
                 </div>
               </div>

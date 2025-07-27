@@ -87,15 +87,15 @@ export const PlayerRanking = ({ onClose }: PlayerRankingProps) => {
                         <span className={`font-semibold ${player.nickname === 'あなた' ? 'text-primary' : 'text-foreground'}`}>
                           {player.nickname}
                         </span>
-                        <div className="flex gap-1">
+                        <div className="flex gap-1 items-center">
                           {player.champion_badges?.split(',').filter(Boolean).map((badge, badgeIndex) => (
-                            <Badge 
+                            <span 
                               key={badgeIndex} 
-                              variant={badge.trim().match(/[🥇🥈🥉]/) ? "default" : "outline"}
-                              className={`text-xs ${badge.trim().match(/[🥇🥈🥉]/) ? 'bg-gradient-gold' : ''}`}
+                              className="text-base leading-none"
+                              title={badge.trim().match(/[🥇🥈🥉]/) ? "チャンピオンバッジ" : "ルール習得バッジ"}
                             >
                               {badge.trim()}
-                            </Badge>
+                            </span>
                           ))}
                         </div>
                       </div>

@@ -192,9 +192,13 @@ export const MatchMatching = ({ onClose, onStartCountdown }: MatchMatchingProps)
                         <p className="font-medium">{match.player1.name}</p>
                         <div className="flex gap-1">
                           {match.player1.badges.map((badge, badgeIndex) => (
-                            <Badge key={badgeIndex} variant="outline" className="text-xs px-1 py-0">
+                            <span 
+                              key={badgeIndex} 
+                              className="text-sm leading-none"
+                              title={badge.trim().match(/[🥇🥈🥉]/) ? "チャンピオンバッジ" : "ルール習得バッジ"}
+                            >
                               {badge.trim()}
-                            </Badge>
+                            </span>
                           ))}
                         </div>
                       </div>
@@ -223,9 +227,13 @@ export const MatchMatching = ({ onClose, onStartCountdown }: MatchMatchingProps)
                         <p className="font-medium">{match.player2.name}</p>
                         <div className="flex gap-1">
                           {match.player2.badges.map((badge, badgeIndex) => (
-                            <Badge key={badgeIndex} variant="outline" className="text-xs px-1 py-0">
+                            <span 
+                              key={badgeIndex} 
+                              className="text-sm leading-none"
+                              title={badge.trim().match(/[🥇🥈🥉]/) ? "チャンピオンバッジ" : "ルール習得バッジ"}
+                            >
                               {badge.trim()}
-                            </Badge>
+                            </span>
                           ))}
                         </div>
                       </div>
