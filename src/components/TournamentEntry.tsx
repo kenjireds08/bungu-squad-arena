@@ -102,9 +102,9 @@ export const TournamentEntry = () => {
           description: `${tournament.name}にエントリーしました！`,
         });
         
-        // Redirect to tournament waiting page after a delay
+        // Auto redirect to home after 3 seconds  
         setTimeout(() => {
-          navigate('/tournament-waiting');
+          navigate('/');
         }, 3000);
       } else {
         throw new Error('Failed to update tournament status');
