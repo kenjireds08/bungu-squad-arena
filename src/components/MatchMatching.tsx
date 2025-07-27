@@ -191,22 +191,11 @@ export const MatchMatching = ({ onClose, onStartCountdown }: MatchMatchingProps)
                       <div>
                         <p className="font-medium">{match.player1.name}</p>
                         <div className="flex gap-1">
-                          {match.player1.badges.map((badge, badgeIndex) => {
-                            // Convert champion symbols to emoji badges (Lovable's improvement)
-                            const convertToEmoji = (symbol: string) => {
-                              const trimmed = symbol.trim();
-                              if (trimmed === '★') return '🥇';
-                              if (trimmed === '☆') return '🥈';
-                              if (trimmed === '⭐') return '🥉';
-                              return trimmed; // Keep game rule badges as is (♠️, ➕)
-                            };
-                            
-                            return (
-                              <Badge key={badgeIndex} variant="outline" className="text-xs px-1 py-0">
-                                {convertToEmoji(badge)}
-                              </Badge>
-                            );
-                          })}
+                          {match.player1.badges.map((badge, badgeIndex) => (
+                            <Badge key={badgeIndex} variant="outline" className="text-xs px-1 py-0">
+                              {badge.trim()}
+                            </Badge>
+                          ))}
                         </div>
                       </div>
                     </div>
@@ -233,22 +222,11 @@ export const MatchMatching = ({ onClose, onStartCountdown }: MatchMatchingProps)
                       <div>
                         <p className="font-medium">{match.player2.name}</p>
                         <div className="flex gap-1">
-                          {match.player2.badges.map((badge, badgeIndex) => {
-                            // Convert champion symbols to emoji badges (Lovable's improvement)
-                            const convertToEmoji = (symbol: string) => {
-                              const trimmed = symbol.trim();
-                              if (trimmed === '★') return '🥇';
-                              if (trimmed === '☆') return '🥈';
-                              if (trimmed === '⭐') return '🥉';
-                              return trimmed; // Keep game rule badges as is (♠️, ➕)
-                            };
-                            
-                            return (
-                              <Badge key={badgeIndex} variant="outline" className="text-xs px-1 py-0">
-                                {convertToEmoji(badge)}
-                              </Badge>
-                            );
-                          })}
+                          {match.player2.badges.map((badge, badgeIndex) => (
+                            <Badge key={badgeIndex} variant="outline" className="text-xs px-1 py-0">
+                              {badge.trim()}
+                            </Badge>
+                          ))}
                         </div>
                       </div>
                     </div>
