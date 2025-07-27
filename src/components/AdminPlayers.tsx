@@ -258,7 +258,17 @@ export const AdminPlayers = ({ onBack }: AdminPlayersProps) => {
                   {/* Last Login */}
                   <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">最終ログイン</p>
-                    <p className="text-sm">{selectedPlayer.last_login || '未ログイン'}</p>
+                    <p className="text-sm">
+                      {selectedPlayer.last_login 
+                        ? new Date(selectedPlayer.last_login).toLocaleString('ja-JP', {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })
+                        : '未ログイン'}
+                    </p>
                   </div>
 
                   {/* Action Buttons */}

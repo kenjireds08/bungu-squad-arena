@@ -80,6 +80,17 @@ export const Login = ({ onLoginSuccess }: LoginProps) => {
               description: isAdmin ? "管理者としてログインしました" : "ログインしました",
             });
             
+            // 最終ログイン日時を更新
+            try {
+              await fetch(`/api/players?id=${player.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ updateLastLogin: true })
+              });
+            } catch (error) {
+              console.error('Failed to update last login:', error);
+            }
+            
             // 実際のプレイヤーIDを使用
             onLoginSuccess(player.id, isAdmin);
           } else {

@@ -150,6 +150,42 @@ class SheetsService {
     }
   }
 
+  async updateLastLogin(playerId) {
+    await this.authenticate();
+    
+    try {
+      // First, find the player's row
+      const playersResponse = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'Players!A2:A1000'
+      });
+
+      const playerIds = playersResponse.data.values || [];
+      const rowIndex = playerIds.findIndex(row => row[0] === playerId);
+      
+      if (rowIndex === -1) {
+        throw new Error('Player not found');
+      }
+
+      const now = new Date().toISOString();
+      
+      // Update last_login (column K = index 10)
+      await this.sheets.spreadsheets.values.update({
+        spreadsheetId: this.spreadsheetId,
+        range: `Players!K${rowIndex + 2}`,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+          values: [[now]]
+        }
+      });
+
+      return { success: true, timestamp: now };
+    } catch (error) {
+      console.error('Error updating last login:', error);
+      throw new Error('Failed to update last login');
+    }
+  }
+
   async getTournaments() {
     await this.authenticate();
     
