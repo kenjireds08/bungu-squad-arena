@@ -31,14 +31,15 @@ export const TournamentEntry = () => {
         
         // TODO: Replace with actual API call
         // Mock tournament data for now
+        const today = new Date().toISOString().split('T')[0];
         const mockTournament: Tournament = {
           id: tournamentId || '1',
-          name: '第9回BUNGU SQUAD大会',
-          date: '2024-08-08',
+          name: '第8回BUNGU SQUAD大会',
+          date: today,
           time: '19:00',
-          location: '△△コミュニティセンター',
-          participants: 12,
-          status: '募集中'
+          location: '○○コミュニティセンター',
+          participants: 1,
+          status: '開催中'
         };
         
         // Simulate API delay
@@ -57,9 +58,8 @@ export const TournamentEntry = () => {
       }
     };
 
-    if (tournamentId) {
-      loadTournament();
-    }
+    // Load tournament data (works for both /tour and /tournament-entry/:id routes)
+    loadTournament();
   }, [tournamentId, toast]);
 
   const handleEntry = async () => {
