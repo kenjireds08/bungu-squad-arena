@@ -24,7 +24,7 @@ export const AdminSheets = ({ onBack }: AdminSheetsProps) => {
     setIsCreating(true);
     
     try {
-      const response = await fetch('/api/create-tournament-matches-sheet', {
+      const response = await fetch('/api/tournament-system?action=create-sheet', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

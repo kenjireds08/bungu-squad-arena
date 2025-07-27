@@ -660,6 +660,279 @@ class SheetsService {
       throw new Error(`Failed to save tournament matches: ${error.message}`);
     }
   }
+
+  async submitMatchResult(resultData) {
+    await this.authenticate();
+    
+    try {
+      const { match_id, reporter_id, result, notes, reported_at } = resultData;
+      
+      // First, get the match details from TournamentMatches
+      const matchesResponse = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'TournamentMatches!A:W'
+      });
+
+      const matchRows = matchesResponse.data.values || [];
+      const matchRowIndex = matchRows.findIndex(row => row[0] === match_id);
+      
+      if (matchRowIndex === -1) {
+        throw new Error('Match not found');
+      }
+
+      const matchRow = matchRows[matchRowIndex];
+      const player1_id = matchRow[2];
+      const player2_id = matchRow[3];
+      
+      // Determine winner and loser based on reporter and result
+      let winner_id, loser_id;
+      if (result === 'win') {
+        winner_id = reporter_id;
+        loser_id = reporter_id === player1_id ? player2_id : player1_id;
+      } else {
+        loser_id = reporter_id;
+        winner_id = reporter_id === player1_id ? player2_id : player1_id;
+      }
+
+      // Update the match with result information
+      const updateRange = `TournamentMatches!H${matchRowIndex + 1}:M${matchRowIndex + 1}`;
+      await this.sheets.spreadsheets.values.update({
+        spreadsheetId: this.spreadsheetId,
+        range: updateRange,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+          values: [[
+            winner_id,     // H: winner_id
+            loser_id,      // I: loser_id
+            reported_at,   // J: match_start_time (using reported time as proxy)
+            reported_at,   // K: match_end_time
+            reporter_id,   // L: reported_by
+            reported_at    // M: reported_at
+          ]]
+        }
+      });
+
+      // Update match status to 'pending_approval'
+      await this.sheets.spreadsheets.values.update({
+        spreadsheetId: this.spreadsheetId,
+        range: `TournamentMatches!F${matchRowIndex + 1}`,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+          values: [['pending_approval']]
+        }
+      });
+
+      // Add notes if provided
+      if (notes) {
+        await this.sheets.spreadsheets.values.update({
+          spreadsheetId: this.spreadsheetId,
+          range: `TournamentMatches!V${matchRowIndex + 1}`,
+          valueInputOption: 'USER_ENTERED',
+          requestBody: {
+            values: [[notes]]
+          }
+        });
+      }
+
+      console.log(`Match result submitted for match ${match_id} by ${reporter_id}`);
+      return { 
+        success: true, 
+        match_id,
+        status: 'pending_approval',
+        winner_id,
+        loser_id
+      };
+    } catch (error) {
+      console.error('Error submitting match result:', error);
+      throw new Error(`Failed to submit match result: ${error.message}`);
+    }
+  }
+
+  async getPendingMatchResults() {
+    await this.authenticate();
+    
+    try {
+      const response = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'TournamentMatches!A:W'
+      });
+
+      const rows = response.data.values || [];
+      if (rows.length <= 1) return []; // No data rows (only header)
+
+      // Filter for pending approval matches
+      const pendingMatches = rows.slice(1).filter(row => row[5] === 'pending_approval');
+
+      // Get player details for each match
+      const players = await this.getPlayers();
+      
+      const pendingResults = pendingMatches.map(row => ({
+        match_id: row[0],
+        tournament_id: row[1],
+        player1_id: row[2],
+        player2_id: row[3],
+        player1_name: players.find(p => p.id === row[2])?.nickname || 'Unknown',
+        player2_name: players.find(p => p.id === row[3])?.nickname || 'Unknown',
+        table_number: parseInt(row[4]) || 0,
+        match_status: row[5],
+        created_at: row[6],
+        winner_id: row[7],
+        loser_id: row[8],
+        match_start_time: row[9],
+        match_end_time: row[10],
+        reported_by: row[11],
+        reported_at: row[12],
+        player1_rating_before: parseInt(row[15]) || 0,
+        player2_rating_before: parseInt(row[16]) || 0,
+        notes: row[21] || ''
+      }));
+
+      return pendingResults.sort((a, b) => new Date(b.reported_at) - new Date(a.reported_at));
+    } catch (error) {
+      console.error('Error getting pending match results:', error);
+      throw new Error(`Failed to get pending match results: ${error.message}`);
+    }
+  }
+
+  async approveMatchResult(approvalData) {
+    await this.authenticate();
+    
+    try {
+      const { match_id, action, approved_by, approved_at } = approvalData;
+      
+      // Get the match details
+      const matchesResponse = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'TournamentMatches!A:W'
+      });
+
+      const matchRows = matchesResponse.data.values || [];
+      const matchRowIndex = matchRows.findIndex(row => row[0] === match_id);
+      
+      if (matchRowIndex === -1) {
+        throw new Error('Match not found');
+      }
+
+      const matchRow = matchRows[matchRowIndex];
+      
+      if (action === 'approve') {
+        // Calculate new ratings using ELO system
+        const player1_id = matchRow[2];
+        const player2_id = matchRow[3];
+        const winner_id = matchRow[7];
+        const player1_rating_before = parseInt(matchRow[15]) || 1500;
+        const player2_rating_before = parseInt(matchRow[16]) || 1500;
+        
+        // Determine who won for ELO calculation
+        const player1Won = winner_id === player1_id;
+        const eloResult = this.calculateEloRating(
+          player1_rating_before,
+          player2_rating_before,
+          player1Won ? 'win' : 'loss'
+        );
+
+        // Update match with approval and new ratings
+        const updateRange = `TournamentMatches!F${matchRowIndex + 1}:U${matchRowIndex + 1}`;
+        await this.sheets.spreadsheets.values.update({
+          spreadsheetId: this.spreadsheetId,
+          range: updateRange,
+          valueInputOption: 'USER_ENTERED',
+          requestBody: {
+            values: [[
+              'completed',                    // F: match_status
+              matchRow[6],                    // G: created_at (keep original)
+              matchRow[7],                    // H: winner_id (keep)
+              matchRow[8],                    // I: loser_id (keep)
+              matchRow[9],                    // J: match_start_time (keep)
+              matchRow[10],                   // K: match_end_time (keep)
+              matchRow[11],                   // L: reported_by (keep)
+              matchRow[12],                   // M: reported_at (keep)
+              approved_by,                    // N: approved_by
+              approved_at,                    // O: approved_at
+              player1_rating_before,          // P: player1_rating_before (keep)
+              player2_rating_before,          // Q: player2_rating_before (keep)
+              eloResult.player1NewRating,     // R: player1_rating_after
+              eloResult.player2NewRating,     // S: player2_rating_after
+              eloResult.player1,              // T: player1_rating_change
+              eloResult.player2               // U: player2_rating_change
+            ]]
+          }
+        });
+
+        // Update player ratings in Players sheet
+        await this.updatePlayerRating(player1_id, eloResult.player1NewRating);
+        await this.updatePlayerRating(player2_id, eloResult.player2NewRating);
+
+        // Add to MatchResults sheet for historical record
+        await this.addMatchResult({
+          tournament_id: matchRow[1],
+          player1_id,
+          player2_id,
+          winner_id,
+          loser_id: matchRow[8],
+          game_rule: 'trump',
+          match_end_time: approved_at,
+          reported_by: matchRow[11],
+          approved_by,
+          approved_at,
+          player1_rating_before,
+          player2_rating_before,
+          player1_rating_after: eloResult.player1NewRating,
+          player2_rating_after: eloResult.player2NewRating,
+          player1_rating_change: eloResult.player1,
+          player2_rating_change: eloResult.player2,
+          table_number: matchRow[4],
+          notes: matchRow[21] || ''
+        });
+
+        console.log(`Match ${match_id} approved and ratings updated`);
+        return { 
+          success: true, 
+          match_id,
+          status: 'completed',
+          player1_new_rating: eloResult.player1NewRating,
+          player2_new_rating: eloResult.player2NewRating,
+          rating_changes: {
+            player1: eloResult.player1,
+            player2: eloResult.player2
+          }
+        };
+
+      } else if (action === 'reject') {
+        // Update match status to rejected
+        const updateRange = `TournamentMatches!F${matchRowIndex + 1}:O${matchRowIndex + 1}`;
+        await this.sheets.spreadsheets.values.update({
+          spreadsheetId: this.spreadsheetId,
+          range: updateRange,
+          valueInputOption: 'USER_ENTERED',
+          requestBody: {
+            values: [[
+              'rejected',    // F: match_status
+              matchRow[6],   // G: created_at (keep)
+              '',            // H: winner_id (clear)
+              '',            // I: loser_id (clear)
+              matchRow[9],   // J: match_start_time (keep)
+              matchRow[10],  // K: match_end_time (keep)
+              matchRow[11],  // L: reported_by (keep)
+              matchRow[12],  // M: reported_at (keep)
+              approved_by,   // N: approved_by
+              approved_at    // O: approved_at
+            ]]
+          }
+        });
+
+        console.log(`Match ${match_id} rejected`);
+        return { 
+          success: true, 
+          match_id,
+          status: 'rejected'
+        };
+      }
+    } catch (error) {
+      console.error('Error approving match result:', error);
+      throw new Error(`Failed to approve match result: ${error.message}`);
+    }
+  }
 }
 
 module.exports = SheetsService;

@@ -126,7 +126,7 @@ export const TournamentMatchmaking = ({ onBack, tournamentId }: TournamentMatchm
     setIsGenerating(true);
     
     try {
-      const response = await fetch('/api/tournament-matches', {
+      const response = await fetch('/api/tournament-system?action=save-matches', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
