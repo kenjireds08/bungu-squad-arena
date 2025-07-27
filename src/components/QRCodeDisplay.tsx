@@ -17,7 +17,7 @@ export const QRCodeDisplay = ({ tournamentId, tournamentName, onClose, isOpen }:
   const [copied, setCopied] = useState(false);
   
   // Generate entry URL for the tournament
-  const entryUrl = `${window.location.origin}/tournament-entry/${tournamentId}`;
+  const entryUrl = `${window.location.origin}/tour`;
   
   const handleCopyUrl = async () => {
     try {
