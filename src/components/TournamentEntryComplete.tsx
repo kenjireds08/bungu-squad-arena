@@ -21,7 +21,7 @@ const mockTournament = {
 };
 
 export const TournamentEntryComplete = ({ onClose, onViewTournament }: TournamentEntryCompleteProps) => {
-  const [countdown, setCountdown] = useState(5);
+  const [countdown, setCountdown] = useState(3);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -125,21 +125,6 @@ export const TournamentEntryComplete = ({ onClose, onViewTournament }: Tournamen
           </CardContent>
         </Card>
 
-        {/* Next Steps */}
-        <Card className="border-info shadow-soft animate-slide-up">
-          <CardHeader>
-            <CardTitle className="text-info">当日の流れ</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ol className="list-decimal list-inside space-y-2 text-sm">
-              <li>開始10分前に会場にお越しください</li>
-              <li>受付でお名前をお伝えください</li>
-              <li>対戦カードが発表されます</li>
-              <li>試合開始・アプリで結果を報告</li>
-              <li>全試合終了後、順位発表</li>
-            </ol>
-          </CardContent>
-        </Card>
 
         {/* Auto-transition info */}
         <Card className="border-primary/20 bg-primary/5 shadow-soft animate-slide-up">
@@ -151,7 +136,7 @@ export const TournamentEntryComplete = ({ onClose, onViewTournament }: Tournamen
               <div className="w-full bg-muted rounded-full h-2 mb-2">
                 <div 
                   className="bg-primary h-2 rounded-full transition-all duration-1000 ease-linear"
-                  style={{ width: `${((5 - countdown) / 5) * 100}%` }}
+                  style={{ width: `${((3 - countdown) / 3) * 100}%` }}
                 />
               </div>
               <p className="text-xs text-muted-foreground">

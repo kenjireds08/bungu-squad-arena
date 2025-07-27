@@ -114,6 +114,22 @@ export const TournamentWaiting = ({ onClose, onViewRanking }: TournamentWaitingP
             </div>
           )}
 
+          {/* 当日の流れ */}
+          <Card className="border-info shadow-soft">
+            <CardHeader>
+              <CardTitle className="text-info">当日の流れ</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ol className="list-decimal list-inside space-y-2 text-sm">
+                <li>開始10分前に会場にお越しください</li>
+                <li>受付でお名前をお伝えください</li>
+                <li>対戦カードが発表されます</li>
+                <li>試合開始・アプリで結果を報告</li>
+                <li>全試合終了後、順位発表</li>
+              </ol>
+            </CardContent>
+          </Card>
+
           {/* ランキング確認ボタン */}
           <Button 
             variant="outline"
