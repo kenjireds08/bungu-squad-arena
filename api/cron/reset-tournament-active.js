@@ -1,4 +1,4 @@
-import { SheetsService } from '../lib/sheets.js';
+const { SheetsService } = require('../lib/sheets.js');
 
 export default async function handler(req, res) {
   // Cron jobsは通常GETリクエストで実行される
