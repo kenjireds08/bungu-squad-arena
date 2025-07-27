@@ -48,8 +48,19 @@ class SheetsService {
         champion_badges: row[8] || '',
         trump_rule_experienced: row[9] === 'true',
         first_trump_game_date: row[10] || '',
-        last_login: row[10] || '',
-        tournament_active: row[11] === 'TRUE'
+        cardplus_rule_experienced: row[11] === 'true',
+        first_cardplus_game_date: row[12] || '',
+        registration_date: row[13] || '',
+        profile_image_url: row[14] || '',
+        is_active: row[15] === 'true',
+        last_activity_date: row[16] || '',
+        player_status: row[17] || 'active',
+        notification_preferences: row[18] || '{}',
+        device_tokens: row[19] || '[]',
+        last_login: row[20] || '',
+        profile_image_uploaded: row[21] === 'true',
+        preferred_language: row[22] || 'ja',
+        tournament_active: row[23] === 'TRUE'
       }));
     } catch (error) {
       console.error('Error fetching players:', error);
@@ -193,10 +204,10 @@ class SheetsService {
         throw new Error('Player not found');
       }
       
-      // Update tournament_active (column L = index 11)
+      // Update tournament_active (column X = index 23)
       await this.sheets.spreadsheets.values.update({
         spreadsheetId: this.spreadsheetId,
-        range: `Players!L${rowIndex + 2}`,
+        range: `Players!X${rowIndex + 2}`,
         valueInputOption: 'USER_ENTERED',
         requestBody: {
           values: [[isActive ? 'TRUE' : 'FALSE']]
@@ -230,10 +241,10 @@ class SheetsService {
       // Create array of FALSE values for all players
       const falseValues = Array(rowCount).fill(['FALSE']);
       
-      // Update all tournament_active values to FALSE (column L)
+      // Update all tournament_active values to FALSE (column X)
       await this.sheets.spreadsheets.values.update({
         spreadsheetId: this.spreadsheetId,
-        range: `Players!L2:L${rowCount + 1}`,
+        range: `Players!X2:X${rowCount + 1}`,
         valueInputOption: 'USER_ENTERED',
         requestBody: {
           values: falseValues
