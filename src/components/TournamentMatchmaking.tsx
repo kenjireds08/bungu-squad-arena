@@ -126,6 +126,23 @@ export const TournamentMatchmaking = ({ onBack, tournamentId }: TournamentMatchm
     setIsGenerating(true);
     
     try {
+      // Step 1: Ensure TournamentMatches sheet exists
+      const sheetResponse = await fetch('/api/tournament-system?action=create-sheet', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (!sheetResponse.ok) {
+        const errorData = await sheetResponse.json();
+        // Only throw error if it's not "sheet already exists"
+        if (!errorData.error?.includes('already exists')) {
+          throw new Error(errorData.error || 'Failed to create sheet');
+        }
+      }
+
+      // Step 2: Save matches
       const response = await fetch('/api/tournament-system?action=save-matches', {
         method: 'POST',
         headers: {

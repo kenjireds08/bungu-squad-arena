@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -11,12 +11,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { ArrowLeft, Plus, Calendar, MapPin, QrCode, Users, Settings } from 'lucide-react';
 import { QRCodeDisplay } from './QRCodeDisplay';
 import { TournamentMatchmaking } from './TournamentMatchmaking';
+import { useRankings } from '@/hooks/useApi';
 
 interface AdminTournamentsProps {
   onBack: () => void;
 }
 
-// Mock tournaments data
+// Mock tournaments data - participants will be replaced with real data
 const mockTournaments = {
   active: [
     {
@@ -25,7 +26,7 @@ const mockTournaments = {
       date: "2024-07-25",
       time: "19:00",
       location: "○○コミュニティセンター",
-      participants: 12,
+      participants: 0, // Will be replaced with activeParticipants
       status: "開催中"
     }
   ],
@@ -57,6 +58,8 @@ export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
   const [currentView, setCurrentView] = useState<'list' | 'create' | 'matchmaking'>('list');
   const [selectedTournament, setSelectedTournament] = useState<any>(null);
   const [showQRCode, setShowQRCode] = useState(false);
+  const [activeParticipants, setActiveParticipants] = useState(0);
+  const { data: rankings } = useRankings();
   const [qrTournament, setQrTournament] = useState<any>(null);
   const [matchmakingTournament, setMatchmakingTournament] = useState<any>(null);
   const [newTournament, setNewTournament] = useState({
@@ -67,6 +70,14 @@ export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
     matchType: 'random',
     description: ''
   });
+
+  // Calculate active participants from rankings data
+  useEffect(() => {
+    if (rankings) {
+      const activeCount = rankings.filter(player => player.tournament_active === true).length;
+      setActiveParticipants(activeCount);
+    }
+  }, [rankings]);
 
   const handleCreateTournament = () => {
     // TODO: Implement tournament creation
@@ -282,7 +293,7 @@ export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
                     <div className="space-y-1">
                       <div className="flex items-center gap-1">
                         <Users className="h-3 w-3" />
-                        参加者: {tournament.participants}名
+                        参加者: {tournament.status === '開催中' ? activeParticipants : tournament.participants}名
                       </div>
                     </div>
                   </div>
@@ -390,7 +401,7 @@ export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
                         <div className="text-muted-foreground">{tournament.date}</div>
                       </TableCell>
                       <TableCell className="text-center whitespace-nowrap">
-                        <div className="font-medium">{tournament.participants}名</div>
+                        <div className="font-medium">{tournament.status === '開催中' ? activeParticipants : tournament.participants}名</div>
                       </TableCell>
                       <TableCell className="text-center whitespace-nowrap">
                         <Badge variant="outline" className="whitespace-nowrap">

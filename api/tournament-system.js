@@ -17,6 +17,16 @@ module.exports = async function handler(req, res) {
       });
     }
 
+    // Create TournamentDailyArchive sheet
+    if (method === 'POST' && action === 'create-archive-sheet') {
+      const result = await sheetsService.createTournamentDailyArchiveSheet();
+      return res.status(200).json({ 
+        success: true, 
+        message: 'TournamentDailyArchive sheet created successfully',
+        data: result
+      });
+    }
+
     // Save tournament matches (組み合わせ保存)
     if (method === 'POST' && action === 'save-matches') {
       const { tournamentId, matches } = req.body;

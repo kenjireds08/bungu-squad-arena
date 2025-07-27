@@ -291,6 +291,9 @@ class SheetsService {
       const timestamp = new Date().toISOString();
       const totalParticipants = activePlayers.length;
       
+      // Ensure TournamentDailyArchive sheet exists
+      await this.createTournamentDailyArchiveSheet();
+      
       // Create archive entries for each active player
       const archiveEntries = activePlayers.map(player => [
         `archive_${Date.now()}_${player.id}`, // archive_id
@@ -302,15 +305,17 @@ class SheetsService {
         timestamp // created_at
       ]);
 
-      // Append to TournamentDailyArchive sheet
-      await this.sheets.spreadsheets.values.append({
-        spreadsheetId: this.spreadsheetId,
-        range: 'TournamentDailyArchive!A:G',
-        valueInputOption: 'USER_ENTERED',
-        requestBody: {
-          values: archiveEntries
-        }
-      });
+      if (archiveEntries.length > 0) {
+        // Append to TournamentDailyArchive sheet
+        await this.sheets.spreadsheets.values.append({
+          spreadsheetId: this.spreadsheetId,
+          range: 'TournamentDailyArchive!A:G',
+          valueInputOption: 'USER_ENTERED',
+          requestBody: {
+            values: archiveEntries
+          }
+        });
+      }
 
       console.log(`Archived ${activePlayers.length} players for ${today}`);
       return { success: true, archivedCount: activePlayers.length, date: today };
@@ -931,6 +936,75 @@ class SheetsService {
     } catch (error) {
       console.error('Error approving match result:', error);
       throw new Error(`Failed to approve match result: ${error.message}`);
+    }
+  }
+
+  async createTournamentDailyArchiveSheet() {
+    await this.authenticate();
+    
+    try {
+      // Check if the sheet already exists
+      const spreadsheet = await this.sheets.spreadsheets.get({
+        spreadsheetId: this.spreadsheetId
+      });
+
+      const existingSheet = spreadsheet.data.sheets.find(
+        sheet => sheet.properties.title === 'TournamentDailyArchive'
+      );
+
+      if (existingSheet) {
+        console.log('TournamentDailyArchive sheet already exists');
+        return { success: true, message: 'Sheet already exists', sheetId: existingSheet.properties.sheetId };
+      }
+
+      // Create the new sheet
+      const response = await this.sheets.spreadsheets.batchUpdate({
+        spreadsheetId: this.spreadsheetId,
+        requestBody: {
+          requests: [
+            {
+              addSheet: {
+                properties: {
+                  title: 'TournamentDailyArchive',
+                  gridProperties: {
+                    rowCount: 1000,
+                    columnCount: 10
+                  }
+                }
+              }
+            }
+          ]
+        }
+      });
+
+      const sheetId = response.data.replies[0].addSheet.properties.sheetId;
+
+      // Add headers
+      const headers = [
+        'archive_id',
+        'tournament_date', 
+        'player_id',
+        'player_nickname',
+        'entry_timestamp',
+        'total_participants_that_day',
+        'created_at'
+      ];
+
+      await this.sheets.spreadsheets.values.update({
+        spreadsheetId: this.spreadsheetId,
+        range: 'TournamentDailyArchive!A1:G1',
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+          values: [headers]
+        }
+      });
+
+      console.log('TournamentDailyArchive sheet created successfully');
+      return { success: true, message: 'Sheet created successfully', sheetId };
+
+    } catch (error) {
+      console.error('Error creating TournamentDailyArchive sheet:', error);
+      throw new Error('Failed to create TournamentDailyArchive sheet: ' + error.message);
     }
   }
 }

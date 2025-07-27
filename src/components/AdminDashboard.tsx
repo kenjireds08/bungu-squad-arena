@@ -21,7 +21,6 @@ import {
 import { AdminTournaments } from './AdminTournaments';
 import { AdminApprovals } from './AdminApprovals';
 import { AdminPlayers } from './AdminPlayers';
-import { AdminSheets } from './AdminSheets';
 import { MatchProgressManager } from './MatchProgressManager';
 import { DataExport } from './DataExport';
 import { useRankings, useTournaments } from '@/hooks/useApi';
@@ -153,12 +152,6 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
       title: "データ出力",
       description: "CSV・PDFレポート生成",
       page: "data-export"
-    },
-    {
-      icon: Database,
-      title: "シート管理",
-      description: "Google Sheetsの設定",
-      page: "sheets"
     }
   ];
 
@@ -182,9 +175,6 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
     return <DataExport onClose={() => setCurrentAdminPage('dashboard')} />;
   }
 
-  if (currentAdminPage === 'sheets') {
-    return <AdminSheets onBack={() => setCurrentAdminPage('dashboard')} />;
-  }
 
   return (
     <div className="min-h-screen bg-gradient-parchment">
