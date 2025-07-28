@@ -23,7 +23,7 @@ const mockTournaments = {
     {
       id: 1,
       name: "第8回BUNGU SQUAD大会",
-      date: "2024-07-25",
+      date: "2025-07-28",
       time: "19:00",
       location: "○○コミュニティセンター",
       participants: 0, // Will be replaced with activeParticipants
@@ -34,7 +34,7 @@ const mockTournaments = {
     {
       id: 2,
       name: "第9回BUNGU SQUAD大会",
-      date: "2024-08-08",
+      date: "2025-08-15",
       time: "19:00",
       location: "△△コミュニティセンター",
       participants: 0,

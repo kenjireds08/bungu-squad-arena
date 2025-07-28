@@ -35,18 +35,32 @@ export const TournamentEntry = () => {
         // TODO: Replace with actual API call
         // Mock tournament data for now
         const today = new Date().toISOString().split('T')[0];
+        
+        // Get real participant count
+        let participantCount = 0;
+        try {
+          const playersResponse = await fetch('/api/players');
+          if (playersResponse.ok) {
+            const players = await playersResponse.json();
+            participantCount = players.filter((player: any) => player.tournament_active === true).length;
+            console.log('Current tournament participants:', participantCount);
+          }
+        } catch (error) {
+          console.error('Failed to fetch participant count:', error);
+        }
+        
         const mockTournament: Tournament = {
           id: tournamentId || '1',
           name: '第8回BUNGU SQUAD大会',
           date: today,
           time: '19:00',
           location: '○○コミュニティセンター',
-          participants: 1,
+          participants: participantCount,
           status: '開催中'
         };
         
         // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 500));
         
         setTournament(mockTournament);
       } catch (error) {
@@ -119,12 +133,12 @@ export const TournamentEntry = () => {
           // User has PWA installed, redirect to home
           setTimeout(() => {
             navigate('/');
-          }, 2000);
+          }, 3000);
         } else {
           // User doesn't have PWA, redirect to home with install prompt
           setTimeout(() => {
             navigate('/?showInstall=true');
-          }, 2000);
+          }, 3000);
         }
       } else {
         const errorText = await response.text();
@@ -183,7 +197,7 @@ export const TournamentEntry = () => {
             <h2 className="text-xl font-bold mb-2">エントリー完了！</h2>
             <p className="text-muted-foreground mb-4">
               {tournament.name}にエントリーしました。<br />
-              間もなく待機画面に移動します...
+              3秒後に待機画面に移動します...
             </p>
             <div className="animate-pulse">
               <Loader2 className="h-6 w-6 animate-spin mx-auto" />
