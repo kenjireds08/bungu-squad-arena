@@ -12,14 +12,29 @@ import { ArrowLeft, Plus, Calendar, MapPin, QrCode, Users, Settings } from 'luci
 import { QRCodeDisplay } from './QRCodeDisplay';
 import { TournamentMatchmaking } from './TournamentMatchmaking';
 import { useRankings } from '@/hooks/useApi';
+import { useToast } from '@/components/ui/use-toast';
 
 interface AdminTournamentsProps {
   onBack: () => void;
 }
 
+// Helper function to determine tournament status based on date
+const getTournamentStatus = (date: string) => {
+  const today = new Date().toISOString().split('T')[0];
+  const tournamentDate = new Date(date).toISOString().split('T')[0];
+  
+  if (tournamentDate === today) {
+    return '開催中';
+  } else if (tournamentDate > today) {
+    return '募集中';
+  } else {
+    return '完了';
+  }
+};
+
 // Mock tournaments data - participants will be replaced with real data
-const mockTournaments = {
-  active: [
+const getMockTournaments = () => {
+  const tournaments = [
     {
       id: 1,
       name: "第8回BUNGU SQUAD大会",
@@ -27,10 +42,7 @@ const mockTournaments = {
       time: "19:00",
       location: "○○コミュニティセンター",
       participants: 0, // Will be replaced with activeParticipants
-      status: "開催中"
-    }
-  ],
-  upcoming: [
+    },
     {
       id: 2,
       name: "第9回BUNGU SQUAD大会",
@@ -38,20 +50,31 @@ const mockTournaments = {
       time: "19:00",
       location: "△△コミュニティセンター",
       participants: 0,
-      status: "募集中"
-    }
-  ],
-  completed: [
+    },
     {
       id: 3,
       name: "第7回BUNGU SQUAD大会",
-      date: "2024-07-18",
+      date: "2025-07-15",
       time: "19:00",
-      location: "○○コミュニティセンター",
-      participants: 15,
-      status: "完了"
+      location: "▲▲会議室",
+      participants: 8,
     }
-  ]
+  ];
+
+  // Dynamically assign status based on date
+  const categorized = {
+    active: tournaments.filter(t => getTournamentStatus(t.date) === '開催中').map(t => ({...t, status: '開催中'})),
+    upcoming: tournaments.filter(t => getTournamentStatus(t.date) === '募集中').map(t => ({...t, status: '募集中'})),
+    completed: tournaments.filter(t => getTournamentStatus(t.date) === '完了').map(t => ({...t, status: '完了'}))
+  };
+
+  return categorized;
+};
+
+const mockTournaments = {
+  get active() { return getMockTournaments().active; },
+  get upcoming() { return getMockTournaments().upcoming; },
+  get completed() { return getMockTournaments().completed; }
 };
 
 export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
@@ -60,6 +83,7 @@ export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
   const [showQRCode, setShowQRCode] = useState(false);
   const [activeParticipants, setActiveParticipants] = useState(0);
   const { data: rankings } = useRankings();
+  const { toast } = useToast();
   const [qrTournament, setQrTournament] = useState<any>(null);
   const [matchmakingTournament, setMatchmakingTournament] = useState<any>(null);
   const [newTournament, setNewTournament] = useState({
@@ -79,17 +103,54 @@ export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
     }
   }, [rankings]);
 
-  const handleCreateTournament = () => {
-    // TODO: Implement tournament creation
-    console.log('Creating tournament:', newTournament);
-    setCurrentView('list');
-    setNewTournament({
-      name: '',
-      date: '',
-      time: '',
-      location: '',
-      matchType: 'random',
-      description: ''
+  const handleCreateTournament = async () => {
+    // Validate required fields
+    if (!newTournament.name || !newTournament.date || !newTournament.time || !newTournament.location) {
+      toast({
+        title: "入力エラー",
+        description: "必須項目をすべて入力してください",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      // TODO: Replace with actual API call to create tournament
+      console.log('Creating tournament:', newTournament);
+      
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      toast({
+        title: "大会作成完了",
+        description: `${newTournament.name}を作成しました`,
+      });
+      
+      setCurrentView('list');
+      setNewTournament({
+        name: '',
+        date: '',
+        time: '',
+        location: '',
+        matchType: 'random',
+        description: ''
+      });
+    } catch (error) {
+      console.error('Failed to create tournament:', error);
+      toast({
+        title: "エラー",
+        description: "大会の作成に失敗しました",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleShowParticipants = (tournament: any) => {
+    setSelectedTournament(tournament);
+    // Show participants modal or navigate to participants view
+    toast({
+      title: "参加者一覧",
+      description: `${tournament.name}の参加者: ${activeParticipants}名`,
     });
   };
 

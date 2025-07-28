@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Camera, QrCode, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Camera, QrCode, AlertCircle, CheckCircle } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
 
 interface QRScannerProps {
   onClose: () => void;
@@ -12,12 +13,89 @@ interface QRScannerProps {
 export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScannerProps) => {
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState<'success' | 'error' | null>(null);
+  const [hasCamera, setHasCamera] = useState(true);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const { toast } = useToast();
 
-  const handleStartScan = async () => {
-    setIsScanning(true);
-    // Simulate scanning process
-    setTimeout(async () => {
-      setIsScanning(false);
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' } // Use back camera on mobile
+      });
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        streamRef.current = stream;
+        await videoRef.current.play();
+      }
+      
+      setIsScanning(true);
+      startQRDetection();
+    } catch (error) {
+      console.error('Camera access denied:', error);
+      setHasCamera(false);
+      toast({
+        title: "カメラアクセスエラー",
+        description: "カメラへのアクセスが拒否されました。ブラウザの設定を確認してください。",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    setIsScanning(false);
+  };
+
+  const startQRDetection = () => {
+    const detectQR = () => {
+      if (!videoRef.current || !canvasRef.current || !isScanning) return;
+      
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      const context = canvas.getContext('2d');
+      
+      if (!context || video.videoWidth === 0) {
+        requestAnimationFrame(detectQR);
+        return;
+      }
+      
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      context.drawImage(video, 0, 0);
+      
+      try {
+        const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+        // For now, simulate QR detection after 3 seconds of scanning
+        // In a real implementation, you'd use a QR detection library here
+        setTimeout(() => {
+          if (isScanning) {
+            handleQRDetected('https://bungu-squad-arena.vercel.app/tournament/2025-07-28');
+          }
+        }, 3000);
+      } catch (error) {
+        console.error('QR detection error:', error);
+      }
+      
+      if (isScanning) {
+        requestAnimationFrame(detectQR);
+      }
+    };
+    
+    detectQR();
+  };
+
+  const handleQRDetected = async (data: string) => {
+    console.log('QR Code detected:', data);
+    stopCamera();
+    
+    // Check if it's a tournament entry URL
+    if (data.includes('/tournament/')) {
       setScanResult('success');
       
       // Update tournament active status
@@ -29,21 +107,57 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
             body: JSON.stringify({ updateTournamentActive: true })
           });
           console.log('Tournament active status updated for player:', currentUserId);
+          
+          toast({
+            title: "エントリー完了",
+            description: "大会にエントリーしました！",
+          });
+          
+          // Navigate to the scanned URL
+          setTimeout(() => {
+            window.location.href = data;
+          }, 2000);
+          
         } catch (error) {
           console.error('Failed to update tournament active status:', error);
+          setScanResult('error');
         }
+      } else {
+        // Not logged in, redirect to tournament entry page
+        window.location.href = data;
       }
-      
-      // Navigate to TournamentEntryComplete via MainDashboard
-      if (onEntryComplete) {
-        onEntryComplete();
-      }
-    }, 2000);
+    } else {
+      setScanResult('error');
+      toast({
+        title: "エラー",
+        description: "無効なQRコードです。大会のQRコードをスキャンしてください。",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleStartScan = () => {
+    startCamera();
   };
 
   const handleRetry = () => {
     setScanResult(null);
+    startCamera();
   };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      stopCamera();
+    };
+  }, []);
+
+  // Stop camera when scanning stops
+  useEffect(() => {
+    if (!isScanning && streamRef.current) {
+      stopCamera();
+    }
+  }, [isScanning]);
 
   return (
     <div className="min-h-screen bg-gradient-parchment">
@@ -69,12 +183,40 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
             <CardTitle className="text-center">大会QRコードをスキャン</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Camera View Placeholder */}
+            {/* Camera View */}
             <div className="aspect-square bg-muted rounded-lg border-2 border-dashed border-fantasy-frame flex items-center justify-center relative overflow-hidden">
               {isScanning ? (
-                <div className="space-y-4 text-center">
-                  <div className="w-16 h-16 mx-auto border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                  <p className="text-sm text-muted-foreground">スキャン中...</p>
+                <>
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="absolute inset-0 w-full h-full object-cover rounded-lg"
+                  />
+                  <canvas
+                    ref={canvasRef}
+                    className="hidden"
+                  />
+                  {/* Scanning Overlay */}
+                  <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                    <div className="w-48 h-48 border-2 border-primary rounded-lg animate-pulse"></div>
+                  </div>
+                  <div className="absolute bottom-4 left-0 right-0 text-center">
+                    <p className="text-white text-sm bg-black/50 inline-block px-3 py-1 rounded-full">
+                      QRコードをスキャン中...
+                    </p>
+                  </div>
+                </>
+              ) : scanResult === 'success' ? (
+                <div className="text-center space-y-4">
+                  <CheckCircle className="h-16 w-16 mx-auto text-success" />
+                  <div className="space-y-2">
+                    <p className="text-lg font-semibold text-success">スキャン完了！</p>
+                    <p className="text-sm text-muted-foreground">
+                      大会にエントリーしています...
+                    </p>
+                  </div>
                 </div>
               ) : (
                 <div className="text-center space-y-4">
@@ -87,13 +229,6 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
                       会場で配布されたQRコードを読み取ります
                     </p>
                   </div>
-                </div>
-              )}
-              
-              {/* Scanning Frame Overlay */}
-              {!isScanning && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-48 h-48 border-2 border-primary rounded-lg"></div>
                 </div>
               )}
             </div>
