@@ -12,44 +12,108 @@ interface QRScannerProps {
 
 export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScannerProps) => {
   const [isScanning, setIsScanning] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(false);
   const [scanResult, setScanResult] = useState<'success' | 'error' | null>(null);
   const [hasCamera, setHasCamera] = useState(true);
+  const [cameraError, setCameraError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const { toast } = useToast();
 
   const startCamera = async () => {
+    setIsInitializing(true);
+    setCameraError(null);
+    
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' } // Use back camera on mobile
-      });
+      console.log('BUNGU SQUAD: カメラアクセスを要求中...');
+      
+      // Check if getUserMedia is supported
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('このブラウザはカメラアクセスをサポートしていません');
+      }
+
+      const constraints = {
+        video: {
+          facingMode: 'environment', // Use back camera on mobile
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
+      };
+
+      console.log('BUNGU SQUAD: カメラストリームを取得中...', constraints);
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      
+      console.log('BUNGU SQUAD: カメラストリーム取得成功');
       
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         streamRef.current = stream;
-        await videoRef.current.play();
+        
+        // Wait for video to be ready
+        videoRef.current.onloadedmetadata = () => {
+          console.log('BUNGU SQUAD: ビデオメタデータ読み込み完了');
+          if (videoRef.current) {
+            videoRef.current.play()
+              .then(() => {
+                console.log('BUNGU SQUAD: ビデオ再生開始');
+                setIsInitializing(false);
+                setIsScanning(true);
+                startQRDetection();
+              })
+              .catch((playError) => {
+                console.error('BUNGU SQUAD: ビデオ再生エラー:', playError);
+                setIsInitializing(false);
+                setCameraError('ビデオの再生に失敗しました');
+              });
+          }
+        };
+
+        videoRef.current.onerror = (error) => {
+          console.error('BUNGU SQUAD: ビデオエラー:', error);
+          setIsInitializing(false);
+          setCameraError('ビデオの読み込みに失敗しました');
+        };
       }
       
-      setIsScanning(true);
-      startQRDetection();
-    } catch (error) {
-      console.error('Camera access denied:', error);
+    } catch (error: any) {
+      console.error('BUNGU SQUAD: カメラアクセスエラー:', error);
+      setIsInitializing(false);
       setHasCamera(false);
+      
+      let errorMessage = 'カメラへのアクセスに失敗しました';
+      
+      if (error.name === 'NotAllowedError') {
+        errorMessage = 'カメラへのアクセスが拒否されました。ブラウザの設定でカメラを許可してください。';
+      } else if (error.name === 'NotFoundError') {
+        errorMessage = 'カメラが見つかりません。デバイスにカメラが接続されているか確認してください。';
+      } else if (error.name === 'NotSupportedError') {
+        errorMessage = 'このブラウザはカメラアクセスをサポートしていません。';
+      } else if (error.name === 'OverconstrainedError') {
+        errorMessage = 'カメラの設定に問題があります。別のカメラを試してください。';
+      }
+      
+      setCameraError(errorMessage);
+      
       toast({
         title: "カメラアクセスエラー",
-        description: "カメラへのアクセスが拒否されました。ブラウザの設定を確認してください。",
+        description: errorMessage,
         variant: "destructive"
       });
     }
   };
 
   const stopCamera = () => {
+    console.log('BUNGU SQUAD: カメラを停止中...');
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
     }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
     setIsScanning(false);
+    setIsInitializing(false);
   };
 
   const startQRDetection = () => {
@@ -138,6 +202,8 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
 
   const handleRetry = () => {
     setScanResult(null);
+    setCameraError(null);
+    setHasCamera(true);
     startCamera();
   };
 
@@ -181,7 +247,17 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
           <CardContent className="space-y-6">
             {/* Camera View */}
             <div className="aspect-square bg-muted rounded-lg border-2 border-dashed border-fantasy-frame flex items-center justify-center relative overflow-hidden">
-              {isScanning ? (
+              {isInitializing ? (
+                <div className="text-center space-y-4">
+                  <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+                  <div className="space-y-2">
+                    <p className="text-lg font-semibold">カメラを起動中...</p>
+                    <p className="text-sm text-muted-foreground">
+                      カメラへのアクセスを許可してください
+                    </p>
+                  </div>
+                </div>
+              ) : isScanning ? (
                 <>
                   <video
                     ref={videoRef}
@@ -214,12 +290,23 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
                     </p>
                   </div>
                 </div>
+              ) : cameraError ? (
+                <div className="text-center space-y-4">
+                  <AlertCircle className="h-16 w-16 mx-auto text-destructive" />
+                  <div className="space-y-2">
+                    <p className="text-lg font-semibold text-destructive">カメラエラー</p>
+                    <p className="text-sm text-muted-foreground">
+                      {cameraError}
+                    </p>
+                  </div>
+                </div>
               ) : (
                 <div className="text-center space-y-4">
                   <Camera className="h-16 w-16 mx-auto text-muted-foreground" />
                   <div className="space-y-2">
+                    <p className="text-lg font-semibold">QRコードをスキャン</p>
                     <p className="text-sm text-muted-foreground">
-                      QRコードをフレーム内に合わせてください
+                      カメラを起動してQRコードを読み取ります
                     </p>
                     <p className="text-xs text-muted-foreground">
                       会場で配布されたQRコードを読み取ります
@@ -247,7 +334,7 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
 
               {/* Action Buttons */}
               <div className="space-y-3">
-                {!isScanning && (
+                {!isInitializing && !isScanning && !scanResult && !cameraError && (
                   <Button 
                     variant="heroic" 
                     size="lg" 
@@ -259,15 +346,53 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
                   </Button>
                 )}
 
-                {isScanning && (
+                {isInitializing && (
                   <Button 
                     variant="outline" 
                     size="lg" 
-                    onClick={() => handleQRDetected('https://bungu-squad-arena.vercel.app/tournament/2025-07-28')}
+                    disabled
                     className="w-full"
                   >
-                    QRコード検出をシミュレート（テスト用）
+                    <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin mr-2"></div>
+                    カメラを起動中...
                   </Button>
+                )}
+
+                {isScanning && (
+                  <>
+                    <Button 
+                      variant="outline" 
+                      size="lg" 
+                      onClick={() => handleQRDetected('https://bungu-squad-arena.vercel.app/tournament/2025-07-28')}
+                      className="w-full"
+                    >
+                      QRコード検出をシミュレート（テスト用）
+                    </Button>
+                    <Button 
+                      variant="secondary" 
+                      size="lg" 
+                      onClick={stopCamera}
+                      className="w-full"
+                    >
+                      カメラを停止
+                    </Button>
+                  </>
+                )}
+
+                {cameraError && (
+                  <div className="space-y-3">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        setCameraError(null);
+                        setHasCamera(true);
+                        handleStartScan();
+                      }} 
+                      className="w-full"
+                    >
+                      もう一度カメラを起動
+                    </Button>
+                  </div>
                 )}
 
                 {scanResult === 'error' && (

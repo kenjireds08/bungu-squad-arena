@@ -32,7 +32,88 @@
   </head>
 
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Fallback loading screen for Safari/slow connections -->
+      <div id="initial-loading" style="
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(180deg, #F5F1E8, #EDE7D5);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        font-family: system-ui, -apple-system, sans-serif;
+        color: #3C2415;
+        z-index: 9999;
+      ">
+        <div style="
+          width: 60px;
+          height: 60px;
+          border: 4px solid #DAA520;
+          border-top: 4px solid transparent;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+          margin-bottom: 20px;
+        "></div>
+        <h1 style="
+          margin: 0 0 12px 0;
+          font-size: 24px;
+          font-weight: bold;
+          color: #DAA520;
+        ">BUNGU SQUAD</h1>
+        <p style="
+          margin: 0;
+          font-size: 14px;
+          color: #8B4513;
+        ">読み込み中...</p>
+        
+        <!-- Timeout fallback -->
+        <div id="loading-timeout" style="display: none; margin-top: 20px; text-align: center;">
+          <p style="margin: 0 0 12px 0; font-size: 14px; color: #B22222;">
+            読み込みに時間がかかっています
+          </p>
+          <button onclick="window.location.reload()" style="
+            padding: 8px 16px;
+            background: #DAA520;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+          ">再読み込み</button>
+        </div>
+      </div>
+      
+      <style>
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      </style>
+      
+      <script>
+        // Show timeout message if loading takes too long
+        setTimeout(function() {
+          var timeoutDiv = document.getElementById('loading-timeout');
+          if (timeoutDiv && document.getElementById('initial-loading')) {
+            timeoutDiv.style.display = 'block';
+          }
+        }, 10000);
+        
+        // Remove loading screen when React app loads
+        window.addEventListener('load', function() {
+          setTimeout(function() {
+            var loadingDiv = document.getElementById('initial-loading');
+            if (loadingDiv) {
+              loadingDiv.style.display = 'none';
+            }
+          }, 1000);
+        });
+      </script>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
       // Register Service Worker for PWA
