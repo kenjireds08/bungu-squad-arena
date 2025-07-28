@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Camera, QrCode, AlertCircle, CheckCircle, Edit3, Send, Info } from 'lucide-react';
+import { ArrowLeft, Camera, QrCode, AlertCircle, CheckCircle, Edit3, Send, Info, ExternalLink } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import jsQR from 'jsqr';
 
@@ -434,6 +434,68 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
     }
   };
 
+  const openInSafari = () => {
+    const currentUrl = window.location.href;
+    
+    toast({
+      title: "Safari で開いています",
+      description: "カメラ権限を許可してから戻ってください",
+    });
+
+    // PWAからSafariブラウザで開く - カメラパラメータを追加
+    const safariUrl = currentUrl.includes('?') 
+      ? `${currentUrl}&camera=grant` 
+      : `${currentUrl}?camera=grant`;
+    
+    // ローカルストレージに権限試行フラグを設定
+    localStorage.setItem('camera-permission-attempt', Date.now().toString());
+    
+    window.location.href = safariUrl;
+  };
+
+  const isPWASafari = () => {
+    const isPWA = window.matchMedia('(display-mode: standalone)').matches;
+    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    return isPWA && isSafari;
+  };
+
+  // Auto-retry camera access after Safari permission grant
+  useEffect(() => {
+    const checkPermissionAndRetry = async () => {
+      // URLパラメータをチェック
+      const urlParams = new URLSearchParams(window.location.search);
+      const cameraParam = urlParams.get('camera');
+      
+      // ローカルストレージのフラグをチェック
+      const attemptTime = localStorage.getItem('camera-permission-attempt');
+      const now = Date.now();
+      const fiveMinutesAgo = now - (5 * 60 * 1000); // 5分前
+      
+      if (cameraParam === 'grant' && attemptTime && parseInt(attemptTime) > fiveMinutesAgo) {
+        console.log('BUNGU SQUAD: Safariから戻ってきました、カメラを自動再試行');
+        
+        // フラグをクリア
+        localStorage.removeItem('camera-permission-attempt');
+        
+        // URLパラメータをクリア
+        const newUrl = window.location.href.replace(/[?&]camera=grant/, '');
+        window.history.replaceState({}, '', newUrl);
+        
+        // 少し待ってからカメラを起動
+        setTimeout(() => {
+          handleStartScan();
+        }, 1000);
+        
+        toast({
+          title: "自動再試行",
+          description: "カメラアクセスを再試行しています...",
+        });
+      }
+    };
+    
+    checkPermissionAndRetry();
+  }, []);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -600,6 +662,34 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
                       キャンセル
                     </Button>
                   </div>
+                </div>
+              )}
+
+              {/* PWA Camera Issue Warning */}
+              {cameraError && isPWASafari() && (
+                <div className="space-y-3 p-4 bg-destructive/10 rounded-lg border border-destructive/20">
+                  <div className="flex items-center gap-2 mb-2">
+                    <AlertCircle className="h-4 w-4 text-destructive" />
+                    <span className="text-sm font-medium text-destructive">PWA カメラ問題</span>
+                  </div>
+                  <div className="text-sm space-y-2 text-muted-foreground">
+                    <p>Safari PWAアプリではカメラ権限に問題が発生することがあります。</p>
+                    <p><strong>解決方法：</strong></p>
+                    <ol className="list-decimal list-inside space-y-1 text-xs">
+                      <li>下の「Safariで開く」ボタンをタップ</li>
+                      <li>Safariブラウザでカメラ権限を許可</li>
+                      <li>PWAアプリに戻ると自動でカメラを再試行します</li>
+                    </ol>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={openInSafari}
+                    className="w-full"
+                  >
+                    <ExternalLink className="h-4 w-4 mr-1" />
+                    Safariで開く
+                  </Button>
                 </div>
               )}
 
