@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Camera, QrCode, AlertCircle, CheckCircle, Edit3, Send } from 'lucide-react';
+import { ArrowLeft, Camera, QrCode, AlertCircle, CheckCircle, Edit3, Send, Info } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import jsQR from 'jsqr';
 
@@ -21,17 +21,74 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
   const [initializationTimeout, setInitializationTimeout] = useState(false);
   const [showManualInput, setShowManualInput] = useState(false);
   const [manualUrl, setManualUrl] = useState('');
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
+  const [diagnosticInfo, setDiagnosticInfo] = useState<string[]>([]);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const initTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
 
+  // Detect browser and device capabilities
+  const detectEnvironment = () => {
+    const info: string[] = [];
+    info.push(`User Agent: ${navigator.userAgent}`);
+    info.push(`Is PWA: ${window.matchMedia('(display-mode: standalone)').matches}`);
+    info.push(`Is iOS: ${/iPad|iPhone|iPod/.test(navigator.userAgent)}`);
+    info.push(`Is Safari: ${/^((?!chrome|android).)*safari/i.test(navigator.userAgent)}`);
+    info.push(`MediaDevices support: ${!!navigator.mediaDevices}`);
+    info.push(`getUserMedia support: ${!!navigator.mediaDevices?.getUserMedia}`);
+    info.push(`HTTPS: ${location.protocol === 'https:'}`);
+    info.push(`Screen: ${screen.width}x${screen.height}`);
+    return info;
+  };
+
+  // Check camera permissions and availability
+  const checkCameraPermissions = async () => {
+    const info = detectEnvironment();
+    setDiagnosticInfo(info);
+    console.log('BUNGU SQUAD: 環境診断', info);
+
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('MediaDevices API not supported');
+      }
+
+      // Check for existing permissions
+      if (navigator.permissions) {
+        try {
+          const permission = await navigator.permissions.query({ name: 'camera' as PermissionName });
+          info.push(`Camera permission: ${permission.state}`);
+          console.log('BUNGU SQUAD: カメラ権限状態:', permission.state);
+        } catch (e) {
+          info.push('Camera permission: check failed');
+        }
+      }
+
+      // Check available media devices
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoInputs = devices.filter(device => device.kind === 'videoinput');
+      info.push(`Video inputs: ${videoInputs.length}`);
+      console.log('BUNGU SQUAD: ビデオ入力デバイス:', videoInputs);
+
+      setDiagnosticInfo([...info]);
+      return true;
+    } catch (error) {
+      console.error('BUNGU SQUAD: 権限チェックエラー:', error);
+      info.push(`Permission check error: ${error}`);
+      setDiagnosticInfo([...info]);
+      return false;
+    }
+  };
+
   const startCamera = async () => {
     console.log('BUNGU SQUAD: カメラ起動開始');
     setIsInitializing(true);
     setCameraError(null);
     setInitializationTimeout(false);
+
+    // First, run diagnostics
+    const canProceed = await checkCameraPermissions();
     
     // Clear any previous timeout
     if (initTimeoutRef.current) {
@@ -55,15 +112,30 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
 
       console.log('BUNGU SQUAD: カメラストリーム要求中...');
       
-      // Simple, iOS-friendly constraints
-      const constraints = {
-        video: {
-          facingMode: { ideal: 'environment' }, // Prefer back camera but allow fallback
-          width: { ideal: 640 },
-          height: { ideal: 480 }
-        }
-      };
+      // Special handling for Safari PWA
+      const isPWA = window.matchMedia('(display-mode: standalone)').matches;
+      const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+      
+      let constraints;
+      
+      if (isPWA && isSafari) {
+        // Very minimal constraints for Safari PWA
+        console.log('BUNGU SQUAD: Safari PWA 検出、最小制約で試行');
+        constraints = {
+          video: true // Most basic constraints
+        };
+      } else {
+        // Standard constraints for other browsers
+        constraints = {
+          video: {
+            facingMode: { ideal: 'environment' },
+            width: { ideal: 640 },
+            height: { ideal: 480 }
+          }
+        };
+      }
 
+      console.log('BUNGU SQUAD: 使用制約:', constraints);
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       console.log('BUNGU SQUAD: カメラストリーム取得成功');
       
@@ -531,6 +603,31 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
                 </div>
               )}
 
+              {/* Diagnostics Section */}
+              {showDiagnostics && diagnosticInfo.length > 0 && (
+                <div className="space-y-3 p-4 bg-info/10 rounded-lg border border-info/20">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Info className="h-4 w-4 text-info" />
+                    <span className="text-sm font-medium text-info">システム情報</span>
+                  </div>
+                  <div className="text-xs space-y-1 font-mono">
+                    {diagnosticInfo.map((info, index) => (
+                      <div key={index} className="text-muted-foreground">
+                        {info}
+                      </div>
+                    ))}
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => setShowDiagnostics(false)}
+                    className="w-full"
+                  >
+                    閉じる
+                  </Button>
+                </div>
+              )}
+
               {/* Action Buttons */}
               <div className="space-y-3">
                 {!isInitializing && !isScanning && !scanResult && !cameraError && (
@@ -610,6 +707,15 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
                     >
                       <Edit3 className="h-4 w-4 mr-1" />
                       手動でURL入力
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => setShowDiagnostics(!showDiagnostics)}
+                      className="w-full"
+                    >
+                      <Info className="h-4 w-4 mr-1" />
+                      システム情報を表示
                     </Button>
                   </div>
                 )}
