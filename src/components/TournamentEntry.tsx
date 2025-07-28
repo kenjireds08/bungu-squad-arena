@@ -24,6 +24,9 @@ export const TournamentEntry = () => {
   const [isEntering, setIsEntering] = useState(false);
   const [isEntered, setIsEntered] = useState(false);
   
+  // Add component mount log
+  console.log('TournamentEntry component mounted', { tournamentId, date });
+  
   useEffect(() => {
     const loadTournament = async () => {
       try {
@@ -93,7 +96,7 @@ export const TournamentEntry = () => {
       const response = await fetch(`/api/players?id=${userId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tournament_active: true })
+        body: JSON.stringify({ updateTournamentActive: true })
       });
 
       console.log('API response status:', response.status);
@@ -107,10 +110,22 @@ export const TournamentEntry = () => {
           description: `${tournament.name}にエントリーしました！`,
         });
         
-        // Auto redirect to home after 3 seconds  
-        setTimeout(() => {
-          navigate('/');
-        }, 3000);
+        // Check if PWA is installed and redirect accordingly
+        const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
+                     window.navigator.standalone || 
+                     document.referrer.includes('android-app://');
+        
+        if (isPWA) {
+          // User has PWA installed, redirect to home
+          setTimeout(() => {
+            navigate('/');
+          }, 2000);
+        } else {
+          // User doesn't have PWA, redirect to home with install prompt
+          setTimeout(() => {
+            navigate('/?showInstall=true');
+          }, 2000);
+        }
       } else {
         const errorText = await response.text();
         console.error('API error response:', errorText);

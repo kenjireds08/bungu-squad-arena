@@ -20,7 +20,19 @@ const Index = () => {
       setCurrentUserId(savedUserId);
       setIsAdmin(savedIsAdmin);
     }
-  }, []);
+    
+    // Check if we should show install prompt
+    const showInstall = searchParams.get('showInstall');
+    if (showInstall === 'true' && savedUserId) {
+      // Trigger PWA install prompt after a short delay
+      setTimeout(() => {
+        const event = window.deferredPrompt;
+        if (event) {
+          event.prompt();
+        }
+      }, 500);
+    }
+  }, [searchParams]);
 
   const handleLoginSuccess = (userId: string, admin: boolean) => {
     setIsAuthenticated(true);
