@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Camera, QrCode, AlertCircle, CheckCircle } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { ArrowLeft, Camera, QrCode, AlertCircle, CheckCircle, Edit3, Send } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 
 interface QRScannerProps {
@@ -17,6 +18,8 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
   const [hasCamera, setHasCamera] = useState(true);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [initializationTimeout, setInitializationTimeout] = useState(false);
+  const [showManualInput, setShowManualInput] = useState(false);
+  const [manualUrl, setManualUrl] = useState('');
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -33,8 +36,8 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
       console.log('BUNGU SQUAD: カメラ初期化タイムアウト');
       setInitializationTimeout(true);
       setIsInitializing(false);
-      setCameraError('カメラの起動に時間がかかりすぎています。再試行してください。');
-    }, 15000); // 15 seconds timeout
+      setCameraError('カメラの起動に時間がかかりすぎています。手動入力を試してください。');
+    }, 10000); // 10 seconds timeout
     
     try {
       console.log('BUNGU SQUAD: カメラアクセスを要求中...');
@@ -300,6 +303,37 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
     startCamera();
   };
 
+  const handleManualSubmit = () => {
+    if (!manualUrl.trim()) {
+      toast({
+        title: "エラー",
+        description: "URLを入力してください。",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validate URL
+    if (!manualUrl.includes('/tournament/')) {
+      toast({
+        title: "エラー",
+        description: "有効な大会URLを入力してください。",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    handleQRDetected(manualUrl);
+  };
+
+  const toggleManualInput = () => {
+    setShowManualInput(!showManualInput);
+    if (!showManualInput) {
+      // 手動入力を開く時は、デフォルトURLを設定
+      setManualUrl('https://bungu-squad-arena.vercel.app/tournament/2025-07-28');
+    }
+  };
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -424,28 +458,74 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
                 <div className="flex gap-3">
                   <AlertCircle className="h-5 w-5 text-info flex-shrink-0 mt-0.5" />
                   <div className="space-y-2">
-                    <h3 className="font-semibold text-info">スキャン方法</h3>
+                    <h3 className="font-semibold text-info">エントリー方法</h3>
                     <ul className="text-sm space-y-1 text-muted-foreground">
-                      <li>• QRコードをカメラに向けてください</li>
-                      <li>• コードがフレーム内に入るよう調整</li>
-                      <li>• 自動的に読み取りが開始されます</li>
+                      <li>• <strong>カメラ使用:</strong> QRコードをカメラに向けてスキャン</li>
+                      <li>• <strong>手動入力:</strong> カメラが使えない場合はURL入力</li>
+                      <li>• <strong>テスト用:</strong> 開発・テスト時のシミュレート機能</li>
                     </ul>
                   </div>
                 </div>
               </div>
 
+              {/* Manual Input Section */}
+              {showManualInput && (
+                <div className="space-y-3 p-4 bg-muted/50 rounded-lg border">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Edit3 className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-medium">手動でURL入力</span>
+                  </div>
+                  <Input
+                    type="url"
+                    value={manualUrl}
+                    onChange={(e) => setManualUrl(e.target.value)}
+                    placeholder="https://bungu-squad-arena.vercel.app/tournament/..."
+                    className="text-sm"
+                  />
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={handleManualSubmit}
+                      className="flex-1"
+                    >
+                      <Send className="h-4 w-4 mr-1" />
+                      エントリー
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => setShowManualInput(false)}
+                    >
+                      キャンセル
+                    </Button>
+                  </div>
+                </div>
+              )}
+
               {/* Action Buttons */}
               <div className="space-y-3">
                 {!isInitializing && !isScanning && !scanResult && !cameraError && (
-                  <Button 
-                    variant="heroic" 
-                    size="lg" 
-                    onClick={handleStartScan}
-                    className="w-full"
-                  >
-                    <Camera className="h-5 w-5" />
-                    カメラを起動
-                  </Button>
+                  <>
+                    <Button 
+                      variant="heroic" 
+                      size="lg" 
+                      onClick={handleStartScan}
+                      className="w-full"
+                    >
+                      <Camera className="h-5 w-5" />
+                      カメラを起動
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={toggleManualInput}
+                      className="w-full"
+                    >
+                      <Edit3 className="h-4 w-4 mr-1" />
+                      手動でURL入力
+                    </Button>
+                  </>
                 )}
 
                 {isInitializing && (
@@ -494,6 +574,14 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
                       className="w-full"
                     >
                       もう一度カメラを起動
+                    </Button>
+                    <Button 
+                      variant="secondary" 
+                      onClick={toggleManualInput}
+                      className="w-full"
+                    >
+                      <Edit3 className="h-4 w-4 mr-1" />
+                      手動でURL入力
                     </Button>
                   </div>
                 )}
