@@ -16,14 +16,25 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
   const [scanResult, setScanResult] = useState<'success' | 'error' | null>(null);
   const [hasCamera, setHasCamera] = useState(true);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  const [initializationTimeout, setInitializationTimeout] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const initTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
 
   const startCamera = async () => {
     setIsInitializing(true);
     setCameraError(null);
+    setInitializationTimeout(false);
+    
+    // Set timeout to prevent infinite loading
+    initTimeoutRef.current = setTimeout(() => {
+      console.log('BUNGU SQUAD: カメラ初期化タイムアウト');
+      setInitializationTimeout(true);
+      setIsInitializing(false);
+      setCameraError('カメラの起動に時間がかかりすぎています。再試行してください。');
+    }, 15000); // 15 seconds timeout
     
     try {
       console.log('BUNGU SQUAD: カメラアクセスを要求中...');
@@ -33,51 +44,122 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
         throw new Error('このブラウザはカメラアクセスをサポートしていません');
       }
 
-      const constraints = {
+      // iOS Safari friendly constraints - start with basic requirements
+      let constraints = {
         video: {
-          facingMode: 'environment', // Use back camera on mobile
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
+          facingMode: 'environment' // Use back camera on mobile
         }
       };
 
       console.log('BUNGU SQUAD: カメラストリームを取得中...', constraints);
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      let stream: MediaStream;
       
-      console.log('BUNGU SQUAD: カメラストリーム取得成功');
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        streamRef.current = stream;
-        
-        // Wait for video to be ready
-        videoRef.current.onloadedmetadata = () => {
-          console.log('BUNGU SQUAD: ビデオメタデータ読み込み完了');
-          if (videoRef.current) {
-            videoRef.current.play()
-              .then(() => {
-                console.log('BUNGU SQUAD: ビデオ再生開始');
-                setIsInitializing(false);
-                setIsScanning(true);
-                startQRDetection();
-              })
-              .catch((playError) => {
-                console.error('BUNGU SQUAD: ビデオ再生エラー:', playError);
-                setIsInitializing(false);
-                setCameraError('ビデオの再生に失敗しました');
-              });
+      try {
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+      } catch (error: any) {
+        console.log('BUNGU SQUAD: 背面カメラ取得失敗、フロントカメラで再試行...', error);
+        // Fallback to front camera if back camera fails
+        constraints = {
+          video: {
+            facingMode: 'user'
           }
         };
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+      }
+      
+      console.log('BUNGU SQUAD: カメラストリーム取得成功', stream.getTracks()[0]?.getSettings());
+      
+      if (videoRef.current) {
+        // Clear any existing srcObject first
+        videoRef.current.srcObject = null;
+        
+        // Set up video element for iOS compatibility
+        videoRef.current.setAttribute('webkit-playsinline', 'true');
+        videoRef.current.setAttribute('playsinline', 'true');
+        videoRef.current.muted = true;
+        videoRef.current.autoplay = true;
+        
+        streamRef.current = stream;
+        
+        // Create a promise to handle video loading
+        const videoLoadPromise = new Promise<void>((resolve, reject) => {
+          if (!videoRef.current) {
+            reject(new Error('Video element not found'));
+            return;
+          }
 
-        videoRef.current.onerror = (error) => {
-          console.error('BUNGU SQUAD: ビデオエラー:', error);
+          const video = videoRef.current;
+          let timeoutId: NodeJS.Timeout;
+
+          const handleLoadedMetadata = () => {
+            console.log('BUNGU SQUAD: ビデオメタデータ読み込み完了');
+            clearTimeout(timeoutId);
+            video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+            video.removeEventListener('error', handleVideoError);
+            resolve();
+          };
+
+          const handleVideoError = (event: Event) => {
+            console.error('BUNGU SQUAD: ビデオ読み込みエラー:', event);
+            clearTimeout(timeoutId);
+            video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+            video.removeEventListener('error', handleVideoError);
+            reject(new Error('ビデオの読み込みに失敗しました'));
+          };
+
+          // Set up event listeners
+          video.addEventListener('loadedmetadata', handleLoadedMetadata);
+          video.addEventListener('error', handleVideoError);
+
+          // Set timeout for iOS issues
+          timeoutId = setTimeout(() => {
+            console.log('BUNGU SQUAD: ビデオ読み込みタイムアウト、強制的に次へ進む');
+            video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+            video.removeEventListener('error', handleVideoError);
+            resolve(); // Resolve anyway to try playing
+          }, 5000);
+
+          // Set the stream
+          video.srcObject = stream;
+        });
+
+        await videoLoadPromise;
+
+        // Try to play the video
+        if (videoRef.current) {
+          try {
+            await videoRef.current.play();
+            console.log('BUNGU SQUAD: ビデオ再生開始成功');
+          } catch (playError) {
+            console.log('BUNGU SQUAD: 自動再生失敗、ユーザー操作が必要:', playError);
+            // On iOS, sometimes auto-play fails, but the video is still usable
+          }
+
+          // Clear timeout and set scanning state
+          if (initTimeoutRef.current) {
+            clearTimeout(initTimeoutRef.current);
+            initTimeoutRef.current = null;
+          }
+          
           setIsInitializing(false);
-          setCameraError('ビデオの読み込みに失敗しました');
-        };
+          setIsScanning(true);
+          
+          // Small delay to ensure video is ready
+          setTimeout(() => {
+            startQRDetection();
+          }, 500);
+        }
       }
       
     } catch (error: any) {
       console.error('BUNGU SQUAD: カメラアクセスエラー:', error);
+      
+      // Clear timeout
+      if (initTimeoutRef.current) {
+        clearTimeout(initTimeoutRef.current);
+        initTimeoutRef.current = null;
+      }
+      
       setIsInitializing(false);
       setHasCamera(false);
       
@@ -90,7 +172,9 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
       } else if (error.name === 'NotSupportedError') {
         errorMessage = 'このブラウザはカメラアクセスをサポートしていません。';
       } else if (error.name === 'OverconstrainedError') {
-        errorMessage = 'カメラの設定に問題があります。別のカメラを試してください。';
+        errorMessage = 'カメラの設定に問題があります。フロントカメラで試してください。';
+      } else {
+        errorMessage = `カメラエラー: ${error.message}`;
       }
       
       setCameraError(errorMessage);
@@ -105,6 +189,13 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
 
   const stopCamera = () => {
     console.log('BUNGU SQUAD: カメラを停止中...');
+    
+    // Clear timeout
+    if (initTimeoutRef.current) {
+      clearTimeout(initTimeoutRef.current);
+      initTimeoutRef.current = null;
+    }
+    
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
@@ -114,6 +205,7 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
     }
     setIsScanning(false);
     setIsInitializing(false);
+    setInitializationTimeout(false);
   };
 
   const startQRDetection = () => {
@@ -204,12 +296,16 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
     setScanResult(null);
     setCameraError(null);
     setHasCamera(true);
+    setInitializationTimeout(false);
     startCamera();
   };
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      if (initTimeoutRef.current) {
+        clearTimeout(initTimeoutRef.current);
+      }
       stopCamera();
     };
   }, []);
@@ -255,6 +351,11 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
                     <p className="text-sm text-muted-foreground">
                       カメラへのアクセスを許可してください
                     </p>
+                    {initializationTimeout && (
+                      <p className="text-xs text-destructive">
+                        時間がかかっています。しばらくお待ちください...
+                      </p>
+                    )}
                   </div>
                 </div>
               ) : isScanning ? (
@@ -264,6 +365,7 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
                     autoPlay
                     playsInline
                     muted
+                    webkit-playsinline="true"
                     className="absolute inset-0 w-full h-full object-cover rounded-lg"
                   />
                   <canvas
@@ -379,12 +481,13 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
                   </>
                 )}
 
-                {cameraError && (
+                {(cameraError || initializationTimeout) && (
                   <div className="space-y-3">
                     <Button 
                       variant="outline" 
                       onClick={() => {
                         setCameraError(null);
+                        setInitializationTimeout(false);
                         setHasCamera(true);
                         handleStartScan();
                       }} 
