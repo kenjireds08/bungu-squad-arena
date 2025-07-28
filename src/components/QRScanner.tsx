@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ArrowLeft, Camera, QrCode, AlertCircle, CheckCircle, Edit3, Send } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import jsQR from 'jsqr';
 
 interface QRScannerProps {
   onClose: () => void;
@@ -27,118 +28,76 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
   const { toast } = useToast();
 
   const startCamera = async () => {
+    console.log('BUNGU SQUAD: カメラ起動開始');
     setIsInitializing(true);
     setCameraError(null);
     setInitializationTimeout(false);
+    
+    // Clear any previous timeout
+    if (initTimeoutRef.current) {
+      clearTimeout(initTimeoutRef.current);
+      initTimeoutRef.current = null;
+    }
     
     // Set timeout to prevent infinite loading
     initTimeoutRef.current = setTimeout(() => {
       console.log('BUNGU SQUAD: カメラ初期化タイムアウト');
       setInitializationTimeout(true);
       setIsInitializing(false);
-      setCameraError('カメラの起動に時間がかかりすぎています。手動入力を試してください。');
-    }, 10000); // 10 seconds timeout
+      setCameraError('カメラの起動に時間がかかっています。もう一度お試しください。');
+    }, 8000); // 8 seconds timeout
     
     try {
-      console.log('BUNGU SQUAD: カメラアクセスを要求中...');
-      
-      // Check if getUserMedia is supported
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error('このブラウザはカメラアクセスをサポートしていません');
+      // Check browser support
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error('このブラウザはカメラをサポートしていません');
       }
 
-      // iOS Safari friendly constraints - start with basic requirements
-      let constraints = {
+      console.log('BUNGU SQUAD: カメラストリーム要求中...');
+      
+      // Simple, iOS-friendly constraints
+      const constraints = {
         video: {
-          facingMode: 'environment' // Use back camera on mobile
+          facingMode: { ideal: 'environment' }, // Prefer back camera but allow fallback
+          width: { ideal: 640 },
+          height: { ideal: 480 }
         }
       };
 
-      console.log('BUNGU SQUAD: カメラストリームを取得中...', constraints);
-      let stream: MediaStream;
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      console.log('BUNGU SQUAD: カメラストリーム取得成功');
       
-      try {
-        stream = await navigator.mediaDevices.getUserMedia(constraints);
-      } catch (error: any) {
-        console.log('BUNGU SQUAD: 背面カメラ取得失敗、フロントカメラで再試行...', error);
-        // Fallback to front camera if back camera fails
-        constraints = {
-          video: {
-            facingMode: 'user'
-          }
-        };
-        stream = await navigator.mediaDevices.getUserMedia(constraints);
+      if (!videoRef.current) {
+        throw new Error('ビデオ要素が見つかりません');
       }
+
+      const video = videoRef.current;
+      streamRef.current = stream;
+
+      // Configure video element for iOS
+      video.srcObject = stream;
+      video.playsInline = true;
+      video.muted = true;
+      video.autoplay = true;
+      video.controls = false;
       
-      console.log('BUNGU SQUAD: カメラストリーム取得成功', stream.getTracks()[0]?.getSettings());
-      
-      if (videoRef.current) {
-        // Clear any existing srcObject first
-        videoRef.current.srcObject = null;
+      // Set iOS-specific attributes
+      video.setAttribute('webkit-playsinline', 'true');
+      video.setAttribute('playsinline', 'true');
+
+      console.log('BUNGU SQUAD: ビデオ要素設定完了、再生待機中...');
+
+      // Wait for video to be ready and play
+      return new Promise<void>((resolve, reject) => {
+        let resolved = false;
         
-        // Set up video element for iOS compatibility
-        videoRef.current.setAttribute('webkit-playsinline', 'true');
-        videoRef.current.setAttribute('playsinline', 'true');
-        videoRef.current.muted = true;
-        videoRef.current.autoplay = true;
-        
-        streamRef.current = stream;
-        
-        // Create a promise to handle video loading
-        const videoLoadPromise = new Promise<void>((resolve, reject) => {
-          if (!videoRef.current) {
-            reject(new Error('Video element not found'));
-            return;
-          }
-
-          const video = videoRef.current;
-          let timeoutId: NodeJS.Timeout;
-
-          const handleLoadedMetadata = () => {
-            console.log('BUNGU SQUAD: ビデオメタデータ読み込み完了');
-            clearTimeout(timeoutId);
-            video.removeEventListener('loadedmetadata', handleLoadedMetadata);
-            video.removeEventListener('error', handleVideoError);
-            resolve();
-          };
-
-          const handleVideoError = (event: Event) => {
-            console.error('BUNGU SQUAD: ビデオ読み込みエラー:', event);
-            clearTimeout(timeoutId);
-            video.removeEventListener('loadedmetadata', handleLoadedMetadata);
-            video.removeEventListener('error', handleVideoError);
-            reject(new Error('ビデオの読み込みに失敗しました'));
-          };
-
-          // Set up event listeners
-          video.addEventListener('loadedmetadata', handleLoadedMetadata);
-          video.addEventListener('error', handleVideoError);
-
-          // Set timeout for iOS issues
-          timeoutId = setTimeout(() => {
-            console.log('BUNGU SQUAD: ビデオ読み込みタイムアウト、強制的に次へ進む');
-            video.removeEventListener('loadedmetadata', handleLoadedMetadata);
-            video.removeEventListener('error', handleVideoError);
-            resolve(); // Resolve anyway to try playing
-          }, 5000);
-
-          // Set the stream
-          video.srcObject = stream;
-        });
-
-        await videoLoadPromise;
-
-        // Try to play the video
-        if (videoRef.current) {
-          try {
-            await videoRef.current.play();
-            console.log('BUNGU SQUAD: ビデオ再生開始成功');
-          } catch (playError) {
-            console.log('BUNGU SQUAD: 自動再生失敗、ユーザー操作が必要:', playError);
-            // On iOS, sometimes auto-play fails, but the video is still usable
-          }
-
-          // Clear timeout and set scanning state
+        const handleSuccess = () => {
+          if (resolved) return;
+          resolved = true;
+          
+          console.log('BUNGU SQUAD: ビデオ再生成功');
+          
+          // Clear timeout
           if (initTimeoutRef.current) {
             clearTimeout(initTimeoutRef.current);
             initTimeoutRef.current = null;
@@ -147,12 +106,58 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
           setIsInitializing(false);
           setIsScanning(true);
           
-          // Small delay to ensure video is ready
+          // Start QR detection after a short delay
           setTimeout(() => {
             startQRDetection();
-          }, 500);
-        }
-      }
+          }, 1000);
+          
+          resolve();
+        };
+
+        const handleError = (error: any) => {
+          if (resolved) return;
+          resolved = true;
+          
+          console.error('BUNGU SQUAD: ビデオ再生エラー:', error);
+          reject(error);
+        };
+
+        // Set up event listeners
+        video.addEventListener('loadedmetadata', () => {
+          console.log('BUNGU SQUAD: メタデータ読み込み完了');
+        });
+
+        video.addEventListener('canplay', () => {
+          console.log('BUNGU SQUAD: 再生準備完了');
+          handleSuccess();
+        });
+
+        video.addEventListener('error', handleError);
+
+        // Force play attempt
+        video.play()
+          .then(() => {
+            console.log('BUNGU SQUAD: play() 成功');
+            if (!resolved) {
+              setTimeout(handleSuccess, 500); // Give it some time
+            }
+          })
+          .catch((error) => {
+            console.log('BUNGU SQUAD: play() 失敗、但し継続:', error);
+            // Don't reject here, just continue - iOS sometimes fails play() but video works
+            if (!resolved) {
+              setTimeout(handleSuccess, 1000);
+            }
+          });
+
+        // Safety timeout
+        setTimeout(() => {
+          if (!resolved) {
+            console.log('BUNGU SQUAD: ビデオ初期化完了（タイムアウト）');
+            handleSuccess();
+          }
+        }, 3000);
+      });
       
     } catch (error: any) {
       console.error('BUNGU SQUAD: カメラアクセスエラー:', error);
@@ -166,24 +171,20 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
       setIsInitializing(false);
       setHasCamera(false);
       
-      let errorMessage = 'カメラへのアクセスに失敗しました';
+      let errorMessage = 'カメラの起動に失敗しました';
       
       if (error.name === 'NotAllowedError') {
-        errorMessage = 'カメラへのアクセスが拒否されました。ブラウザの設定でカメラを許可してください。';
+        errorMessage = 'カメラの使用が許可されていません。設定で許可してください。';
       } else if (error.name === 'NotFoundError') {
-        errorMessage = 'カメラが見つかりません。デバイスにカメラが接続されているか確認してください。';
-      } else if (error.name === 'NotSupportedError') {
-        errorMessage = 'このブラウザはカメラアクセスをサポートしていません。';
-      } else if (error.name === 'OverconstrainedError') {
-        errorMessage = 'カメラの設定に問題があります。フロントカメラで試してください。';
-      } else {
-        errorMessage = `カメラエラー: ${error.message}`;
+        errorMessage = 'カメラが見つかりません。';
+      } else if (error.name === 'NotSupportedError' || error.name === 'NotReadableError') {
+        errorMessage = 'カメラにアクセスできません。他のアプリでカメラが使用中の可能性があります。';
       }
       
       setCameraError(errorMessage);
       
       toast({
-        title: "カメラアクセスエラー",
+        title: "カメラエラー",
         description: errorMessage,
         variant: "destructive"
       });
@@ -212,37 +213,64 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
   };
 
   const startQRDetection = () => {
+    console.log('BUNGU SQUAD: QR検出開始');
+    
     const detectQR = () => {
-      if (!videoRef.current || !canvasRef.current || !isScanning) return;
+      if (!videoRef.current || !canvasRef.current || !isScanning) {
+        return;
+      }
       
       const video = videoRef.current;
       const canvas = canvasRef.current;
       const context = canvas.getContext('2d');
       
-      if (!context || video.videoWidth === 0) {
-        requestAnimationFrame(detectQR);
+      // Check if video is ready
+      if (!context || video.videoWidth === 0 || video.videoHeight === 0) {
+        if (isScanning) {
+          requestAnimationFrame(detectQR);
+        }
         return;
       }
       
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      context.drawImage(video, 0, 0);
-      
       try {
+        // Set canvas size to match video
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        
+        // Draw current video frame to canvas
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        // Get image data for QR detection
         const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-        // For now, we'll let the user manually scan
-        // In a real implementation, you'd use a QR detection library here to detect QR codes
-        // Remove automatic detection for now to ensure proper QR scanning workflow
+        
+        // Detect QR code using jsQR
+        const code = jsQR(imageData.data, imageData.width, imageData.height, {
+          inversionAttempts: "dontInvert",
+        });
+        
+        if (code && code.data) {
+          console.log('BUNGU SQUAD: QRコード検出!', code.data);
+          // QRコードが見つかった場合、処理を実行
+          handleQRDetected(code.data);
+          return; // 検出ループを停止
+        }
+        
       } catch (error) {
-        console.error('QR detection error:', error);
+        console.error('BUNGU SQUAD: QR検出エラー:', error);
       }
       
+      // Continue detection loop with a small delay to reduce CPU usage
       if (isScanning) {
-        requestAnimationFrame(detectQR);
+        setTimeout(() => {
+          requestAnimationFrame(detectQR);
+        }, 100); // 100ms delay between scans
       }
     };
     
-    detectQR();
+    // Start detection with a small delay
+    setTimeout(() => {
+      detectQR();
+    }, 100);
   };
 
   const handleQRDetected = async (data: string) => {
