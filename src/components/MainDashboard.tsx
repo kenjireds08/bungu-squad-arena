@@ -26,6 +26,7 @@ import { MatchCountdown } from './MatchCountdown';
 import { NotificationBanner } from './NotificationBanner';
 import { NotificationHistory } from './NotificationHistory';
 import { PWAInstallPrompt } from './PWAInstallPrompt';
+import { getTournamentForMainDashboard } from '@/utils/tournamentData';
 import mainCharacter from '@/assets/main-character.png';
 
 interface MainDashboardProps {
@@ -40,22 +41,30 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
   const [currentPage, setCurrentPage] = useState<string>('dashboard');
   const [previousPage, setPreviousPage] = useState<string>('dashboard');
   const [showPWAPrompt, setShowPWAPrompt] = useState(false);
-  const [notifications, setNotifications] = useState([
-    {
-      id: '1',
-      type: 'tournament' as const,
-      title: '新しい大会が作成されました',
-      message: '第9回BUNGU SQUAD大会が8/22(木)に開催されます',
-      timestamp: new Date(),
-      priority: 'high' as const
-    }
-  ]);
+  const [notifications, setNotifications] = useState<any[]>([]);
 
   const { data: rankings, isLoading: rankingsLoading } = useRankings();
   const { data: tournaments, isLoading: tournamentsLoading } = useTournaments();
 
   const currentUser = rankings?.find(player => player.id === CURRENT_USER_ID);
-  const nextTournament = tournaments?.[0];
+  // Use shared tournament data instead of API data
+  const nextTournament = getTournamentForMainDashboard();
+
+  // Initialize notifications with tournament data
+  useEffect(() => {
+    if (nextTournament) {
+      setNotifications([
+        {
+          id: '1',
+          type: 'tournament' as const,
+          title: '新しい大会が作成されました',
+          message: `${nextTournament.name}が${nextTournament.date}に開催されます`,
+          timestamp: new Date(),
+          priority: 'high' as const
+        }
+      ]);
+    }
+  }, [nextTournament]);
 
   // Check for PWA install prompt
   useEffect(() => {

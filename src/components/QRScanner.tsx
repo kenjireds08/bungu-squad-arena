@@ -71,13 +71,9 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
       
       try {
         const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-        // For now, simulate QR detection after 3 seconds of scanning
-        // In a real implementation, you'd use a QR detection library here
-        setTimeout(() => {
-          if (isScanning) {
-            handleQRDetected('https://bungu-squad-arena.vercel.app/tournament/2025-07-28');
-          }
-        }, 3000);
+        // For now, we'll let the user manually scan
+        // In a real implementation, you'd use a QR detection library here to detect QR codes
+        // Remove automatic detection for now to ensure proper QR scanning workflow
       } catch (error) {
         console.error('QR detection error:', error);
       }
@@ -260,6 +256,17 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
                   >
                     <Camera className="h-5 w-5" />
                     カメラを起動
+                  </Button>
+                )}
+
+                {isScanning && (
+                  <Button 
+                    variant="outline" 
+                    size="lg" 
+                    onClick={() => handleQRDetected('https://bungu-squad-arena.vercel.app/tournament/2025-07-28')}
+                    className="w-full"
+                  >
+                    QRコード検出をシミュレート（テスト用）
                   </Button>
                 )}
 

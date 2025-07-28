@@ -13,69 +13,12 @@ import { QRCodeDisplay } from './QRCodeDisplay';
 import { TournamentMatchmaking } from './TournamentMatchmaking';
 import { useRankings } from '@/hooks/useApi';
 import { useToast } from '@/components/ui/use-toast';
+import { getCategorizedTournaments, getTournamentStatus } from '@/utils/tournamentData';
 
 interface AdminTournamentsProps {
   onBack: () => void;
 }
 
-// Helper function to determine tournament status based on date
-const getTournamentStatus = (date: string) => {
-  const today = new Date().toISOString().split('T')[0];
-  const tournamentDate = new Date(date).toISOString().split('T')[0];
-  
-  if (tournamentDate === today) {
-    return '開催中';
-  } else if (tournamentDate > today) {
-    return '募集中';
-  } else {
-    return '完了';
-  }
-};
-
-// Mock tournaments data - participants will be replaced with real data
-const getMockTournaments = () => {
-  const tournaments = [
-    {
-      id: 1,
-      name: "第8回BUNGU SQUAD大会",
-      date: "2025-07-28",
-      time: "19:00",
-      location: "○○コミュニティセンター",
-      participants: 0, // Will be replaced with activeParticipants
-    },
-    {
-      id: 2,
-      name: "第9回BUNGU SQUAD大会",
-      date: "2025-08-15",
-      time: "19:00",
-      location: "△△コミュニティセンター",
-      participants: 0,
-    },
-    {
-      id: 3,
-      name: "第7回BUNGU SQUAD大会",
-      date: "2025-07-15",
-      time: "19:00",
-      location: "▲▲会議室",
-      participants: 8,
-    }
-  ];
-
-  // Dynamically assign status based on date
-  const categorized = {
-    active: tournaments.filter(t => getTournamentStatus(t.date) === '開催中').map(t => ({...t, status: '開催中'})),
-    upcoming: tournaments.filter(t => getTournamentStatus(t.date) === '募集中').map(t => ({...t, status: '募集中'})),
-    completed: tournaments.filter(t => getTournamentStatus(t.date) === '完了').map(t => ({...t, status: '完了'}))
-  };
-
-  return categorized;
-};
-
-const mockTournaments = {
-  get active() { return getMockTournaments().active; },
-  get upcoming() { return getMockTournaments().upcoming; },
-  get completed() { return getMockTournaments().completed; }
-};
 
 export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
   const [currentView, setCurrentView] = useState<'list' | 'create' | 'matchmaking'>('list');
@@ -84,6 +27,9 @@ export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
   const [activeParticipants, setActiveParticipants] = useState(0);
   const { data: rankings } = useRankings();
   const { toast } = useToast();
+  
+  // Get tournaments from shared data source
+  const tournaments = getCategorizedTournaments();
   const [qrTournament, setQrTournament] = useState<any>(null);
   const [matchmakingTournament, setMatchmakingTournament] = useState<any>(null);
   const [newTournament, setNewTournament] = useState({
@@ -331,8 +277,8 @@ export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {mockTournaments.active.length > 0 ? (
-              mockTournaments.active.map((tournament, index) => (
+            {tournaments.active.length > 0 ? (
+              tournaments.active.map((tournament, index) => (
                 <div key={tournament.id} className="p-4 bg-success/10 border border-success/20 rounded-lg">
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="font-semibold text-foreground">{tournament.name}</h3>
@@ -388,7 +334,7 @@ export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {mockTournaments.upcoming.map((tournament, index) => (
+            {tournaments.upcoming.map((tournament, index) => (
               <div key={tournament.id} className="p-4 bg-info/10 border border-info/20 rounded-lg">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="font-semibold text-foreground">{tournament.name}</h3>
@@ -448,7 +394,7 @@ export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {mockTournaments.completed.map((tournament) => (
+                  {tournaments.completed.map((tournament) => (
                     <TableRow key={tournament.id} className="hover:bg-muted/30">
                       <TableCell className="whitespace-nowrap">
                         <button
