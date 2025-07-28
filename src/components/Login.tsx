@@ -8,10 +8,11 @@ import { useToast } from '@/components/ui/use-toast';
 
 interface LoginProps {
   onLoginSuccess: (userId: string, isAdmin: boolean) => void;
+  isNewPlayer?: boolean;
 }
 
-export const Login = ({ onLoginSuccess }: LoginProps) => {
-  const [isSignUp, setIsSignUp] = useState(false);
+export const Login = ({ onLoginSuccess, isNewPlayer = false }: LoginProps) => {
+  const [isSignUp, setIsSignUp] = useState(isNewPlayer);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
@@ -37,14 +38,30 @@ export const Login = ({ onLoginSuccess }: LoginProps) => {
           return;
         }
 
-        // TODO: API call to create new player
+        // Create new player account
+        const createResponse = await fetch('/api/rankings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            nickname: formData.nickname.trim(),
+            email: formData.email.trim(),
+            current_rating: 1200, // Default ELO rating
+            tournament_active: true // Automatically enter tournament
+          })
+        });
+
+        if (!createResponse.ok) {
+          throw new Error('Failed to create player account');
+        }
+
+        const newPlayer = await createResponse.json();
+        
         toast({
           title: "登録完了",
-          description: "アカウントが作成されました！",
+          description: `${formData.nickname}さん、ようこそ！大会にエントリーしました。`,
         });
         
-        // 仮のユーザーIDとadminフラグ
-        onLoginSuccess('new_player_id', false);
+        onLoginSuccess(newPlayer.id, false);
       } else {
         // ログイン処理 - メールアドレスからプレイヤーを検索
         try {
@@ -124,12 +141,12 @@ export const Login = ({ onLoginSuccess }: LoginProps) => {
       <Card className="w-full max-w-md border-fantasy-frame shadow-golden">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl text-center">
-            {isSignUp ? '新規登録' : 'BUNGU SQUAD'}
+            {isSignUp ? '初めての方' : 'BUNGU SQUAD'}
           </CardTitle>
           <CardDescription className="text-center">
             {isSignUp 
-              ? '新しいアカウントを作成します' 
-              : 'アカウントにログインしてください'}
+              ? 'ニックネームとメールアドレスで登録し、自動的に大会にエントリーします' 
+              : '既存プレイヤーはメールアドレスでログイン（管理者のみパスワード必要）'}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -205,8 +222,8 @@ export const Login = ({ onLoginSuccess }: LoginProps) => {
               className="text-sm"
             >
               {isSignUp 
-                ? 'すでにアカウントをお持ちの方はこちら' 
-                : '新規登録はこちら'}
+                ? '既存プレイヤーの方はこちら' 
+                : '初めての方はこちら'}
             </Button>
           </div>
         </CardContent>

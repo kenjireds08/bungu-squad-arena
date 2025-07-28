@@ -61,7 +61,8 @@ const Index = () => {
   };
 
   if (!isAuthenticated) {
-    return <Login onLoginSuccess={handleLoginSuccess} />;
+    const isNewPlayer = searchParams.get('newPlayer') === 'true';
+    return <Login onLoginSuccess={handleLoginSuccess} isNewPlayer={isNewPlayer} />;
   }
 
   return <MainDashboard currentUserId={currentUserId} isAdmin={isAdmin} onLogout={handleLogout} />;

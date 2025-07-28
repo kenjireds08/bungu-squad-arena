@@ -285,20 +285,26 @@ export const TournamentEntry = () => {
                     ※ エントリーにはログインが必要です
                   </p>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-2">
                   <Button 
                     variant="outline" 
                     onClick={() => navigate(`/?returnTo=${window.location.pathname}`)}
-                    className="text-sm"
+                    className="w-full"
                   >
                     ログイン
+                    <span className="text-xs ml-2 opacity-70">
+                      (既存プレイヤー)
+                    </span>
                   </Button>
                   <Button 
                     variant="outline" 
-                    onClick={() => navigate(`/?returnTo=${window.location.pathname}`)}
-                    className="text-sm"
+                    onClick={() => navigate(`/?returnTo=${window.location.pathname}&newPlayer=true`)}
+                    className="w-full"
                   >
-                    サインアップ
+                    初めての方
+                    <span className="text-xs ml-2 opacity-70">
+                      (新規登録)
+                    </span>
                   </Button>
                 </div>
               </div>
