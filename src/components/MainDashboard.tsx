@@ -26,6 +26,7 @@ import { MatchCountdown } from './MatchCountdown';
 import { NotificationBanner } from './NotificationBanner';
 import { NotificationHistory } from './NotificationHistory';
 import { PWAInstallPrompt } from './PWAInstallPrompt';
+import { PullToRefresh } from './PullToRefresh';
 import { getTournamentForMainDashboard } from '@/utils/tournamentData';
 import mainCharacter from '@/assets/main-character.png';
 
@@ -108,6 +109,18 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
 
   const dismissNotification = (id: string) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
+  };
+
+  const handleRefresh = async () => {
+    try {
+      // Add a small delay to provide user feedback
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      // Force reload the page to get fresh data
+      window.location.reload();
+    } catch (error) {
+      console.error('Refresh failed:', error);
+    }
   };
 
   // Handle different pages
@@ -204,7 +217,7 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
   }
 
   return (
-    <div className="min-h-screen bg-gradient-parchment">
+    <PullToRefresh onRefresh={handleRefresh} className="min-h-screen bg-gradient-parchment">
       {/* PWA Install Prompt */}
       {showPWAPrompt && (
         <PWAInstallPrompt onClose={handlePWAPromptClose} />
@@ -352,6 +365,6 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
           </p>
         </div>
       </main>
-    </div>
+    </PullToRefresh>
   );
 };

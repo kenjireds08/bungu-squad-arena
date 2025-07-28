@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Trophy, Star, TrendingUp, Loader2 } from 'lucide-react';
 import { useRankings } from '@/hooks/useApi';
+import { PullToRefresh } from './PullToRefresh';
 
 interface PlayerRankingProps {
   onClose: () => void;
@@ -10,6 +11,15 @@ interface PlayerRankingProps {
 
 export const PlayerRanking = ({ onClose }: PlayerRankingProps) => {
   const { data: rankings, isLoading, error } = useRankings();
+  
+  const handleRefresh = async () => {
+    try {
+      await new Promise(resolve => setTimeout(resolve, 800));
+      window.location.reload();
+    } catch (error) {
+      console.error('Refresh failed:', error);
+    }
+  };
   
   const getRankIcon = (rank: number) => {
     if (rank === 1) return "🥇";
@@ -47,7 +57,7 @@ export const PlayerRanking = ({ onClose }: PlayerRankingProps) => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-parchment">
+    <PullToRefresh onRefresh={handleRefresh} className="min-h-screen bg-gradient-parchment">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-fantasy-frame shadow-soft">
         <div className="container mx-auto px-4 py-3">
@@ -132,6 +142,6 @@ export const PlayerRanking = ({ onClose }: PlayerRankingProps) => {
           </div>
         </div>
       </main>
-    </div>
+    </PullToRefresh>
   );
 };
