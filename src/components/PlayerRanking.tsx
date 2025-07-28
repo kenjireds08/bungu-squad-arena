@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Trophy, Star, TrendingUp, Loader2 } from 'lucide-react';
+import { ArrowLeft, Trophy, Star, TrendingUp, Loader2, RefreshCw } from 'lucide-react';
 import { useRankings } from '@/hooks/useApi';
 import { PullToRefresh } from './PullToRefresh';
 
@@ -14,10 +14,33 @@ export const PlayerRanking = ({ onClose }: PlayerRankingProps) => {
   
   const handleRefresh = async () => {
     try {
+      // Add visual feedback
+      const refreshButton = document.querySelector('[data-refresh-button]') as HTMLElement;
+      if (refreshButton) {
+        refreshButton.style.animation = 'spin 1s linear infinite';
+      }
+
+      // Clear all caches first
+      if ('caches' in window) {
+        const cacheNames = await caches.keys();
+        await Promise.all(cacheNames.map(name => caches.delete(name)));
+        console.log('All caches cleared');
+      }
+
+      // Force Service Worker update
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const registration of registrations) {
+          await registration.update();
+          console.log('Service Worker updated');
+        }
+      }
+
       await new Promise(resolve => setTimeout(resolve, 800));
       window.location.reload();
     } catch (error) {
       console.error('Refresh failed:', error);
+      window.location.reload();
     }
   };
   
@@ -61,14 +84,26 @@ export const PlayerRanking = ({ onClose }: PlayerRankingProps) => {
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-fantasy-frame shadow-soft">
         <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={onClose}>
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div className="flex items-center gap-2">
-              <Trophy className="h-6 w-6 text-primary" />
-              <h1 className="text-xl font-bold text-foreground">プレイヤーランキング</h1>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Button variant="ghost" size="icon" onClick={onClose}>
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+              <div className="flex items-center gap-2">
+                <Trophy className="h-6 w-6 text-primary" />
+                <h1 className="text-xl font-bold text-foreground">プレイヤーランキング</h1>
+              </div>
             </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleRefresh}
+              data-refresh-button
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <RefreshCw className="h-4 w-4" />
+              <span className="ml-1 hidden sm:inline">更新</span>
+            </Button>
           </div>
         </div>
       </header>

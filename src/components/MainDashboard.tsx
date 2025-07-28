@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { QrCode, Trophy, TrendingUp, Calendar, Camera, Star, Users, Loader2 } from 'lucide-react';
+import { QrCode, Trophy, TrendingUp, Calendar, Camera, Star, Users, Loader2, RefreshCw } from 'lucide-react';
 import { useRankings, useTournaments } from '@/hooks/useApi';
 import { PlayerRanking } from './PlayerRanking';
 import { QRScanner } from './QRScanner';
@@ -113,13 +113,37 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
 
   const handleRefresh = async () => {
     try {
-      // Add a small delay to provide user feedback
+      // Add visual feedback
+      const refreshButton = document.querySelector('[data-refresh-button]') as HTMLElement;
+      if (refreshButton) {
+        refreshButton.style.animation = 'spin 1s linear infinite';
+      }
+
+      // Clear all caches first
+      if ('caches' in window) {
+        const cacheNames = await caches.keys();
+        await Promise.all(cacheNames.map(name => caches.delete(name)));
+        console.log('All caches cleared');
+      }
+
+      // Force Service Worker update
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const registration of registrations) {
+          await registration.update();
+          console.log('Service Worker updated');
+        }
+      }
+
+      // Add a delay for user feedback
       await new Promise(resolve => setTimeout(resolve, 800));
       
-      // Force reload the page to get fresh data
+      // Force hard reload with cache bypass
       window.location.reload();
     } catch (error) {
       console.error('Refresh failed:', error);
+      // Fallback to normal reload
+      window.location.reload();
     }
   };
 
@@ -239,7 +263,19 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
               <Trophy className="h-6 w-6 text-primary" />
               <h1 className="text-xl font-bold text-foreground">BUNGU SQUAD</h1>
             </div>
-            <PlayerMenu onNavigate={handleNavigate} isAdmin={isAdmin} />
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleRefresh}
+                data-refresh-button
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <RefreshCw className="h-4 w-4" />
+                <span className="ml-1 hidden sm:inline">更新</span>
+              </Button>
+              <PlayerMenu onNavigate={handleNavigate} isAdmin={isAdmin} />
+            </div>
           </div>
         </div>
       </header>
