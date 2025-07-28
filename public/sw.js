@@ -1,6 +1,8 @@
 // BUNGU SQUAD Service Worker for PWA functionality
-const CACHE_NAME = 'bungu-squad-v1';
-const STATIC_CACHE = 'bungu-squad-static-v1';
+// Update version to force SW update - Change this whenever you need to force update
+const SW_VERSION = '2.0.1'; // Updated to force refresh
+const CACHE_NAME = 'bungu-squad-v2';
+const STATIC_CACHE = 'bungu-squad-static-v2';
 
 // Assets to cache for offline functionality
 const STATIC_ASSETS = [
@@ -35,32 +37,36 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch event - serve from cache when offline
+// Fetch event - Network First strategy for better updates
 self.addEventListener('fetch', (event) => {
   // Skip non-GET requests
   if (event.request.method !== 'GET') return;
 
   event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        // Return cached version or fetch from network
-        return response || fetch(event.request)
-          .then((fetchResponse) => {
-            // Don't cache API calls or external resources
-            if (!fetchResponse || fetchResponse.status !== 200 || fetchResponse.type !== 'basic') {
-              return fetchResponse;
+    // Try network first
+    fetch(event.request)
+      .then((fetchResponse) => {
+        // Don't cache API calls or external resources
+        if (!fetchResponse || fetchResponse.status !== 200 || fetchResponse.type !== 'basic') {
+          return fetchResponse;
+        }
+
+        // Cache the response
+        const responseToCache = fetchResponse.clone();
+        caches.open(CACHE_NAME)
+          .then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
+
+        return fetchResponse;
+      })
+      .catch(() => {
+        // If network fails, try cache
+        return caches.match(event.request)
+          .then((cachedResponse) => {
+            if (cachedResponse) {
+              return cachedResponse;
             }
-
-            // Cache the response
-            const responseToCache = fetchResponse.clone();
-            caches.open(CACHE_NAME)
-              .then((cache) => {
-                cache.put(event.request, responseToCache);
-              });
-
-            return fetchResponse;
-          })
-          .catch(() => {
             // Return offline fallback for navigation requests
             if (event.request.mode === 'navigate') {
               return caches.match('/');
