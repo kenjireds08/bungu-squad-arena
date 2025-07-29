@@ -28,12 +28,45 @@ export const AdminPlayers = ({ onBack }: AdminPlayersProps) => {
   const activePlayersCount = players?.filter(p => p.tournament_active).length || 0;
   const totalPlayersCount = players?.length || 0;
 
-  const getStatusBadge = (isActive: boolean) => {
-    return isActive ? (
-      <Badge className="bg-green-500 text-white">アクティブ</Badge>
-    ) : (
-      <Badge variant="secondary">承認待ち</Badge>
-    );
+  const isRecentTournamentParticipant = (player: any) => {
+    if (!player.tournament_active) return false;
+    
+    // 24時間以内の大会参加かを判定
+    const now = new Date();
+    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    
+    // 現在日付の大会があるかをチェック
+    const today = now.toISOString().split('T')[0]; // YYYY-MM-DD
+    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    
+    // 簡易判定: 今日または昨日が大会日なら「最近の参加者」とみなす
+    // より正確にはTournamentDailyArchiveから最新のentry_timestampを取得すべき
+    // 現在は tournament_active=TRUE なら最近の参加とみなす（手動リセットがあるため）
+    
+    // 代替案: last_activity_date が24時間以内かで判定
+    if (player.last_activity_date) {
+      const lastActivity = new Date(player.last_activity_date);
+      return lastActivity > twentyFourHoursAgo;
+    }
+    
+    // より正確な実装のためには、QRスキャン時に tournament_entry_timestamp を記録する必要がある
+    // 現状では手動リセットまで「参加中」として表示
+    return true;
+  };
+
+  const getStatusBadge = (player: any) => {
+    // 大会参加状態を動的判定で表示
+    if (player.tournament_active && isRecentTournamentParticipant(player)) {
+      return <Badge className="bg-green-500 text-white">大会参加中</Badge>;
+    }
+    
+    // is_activeフィールドに基づいてシンプルに表示
+    if (player.is_active === false) {
+      return <Badge variant="outline">非アクティブ</Badge>;
+    }
+    
+    // デフォルトは通常状態
+    return <Badge className="bg-blue-500 text-white">通常</Badge>;
   };
 
   const calculateWinRate = (wins: number, losses: number) => {
@@ -227,7 +260,7 @@ export const AdminPlayers = ({ onBack }: AdminPlayersProps) => {
                       <TableCell className="font-medium">{player.nickname}</TableCell>
                       <TableCell className="text-center font-mono text-sm">{player.current_rating}</TableCell>
                       <TableCell className="text-center hidden sm:table-cell">
-                        {getStatusBadge(player.is_active)}
+                        {getStatusBadge(player)}
                       </TableCell>
                       <TableCell className="text-center">
                         <Button
@@ -264,7 +297,7 @@ export const AdminPlayers = ({ onBack }: AdminPlayersProps) => {
                         {selectedPlayer.email}
                       </p>
                     </div>
-                    {getStatusBadge(selectedPlayer.is_active)}
+                    {getStatusBadge(selectedPlayer)}
                   </div>
 
                   {/* Stats Grid */}
