@@ -440,7 +440,7 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
             className="h-16 flex-col border-accent/20 bg-accent/5 hover:bg-accent/10 text-accent hover:text-accent"
           >
             <History className="h-5 w-5 mb-1" />
-            大会履歴
+            大会参加履歴
           </Button>
         </div>
 
