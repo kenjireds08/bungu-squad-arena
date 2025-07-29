@@ -121,38 +121,6 @@ export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
     }
   };
 
-  const handleEditTournament = (tournament: any) => {
-    setNewTournament({
-      name: tournament.name,
-      date: tournament.date,
-      time: tournament.time,
-      location: tournament.location,
-      description: tournament.description || ''
-    });
-    setSelectedTournament(tournament);
-    setCurrentView('create');
-  };
-
-  const handleDeleteTournament = async (tournament: any) => {
-    if (confirm(`${tournament.name}を削除してもよろしいですか？`)) {
-      try {
-        // TODO: API call to delete tournament
-        console.log('Deleting tournament:', tournament.id);
-        
-        toast({
-          title: "大会削除完了",
-          description: `${tournament.name}を削除しました`,
-        });
-      } catch (error) {
-        console.error('Failed to delete tournament:', error);
-        toast({
-          title: "エラー",
-          description: "大会の削除に失敗しました",
-          variant: "destructive"
-        });
-      }
-    }
-  };
 
   const handleShowParticipants = (tournament: any) => {
     setSelectedTournament(tournament);
