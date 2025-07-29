@@ -51,8 +51,13 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
   const { data: tournaments, isLoading: tournamentsLoading } = useTournaments();
 
   const currentUser = rankings?.find(player => player.id === CURRENT_USER_ID);
-  // Get tournament data from API
-  const nextTournament = getTournamentForMainDashboard(tournaments || []);
+  // Get tournament data from API - prioritize today's tournament
+  const today = new Date().toISOString().split('T')[0];
+  const { active, upcoming } = getCategorizedTournaments(tournaments || []);
+  
+  // Find today's tournament first (from both active and upcoming)
+  const todaysTournament = [...active, ...upcoming].find(t => t.date === today);
+  const nextTournament = todaysTournament || getTournamentForMainDashboard(tournaments || []);
 
   // Initialize notifications with tournament data
   useEffect(() => {
@@ -349,12 +354,7 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-foreground">
               <Calendar className="h-5 w-5 text-info" />
-              {(() => {
-                if (!nextTournament) return "次回大会予定";
-                const today = new Date().toISOString().split('T')[0];
-                if (nextTournament.date === today) return "本日の大会予定";
-                return "次回大会予定";
-              })()}
+              {todaysTournament ? "本日の大会予定" : "次回大会予定"}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
