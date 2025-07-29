@@ -36,28 +36,17 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
 
     console.log('BUNGU SQUAD: qr-scannerライブラリでQRスキャナー初期化');
     
-    // Create QR Scanner instance with optimized settings
+    // Create QR Scanner instance with simplified settings for better video display
     const qrScanner = new QrScanner(
       videoRef.current,
       (result) => handleQRDetected(result.data),
       {
-        // Optimized settings for PWA performance
         returnDetailedScanResult: true,
         highlightScanRegion: true,
         highlightCodeOutline: true,
         preferredCamera: 'environment',
-        maxScansPerSecond: 10, // High scan rate for better detection
-        calculateScanRegion: (video) => {
-          // Calculate scan region (center square)
-          const smallerDimension = Math.min(video.videoWidth, video.videoHeight);
-          const scanRegionSize = Math.round(smallerDimension * 0.7);
-          return {
-            x: Math.round((video.videoWidth - scanRegionSize) / 2),
-            y: Math.round((video.videoHeight - scanRegionSize) / 2),
-            width: scanRegionSize,
-            height: scanRegionSize,
-          };
-        },
+        maxScansPerSecond: 5, // Reduced for better performance
+        // Remove calculateScanRegion to use default behavior
       }
     );
 
