@@ -1,12 +1,14 @@
-// Shared tournament data management
+import { Tournament as ApiTournament } from '@/lib/api';
+
+// Tournament interface for internal use - unified structure
 export interface Tournament {
-  id: number;
+  id: string;
   name: string;
   date: string;
   time: string;
   location: string;
   participants: number;
-  status?: string;
+  status: string;
   description?: string;
 }
 
@@ -39,45 +41,23 @@ export const getTournamentStatus = (date: string, time?: string) => {
   }
 };
 
-// Get current date in YYYY-MM-DD format
-export const getCurrentDate = () => {
-  return new Date().toISOString().split('T')[0];
+// Convert API tournament data to internal format
+export const transformTournamentData = (apiTournament: ApiTournament): Tournament => {
+  return {
+    id: apiTournament.id,
+    name: apiTournament.tournament_name,
+    date: apiTournament.date,
+    time: apiTournament.start_time,
+    location: apiTournament.location,
+    participants: apiTournament.current_participants,
+    status: getTournamentStatus(apiTournament.date),
+    description: ''
+  };
 };
 
-// Master tournament data - this should eventually come from API
-const masterTournaments: Tournament[] = [
-  {
-    id: 1,
-    name: "第8回BUNGU SQUAD大会",
-    date: getCurrentDate(), // Today's date
-    time: "19:00",
-    location: "○○コミュニティセンター",
-    participants: 0,
-  },
-  {
-    id: 2,
-    name: "第9回BUNGU SQUAD大会", 
-    date: "2025-08-15",
-    time: "19:00",
-    location: "△△コミュニティセンター",
-    participants: 0,
-  },
-  {
-    id: 3,
-    name: "第7回BUNGU SQUAD大会",
-    date: "2025-07-15",
-    time: "19:00",
-    location: "▲▲会議室",
-    participants: 8,
-  }
-];
-
-// Get categorized tournaments
-export const getCategorizedTournaments = () => {
-  const tournaments = masterTournaments.map(t => ({
-    ...t,
-    status: getTournamentStatus(t.date, t.time)
-  }));
+// Get categorized tournaments from API data
+export const getCategorizedTournaments = (apiTournaments: ApiTournament[] = []) => {
+  const tournaments = apiTournaments.map(transformTournamentData);
 
   return {
     active: tournaments.filter(t => t.status === '開催中'),
@@ -87,14 +67,14 @@ export const getCategorizedTournaments = () => {
 };
 
 // Get the current active tournament (today's date)
-export const getCurrentActiveTournament = (): Tournament | null => {
-  const { active } = getCategorizedTournaments();
+export const getCurrentActiveTournament = (apiTournaments: ApiTournament[] = []): Tournament | null => {
+  const { active } = getCategorizedTournaments(apiTournaments);
   return active.length > 0 ? active[0] : null;
 };
 
 // Get the next upcoming tournament
-export const getNextUpcomingTournament = (): Tournament | null => {
-  const { upcoming } = getCategorizedTournaments();
+export const getNextUpcomingTournament = (apiTournaments: ApiTournament[] = []): Tournament | null => {
+  const { upcoming } = getCategorizedTournaments(apiTournaments);
   if (upcoming.length === 0) return null;
   
   // Sort by date and return the earliest
@@ -103,13 +83,13 @@ export const getNextUpcomingTournament = (): Tournament | null => {
 };
 
 // Get tournament to display on main dashboard
-export const getTournamentForMainDashboard = (): Tournament | null => {
+export const getTournamentForMainDashboard = (apiTournaments: ApiTournament[] = []): Tournament | null => {
   // First try to get active tournament (today)
-  const activeTournament = getCurrentActiveTournament();
+  const activeTournament = getCurrentActiveTournament(apiTournaments);
   if (activeTournament) {
     return activeTournament;
   }
   
   // If no active tournament, get next upcoming
-  return getNextUpcomingTournament();
+  return getNextUpcomingTournament(apiTournaments);
 };

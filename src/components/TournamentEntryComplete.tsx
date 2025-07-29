@@ -3,6 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, Calendar, MapPin, Users, ArrowLeft, Trophy } from 'lucide-react';
+import { useTournaments } from '@/hooks/useApi';
+import { getTournamentForMainDashboard } from '@/utils/tournamentData';
 import tapeNinja from '@/assets/tape-ninja.png';
 
 interface TournamentEntryCompleteProps {
@@ -11,18 +13,12 @@ interface TournamentEntryCompleteProps {
   disableAutoTransition?: boolean;
 }
 
-const mockTournament = {
-  name: "第8回BUNGU SQUAD大会",
-  date: "2025年8月15日（木）",
-  time: "19:00〜21:30",
-  location: "○○コミュニティセンター 2F会議室",
-  participants: 12,
-  maxParticipants: 16,
-  rule: "トランプルール・カードプラスルール両対応"
-};
-
 export const TournamentEntryComplete = ({ onClose, onViewTournament, disableAutoTransition = false }: TournamentEntryCompleteProps) => {
   const [countdown, setCountdown] = useState(5);
+  const { data: tournamentsData } = useTournaments();
+  
+  // Get the current tournament (either active or next upcoming)
+  const currentTournament = getTournamentForMainDashboard(tournamentsData || []);
 
   useEffect(() => {
     if (disableAutoTransition) return;
@@ -90,41 +86,49 @@ export const TournamentEntryComplete = ({ onClose, onViewTournament, disableAuto
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
-              <h3 className="font-bold text-lg mb-2">{mockTournament.name}</h3>
-              <Badge variant="outline" className="mb-3">
-                {mockTournament.rule}
-              </Badge>
-            </div>
-
-            <div className="space-y-3">
-              <div className="flex items-start gap-3">
-                <Calendar className="h-5 w-5 text-info mt-0.5" />
+            {currentTournament ? (
+              <>
                 <div>
-                  <p className="font-medium">{mockTournament.date}</p>
-                  <p className="text-sm text-muted-foreground">{mockTournament.time}</p>
+                  <h3 className="font-bold text-lg mb-2">{currentTournament.name}</h3>
+                  <Badge variant="outline" className="mb-3">
+                    トランプルール・カードプラスルール両対応
+                  </Badge>
                 </div>
-              </div>
 
-              <div className="flex items-start gap-3">
-                <MapPin className="h-5 w-5 text-destructive mt-0.5" />
-                <div>
-                  <p className="font-medium">開催場所</p>
-                  <p className="text-sm text-muted-foreground">{mockTournament.location}</p>
-                </div>
-              </div>
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3">
+                    <Calendar className="h-5 w-5 text-info mt-0.5" />
+                    <div>
+                      <p className="font-medium">{currentTournament.date}</p>
+                      <p className="text-sm text-muted-foreground">{currentTournament.time}</p>
+                    </div>
+                  </div>
 
-              <div className="flex items-start gap-3">
-                <Users className="h-5 w-5 text-success mt-0.5" />
-                <div>
-                  <p className="font-medium">参加者状況</p>
-                  <p className="text-sm text-muted-foreground">
-                    {mockTournament.participants}/{mockTournament.maxParticipants}名
-                    <span className="ml-2 text-success">（あと{mockTournament.maxParticipants - mockTournament.participants}名参加可能）</span>
-                  </p>
+                  <div className="flex items-start gap-3">
+                    <MapPin className="h-5 w-5 text-destructive mt-0.5" />
+                    <div>
+                      <p className="font-medium">開催場所</p>
+                      <p className="text-sm text-muted-foreground">{currentTournament.location}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <Users className="h-5 w-5 text-success mt-0.5" />
+                    <div>
+                      <p className="font-medium">参加者状況</p>
+                      <p className="text-sm text-muted-foreground">
+                        {currentTournament.participants}/20名
+                        <span className="ml-2 text-success">（あと{20 - currentTournament.participants}名参加可能）</span>
+                      </p>
+                    </div>
+                  </div>
                 </div>
+              </>
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-muted-foreground">大会情報を読み込み中...</p>
               </div>
-            </div>
+            )}
           </CardContent>
         </Card>
 

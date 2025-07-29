@@ -39,12 +39,21 @@ export interface Player {
 
 export interface Tournament {
   id: string;
-  name: string;
+  tournament_name: string;
   date: string;
-  time?: string;
+  start_time: string;
   location: string;
-  participants: string[];
-  status?: string;
+  qr_code_url?: string;
+  created_by?: string;
+  created_at?: string;
+  status: string;
+  max_participants: number;
+  current_participants: number;
+  tournament_type?: string;
+  // Legacy fields for backward compatibility
+  name?: string;
+  time?: string;
+  participants?: number;
 }
 
 export interface Match {
@@ -104,6 +113,23 @@ export const api = {
 
   // Tournaments
   getTournaments: (): Promise<Tournament[]> => apiCall('/tournaments'),
+  
+  createTournament: (tournament: Omit<Tournament, 'id' | 'current_participants' | 'created_at'>): Promise<{ success: boolean; tournamentId: string }> =>
+    apiCall('/tournaments', {
+      method: 'POST',
+      body: JSON.stringify(tournament),
+    }),
+  
+  updateTournament: (id: string, tournament: Partial<Tournament>): Promise<{ success: boolean }> =>
+    apiCall(`/tournaments?id=${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(tournament),
+    }),
+  
+  deleteTournament: (id: string): Promise<{ success: boolean }> =>
+    apiCall(`/tournaments?id=${id}`, {
+      method: 'DELETE',
+    }),
 
   // Matches
   getMatches: (playerId?: string): Promise<Match[]> => {

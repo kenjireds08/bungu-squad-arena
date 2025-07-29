@@ -42,23 +42,47 @@ export const useRankings = () => {
   });
 };
 
-// Tournaments hooks - using mock data for now
+// Tournaments hooks
 export const useTournaments = () => {
-  const mockData = [
-    {
-      id: "tournament_1",
-      name: "第9回BUNGU SQUAD大会", 
-      date: "2024-08-22",
-      time: "13:30",
-      location: "メイン会場",
-      participants: ["player_1", "player_2"]
-    }
-  ];
-
   return useQuery({
     queryKey: ['tournaments'],
-    queryFn: () => Promise.resolve(mockData),
-    staleTime: 1000 * 60 * 10, // 10 minutes
+    queryFn: api.getTournaments,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+};
+
+export const useCreateTournament = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (tournament: Parameters<typeof api.createTournament>[0]) =>
+      api.createTournament(tournament),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tournaments'] });
+    },
+  });
+};
+
+export const useUpdateTournament = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ id, tournament }: { id: string; tournament: Parameters<typeof api.updateTournament>[1] }) =>
+      api.updateTournament(id, tournament),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tournaments'] });
+    },
+  });
+};
+
+export const useDeleteTournament = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (id: string) => api.deleteTournament(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tournaments'] });
+    },
   });
 };
 

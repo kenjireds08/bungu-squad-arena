@@ -48,8 +48,8 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
   const { data: tournaments, isLoading: tournamentsLoading } = useTournaments();
 
   const currentUser = rankings?.find(player => player.id === CURRENT_USER_ID);
-  // Use shared tournament data instead of API data
-  const nextTournament = getTournamentForMainDashboard();
+  // Get tournament data from API
+  const nextTournament = getTournamentForMainDashboard(tournaments || []);
 
   // Initialize notifications with tournament data
   useEffect(() => {

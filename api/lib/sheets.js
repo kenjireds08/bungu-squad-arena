@@ -394,6 +394,193 @@ class SheetsService {
     }
   }
 
+  async createTournament(tournamentData) {
+    await this.authenticate();
+    
+    try {
+      const timestamp = new Date().toISOString();
+      const tournamentId = `tournament_${Date.now()}`;
+      const qrCodeUrl = `${process.env.FRONTEND_URL || 'https://bungu-squad-arena.vercel.app'}/qr/${tournamentId}`;
+      
+      const values = [[
+        tournamentId,                           // A: id
+        tournamentData.tournament_name,         // B: tournament_name
+        tournamentData.date,                    // C: date
+        tournamentData.start_time,              // D: start_time
+        tournamentData.location,                // E: location
+        qrCodeUrl,                              // F: qr_code_url
+        'admin',                                // G: created_by
+        timestamp,                              // H: created_at
+        tournamentData.status || 'upcoming',    // I: status
+        tournamentData.max_participants || 20,  // J: max_participants
+        0,                                      // K: current_participants
+        tournamentData.tournament_type || 'random' // L: tournament_type
+      ]];
+
+      await this.sheets.spreadsheets.values.append({
+        spreadsheetId: this.spreadsheetId,
+        range: 'Tournaments!A:L',
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+          values
+        }
+      });
+
+      console.log(`Tournament created: ${tournamentId}`);
+      return { success: true, tournamentId };
+    } catch (error) {
+      console.error('Error creating tournament:', error);
+      throw new Error(`Failed to create tournament: ${error.message}`);
+    }
+  }
+
+  async updateTournament(tournamentId, updateData) {
+    await this.authenticate();
+    
+    try {
+      // First, find the tournament's row
+      const tournamentsResponse = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'Tournaments!A2:A1000'
+      });
+
+      const tournamentIds = tournamentsResponse.data.values || [];
+      const rowIndex = tournamentIds.findIndex(row => row[0] === tournamentId);
+      
+      if (rowIndex === -1) {
+        throw new Error('Tournament not found');
+      }
+
+      // Update individual fields based on what's provided
+      const updatePromises = [];
+      const actualRowNumber = rowIndex + 2; // +2 because array is 0-indexed and we skip header
+
+      if (updateData.tournament_name !== undefined) {
+        updatePromises.push(
+          this.sheets.spreadsheets.values.update({
+            spreadsheetId: this.spreadsheetId,
+            range: `Tournaments!B${actualRowNumber}`,
+            valueInputOption: 'USER_ENTERED',
+            requestBody: { values: [[updateData.tournament_name]] }
+          })
+        );
+      }
+
+      if (updateData.date !== undefined) {
+        updatePromises.push(
+          this.sheets.spreadsheets.values.update({
+            spreadsheetId: this.spreadsheetId,
+            range: `Tournaments!C${actualRowNumber}`,
+            valueInputOption: 'USER_ENTERED',
+            requestBody: { values: [[updateData.date]] }
+          })
+        );
+      }
+
+      if (updateData.start_time !== undefined) {
+        updatePromises.push(
+          this.sheets.spreadsheets.values.update({
+            spreadsheetId: this.spreadsheetId,
+            range: `Tournaments!D${actualRowNumber}`,
+            valueInputOption: 'USER_ENTERED',
+            requestBody: { values: [[updateData.start_time]] }
+          })
+        );
+      }
+
+      if (updateData.location !== undefined) {
+        updatePromises.push(
+          this.sheets.spreadsheets.values.update({
+            spreadsheetId: this.spreadsheetId,
+            range: `Tournaments!E${actualRowNumber}`,
+            valueInputOption: 'USER_ENTERED',
+            requestBody: { values: [[updateData.location]] }
+          })
+        );
+      }
+
+      if (updateData.status !== undefined) {
+        updatePromises.push(
+          this.sheets.spreadsheets.values.update({
+            spreadsheetId: this.spreadsheetId,
+            range: `Tournaments!I${actualRowNumber}`,
+            valueInputOption: 'USER_ENTERED',
+            requestBody: { values: [[updateData.status]] }
+          })
+        );
+      }
+
+      if (updateData.current_participants !== undefined) {
+        updatePromises.push(
+          this.sheets.spreadsheets.values.update({
+            spreadsheetId: this.spreadsheetId,
+            range: `Tournaments!K${actualRowNumber}`,
+            valueInputOption: 'USER_ENTERED',
+            requestBody: { values: [[updateData.current_participants]] }
+          })
+        );
+      }
+
+      await Promise.all(updatePromises);
+
+      console.log(`Tournament updated: ${tournamentId}`);
+      return { success: true };
+    } catch (error) {
+      console.error('Error updating tournament:', error);
+      throw new Error(`Failed to update tournament: ${error.message}`);
+    }
+  }
+
+  async deleteTournament(tournamentId) {
+    await this.authenticate();
+    
+    try {
+      // Get current tournament data to find the row
+      const response = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'Tournaments!A:L'
+      });
+
+      const rows = response.data.values || [];
+      if (rows.length <= 1) {
+        throw new Error('Tournament not found');
+      }
+
+      const tournamentRowIndex = rows.findIndex((row, index) => 
+        index > 0 && row[0] === tournamentId
+      );
+
+      if (tournamentRowIndex === -1) {
+        throw new Error('Tournament not found');
+      }
+
+      // Delete the row by clearing it and then removing empty rows
+      const actualRowNumber = tournamentRowIndex + 1; // +1 because findIndex includes the header
+      
+      await this.sheets.spreadsheets.batchUpdate({
+        spreadsheetId: this.spreadsheetId,
+        requestBody: {
+          requests: [{
+            deleteDimension: {
+              range: {
+                sheetId: 0, // Assuming tournaments is the first sheet
+                dimension: 'ROWS',
+                startIndex: actualRowNumber - 1, // 0-indexed for batch update
+                endIndex: actualRowNumber
+              }
+            }
+          }]
+        }
+      });
+
+      console.log(`Tournament deleted: ${tournamentId}`);
+      return { success: true };
+    } catch (error) {
+      console.error('Error deleting tournament:', error);
+      throw new Error(`Failed to delete tournament: ${error.message}`);
+    }
+  }
+
   async addMatchResult(matchData) {
     await this.authenticate();
     

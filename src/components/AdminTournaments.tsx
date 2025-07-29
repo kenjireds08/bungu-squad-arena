@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { ArrowLeft, Plus, Calendar, MapPin, QrCode, Users, Settings } from 'lucide-react';
 import { QRCodeDisplay } from './QRCodeDisplay';
 import { TournamentMatchmaking } from './TournamentMatchmaking';
-import { useRankings } from '@/hooks/useApi';
+import { useRankings, useTournaments, useCreateTournament, useUpdateTournament, useDeleteTournament } from '@/hooks/useApi';
 import { useToast } from '@/components/ui/use-toast';
 import { getCategorizedTournaments, getTournamentStatus } from '@/utils/tournamentData';
 
@@ -26,10 +26,14 @@ export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
   const [showQRCode, setShowQRCode] = useState(false);
   const [activeParticipants, setActiveParticipants] = useState(0);
   const { data: rankings } = useRankings();
+  const { data: tournamentsData, isLoading: tournamentsLoading } = useTournaments();
+  const createTournamentMutation = useCreateTournament();
+  const updateTournamentMutation = useUpdateTournament();
+  const deleteTournamentMutation = useDeleteTournament();
   const { toast } = useToast();
   
-  // Get tournaments from shared data source
-  const tournaments = getCategorizedTournaments();
+  // Get tournaments from API data
+  const tournaments = getCategorizedTournaments(tournamentsData || []);
   const [qrTournament, setQrTournament] = useState<any>(null);
   const [matchmakingTournament, setMatchmakingTournament] = useState<any>(null);
   const [newTournament, setNewTournament] = useState({
@@ -60,18 +64,45 @@ export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
     }
 
     try {
-      // TODO: Replace with actual API call to create tournament
-      console.log('Creating tournament:', newTournament);
+      const isEditing = !!selectedTournament;
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      toast({
-        title: "大会作成完了",
-        description: `${newTournament.name}を作成しました`,
-      });
+      if (isEditing) {
+        // Update existing tournament
+        await updateTournamentMutation.mutateAsync({
+          id: selectedTournament.id,
+          tournament: {
+            tournament_name: newTournament.name,
+            date: newTournament.date,
+            start_time: newTournament.time,
+            location: newTournament.location,
+            tournament_type: newTournament.matchType
+          }
+        });
+        
+        toast({
+          title: "大会更新完了",
+          description: `${newTournament.name}を更新しました`,
+        });
+      } else {
+        // Create new tournament
+        await createTournamentMutation.mutateAsync({
+          tournament_name: newTournament.name,
+          date: newTournament.date,
+          start_time: newTournament.time,
+          location: newTournament.location,
+          status: 'upcoming',
+          max_participants: 20,
+          tournament_type: newTournament.matchType
+        });
+        
+        toast({
+          title: "大会作成完了",
+          description: `${newTournament.name}を作成しました`,
+        });
+      }
       
       setCurrentView('list');
+      setSelectedTournament(null);
       setNewTournament({
         name: '',
         date: '',
@@ -80,10 +111,11 @@ export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
         description: ''
       });
     } catch (error) {
-      console.error('Failed to create tournament:', error);
+      console.error('Failed to save tournament:', error);
+      const isEditing = !!selectedTournament;
       toast({
         title: "エラー",
-        description: "大会の作成に失敗しました",
+        description: `大会の${isEditing ? '更新' : '作成'}に失敗しました`,
         variant: "destructive"
       });
     }
@@ -151,6 +183,41 @@ export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
     setMatchmakingTournament(null);
   };
 
+  const handleDeleteTournament = async (tournamentId: string, tournamentName: string) => {
+    if (!confirm(`「${tournamentName}」を削除しますか？この操作は取り消せません。`)) {
+      return;
+    }
+
+    try {
+      await deleteTournamentMutation.mutateAsync(tournamentId);
+      toast({
+        title: "削除完了",
+        description: `${tournamentName}を削除しました`,
+      });
+    } catch (error) {
+      console.error('Failed to delete tournament:', error);
+      toast({
+        title: "エラー",
+        description: "大会の削除に失敗しました",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleEditTournament = (tournament: any) => {
+    // Set form data with tournament info and switch to create view for editing
+    setNewTournament({
+      name: tournament.name,
+      date: tournament.date,
+      time: tournament.time,
+      location: tournament.location,
+      matchType: tournament.tournament_type || 'random',
+      description: tournament.description || ''
+    });
+    setSelectedTournament(tournament);
+    setCurrentView('create');
+  };
+
   if (currentView === 'matchmaking' && matchmakingTournament) {
     return (
       <TournamentMatchmaking
@@ -167,16 +234,33 @@ export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
           <div className="container mx-auto px-4 py-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Button variant="ghost" size="icon" onClick={() => setCurrentView('list')}>
+                <Button variant="ghost" size="icon" onClick={() => {
+                  setCurrentView('list');
+                  setSelectedTournament(null);
+                  setNewTournament({
+                    name: '',
+                    date: '',
+                    time: '',
+                    location: '',
+                    matchType: 'random',
+                    description: ''
+                  });
+                }}>
                   <ArrowLeft className="h-5 w-5" />
                 </Button>
                 <div className="flex items-center gap-2">
                   <Plus className="h-6 w-6 text-primary" />
-                  <h1 className="text-xl font-bold text-foreground">新しい大会を作成</h1>
+                  <h1 className="text-xl font-bold text-foreground">
+                    {selectedTournament ? '大会を編集' : '新しい大会を作成'}
+                  </h1>
                 </div>
               </div>
-              <Button variant="fantasy" onClick={handleCreateTournament}>
-                作成
+              <Button 
+                variant="fantasy" 
+                onClick={handleCreateTournament}
+                disabled={createTournamentMutation.isPending || updateTournamentMutation.isPending}
+              >
+                {selectedTournament ? '更新' : '作成'}
               </Button>
             </div>
           </div>
@@ -380,7 +464,7 @@ export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
                 </div>
                 <div className="flex gap-2 mt-3">
                   <Button variant="outline" size="sm" onClick={() => handleEditTournament(tournament)}>編集</Button>
-                  <Button variant="outline" size="sm" onClick={() => handleDeleteTournament(tournament)}>削除</Button>
+                  <Button variant="outline" size="sm" onClick={() => handleDeleteTournament(tournament.id, tournament.name)}>削除</Button>
                   <Button variant="outline" size="sm" onClick={() => handleShowQR(tournament)}>
                     <QrCode className="h-3 w-3" />
                     QRコード
