@@ -14,10 +14,11 @@ interface Notification {
 interface NotificationBannerProps {
   notifications: Notification[];
   onDismiss: (id: string) => void;
+  onAcknowledge?: (id: string) => void;
   onViewAll: () => void;
 }
 
-export const NotificationBanner = ({ notifications, onDismiss, onViewAll }: NotificationBannerProps) => {
+export const NotificationBanner = ({ notifications, onDismiss, onAcknowledge, onViewAll }: NotificationBannerProps) => {
   const [currentNotification, setCurrentNotification] = useState<Notification | null>(null);
   const [isVisible, setIsVisible] = useState(false);
 
@@ -50,6 +51,16 @@ export const NotificationBanner = ({ notifications, onDismiss, onViewAll }: Noti
     setTimeout(() => {
       if (currentNotification) {
         onDismiss(currentNotification.id);
+        setCurrentNotification(null);
+      }
+    }, 300);
+  };
+
+  const handleAcknowledge = () => {
+    setIsVisible(false);
+    setTimeout(() => {
+      if (currentNotification && onAcknowledge) {
+        onAcknowledge(currentNotification.id);
         setCurrentNotification(null);
       }
     }, 300);
@@ -134,6 +145,20 @@ export const NotificationBanner = ({ notifications, onDismiss, onViewAll }: Noti
               </Button>
             </div>
           </div>
+          
+          {/* Acknowledge button for tournament notifications */}
+          {currentNotification.type === 'tournament' && onAcknowledge && (
+            <div className="mt-3 flex justify-end">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleAcknowledge}
+                className="bg-white/10 border-white/20 text-foreground hover:bg-white/20"
+              >
+                確認
+              </Button>
+            </div>
+          )}
         </div>
         
         {/* Progress bar for auto-dismiss */}

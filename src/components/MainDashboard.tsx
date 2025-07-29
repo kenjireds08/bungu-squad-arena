@@ -43,6 +43,9 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
   const [previousPage, setPreviousPage] = useState<string>('dashboard');
   const [showPWAPrompt, setShowPWAPrompt] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [acknowledgedTournaments, setAcknowledgedTournaments] = useState<Set<string>>(
+    () => new Set(JSON.parse(localStorage.getItem('acknowledgedTournaments') || '[]'))
+  );
 
   const { data: rankings, isLoading: rankingsLoading } = useRankings();
   const { data: tournaments, isLoading: tournamentsLoading } = useTournaments();
@@ -53,10 +56,10 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
 
   // Initialize notifications with tournament data
   useEffect(() => {
-    if (nextTournament) {
+    if (nextTournament && !acknowledgedTournaments.has(nextTournament.id)) {
       setNotifications([
         {
-          id: '1',
+          id: nextTournament.id,
           type: 'tournament' as const,
           title: '新しい大会が作成されました',
           message: `${nextTournament.name}が${nextTournament.date}に開催されます`,
@@ -64,8 +67,10 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
           priority: 'high' as const
         }
       ]);
+    } else {
+      setNotifications([]);
     }
-  }, [nextTournament]);
+  }, [nextTournament, acknowledgedTournaments]);
 
   // Check for PWA install prompt
   useEffect(() => {
@@ -105,6 +110,14 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
   const handlePWAPromptClose = () => {
     setShowPWAPrompt(false);
     localStorage.setItem('pwa-prompt-shown', 'true');
+  };
+
+  const acknowledgeNotification = (id: string) => {
+    const newAcknowledged = new Set(acknowledgedTournaments);
+    newAcknowledged.add(id);
+    setAcknowledgedTournaments(newAcknowledged);
+    localStorage.setItem('acknowledgedTournaments', JSON.stringify([...newAcknowledged]));
+    setNotifications(prev => prev.filter(n => n.id !== id));
   };
 
   const dismissNotification = (id: string) => {
@@ -252,6 +265,7 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
         <NotificationBanner 
           notifications={notifications}
           onDismiss={dismissNotification}
+          onAcknowledge={acknowledgeNotification}
           onViewAll={() => setCurrentPage('notification-history')}
         />
       )}
