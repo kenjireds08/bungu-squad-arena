@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Camera, QrCode, AlertCircle, CheckCircle } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import QrScanner from 'qr-scanner';
+import { TournamentEntryComplete } from './TournamentEntryComplete';
 
 interface QRScannerProps {
   onClose: () => void;
@@ -36,7 +37,7 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
 
     console.log('BUNGU SQUAD: qr-scannerライブラリでQRスキャナー初期化');
     
-    // Create QR Scanner instance with simplified settings for better video display
+    // Create QR Scanner instance with optimized settings for video display
     const qrScanner = new QrScanner(
       videoRef.current,
       (result) => handleQRDetected(result.data),
@@ -45,8 +46,13 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
         highlightScanRegion: true,
         highlightCodeOutline: true,
         preferredCamera: 'environment',
-        maxScansPerSecond: 5, // Reduced for better performance
-        // Remove calculateScanRegion to use default behavior
+        maxScansPerSecond: 5,
+        // Optimize video constraints for better display
+        videoConstraints: {
+          facingMode: 'environment',
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
       }
     );
 
@@ -216,22 +222,14 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
   // Show success state
   if (scanResult === 'success') {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-            <CardTitle className="text-green-700">QRコード読み取り成功！</CardTitle>
-          </CardHeader>
-          <CardContent className="text-center">
-            <p className="text-sm text-muted-foreground mb-4">
-              大会エントリーが完了しました
-            </p>
-            <p className="text-xs text-muted-foreground">
-              5秒後に待機画面に戻ります...
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      <TournamentEntryComplete 
+        onClose={onClose}
+        onViewTournament={() => {
+          // This will be handled by the automatic navigation in handleQRDetected
+          // The TournamentEntryComplete component will just show the countdown
+        }}
+        disableAutoTransition={true}
+      />
     );
   }
 
@@ -283,7 +281,10 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
               <video
                 ref={videoRef}
                 className="w-full h-full object-cover"
-                style={{ display: isScanning ? 'block' : 'none' }}
+                style={{
+                  display: 'block',
+                  visibility: isScanning ? 'visible' : 'hidden'
+                }}
                 playsInline
                 muted
                 autoPlay

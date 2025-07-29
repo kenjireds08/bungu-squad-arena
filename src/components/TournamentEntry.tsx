@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Trophy, Calendar, MapPin, Users, Loader2, CheckCircle, XCircle } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import { TournamentWaiting } from './TournamentWaiting';
 
 interface Tournament {
   id: string;
@@ -23,6 +24,8 @@ export const TournamentEntry = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isEntering, setIsEntering] = useState(false);
   const [isEntered, setIsEntered] = useState(false);
+  const [userTournamentActive, setUserTournamentActive] = useState(false);
+  const [showWaitingRoom, setShowWaitingRoom] = useState(false);
   
   // Add component mount log
   console.log('TournamentEntry component mounted', { tournamentId, date });
@@ -32,11 +35,15 @@ export const TournamentEntry = () => {
       try {
         setIsLoading(true);
         
+        // Check if user is logged in and tournament active
+        const userId = localStorage.getItem('userId');
+        let userIsActive = false;
+        
         // TODO: Replace with actual API call
         // Mock tournament data for now
         const today = new Date().toISOString().split('T')[0];
         
-        // Get real participant count
+        // Get real participant count and check user status
         let participantCount = 0;
         try {
           const playersResponse = await fetch('/api/players');
@@ -44,10 +51,21 @@ export const TournamentEntry = () => {
             const players = await playersResponse.json();
             participantCount = players.filter((player: any) => player.tournament_active === true).length;
             console.log('Current tournament participants:', participantCount);
+            
+            // Check if current user is tournament active
+            if (userId) {
+              const currentUser = players.find((player: any) => player.id === userId);
+              if (currentUser && currentUser.tournament_active === true) {
+                userIsActive = true;
+                console.log('User is already tournament active');
+              }
+            }
           }
         } catch (error) {
           console.error('Failed to fetch participant count:', error);
         }
+        
+        setUserTournamentActive(userIsActive);
         
         const mockTournament: Tournament = {
           id: tournamentId || '1',
@@ -63,6 +81,11 @@ export const TournamentEntry = () => {
         await new Promise(resolve => setTimeout(resolve, 500));
         
         setTournament(mockTournament);
+        
+        // If user is logged in and tournament active, show waiting room
+        if (userId && userIsActive) {
+          setShowWaitingRoom(true);
+        }
       } catch (error) {
         console.error('Failed to load tournament:', error);
         toast({
@@ -205,6 +228,16 @@ export const TournamentEntry = () => {
           </CardContent>
         </Card>
       </div>
+    );
+  }
+
+  // Show waiting room if user is already tournament active
+  if (showWaitingRoom && tournament) {
+    return (
+      <TournamentWaiting 
+        onClose={() => navigate('/')}
+        onViewRanking={() => navigate('/ranking')}
+      />
     );
   }
 

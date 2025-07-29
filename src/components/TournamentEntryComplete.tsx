@@ -8,6 +8,7 @@ import tapeNinja from '@/assets/tape-ninja.png';
 interface TournamentEntryCompleteProps {
   onClose: () => void;
   onViewTournament: () => void;
+  disableAutoTransition?: boolean;
 }
 
 const mockTournament = {
@@ -20,10 +21,12 @@ const mockTournament = {
   rule: "トランプルール・カードプラスルール両対応"
 };
 
-export const TournamentEntryComplete = ({ onClose, onViewTournament }: TournamentEntryCompleteProps) => {
+export const TournamentEntryComplete = ({ onClose, onViewTournament, disableAutoTransition = false }: TournamentEntryCompleteProps) => {
   const [countdown, setCountdown] = useState(5);
 
   useEffect(() => {
+    if (disableAutoTransition) return;
+    
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
@@ -36,7 +39,7 @@ export const TournamentEntryComplete = ({ onClose, onViewTournament }: Tournamen
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [onViewTournament]);
+  }, [onViewTournament, disableAutoTransition]);
 
   return (
     <div className="min-h-screen bg-gradient-parchment">
