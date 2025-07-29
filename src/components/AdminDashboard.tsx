@@ -23,7 +23,6 @@ import { AdminApprovals } from './AdminApprovals';
 import { AdminPlayers } from './AdminPlayers';
 import { MatchProgressManager } from './MatchProgressManager';
 import { DataExport } from './DataExport';
-import { TournamentMatchmaking } from './TournamentMatchmaking';
 import { useRankings, useTournaments } from '@/hooks/useApi';
 
 interface AdminDashboardProps {
@@ -172,9 +171,6 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
     return <MatchProgressManager onBack={() => setCurrentAdminPage('dashboard')} />;
   }
 
-  if (currentAdminPage === 'tournament-matchmaking') {
-    return <TournamentMatchmaking onClose={() => setCurrentAdminPage('dashboard')} />;
-  }
 
   if (currentAdminPage === 'data-export') {
     return <DataExport onClose={() => setCurrentAdminPage('dashboard')} />;
@@ -320,16 +316,6 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Button
-            variant="tournament"
-            size="lg"
-            onClick={() => setCurrentAdminPage('tournament-matchmaking')}
-            className="h-20 flex-col"
-          >
-            <Users className="h-6 w-6 mb-1" />
-            組み合わせ管理
-          </Button>
-          
           <Button variant="fantasy" size="lg" className="h-16" onClick={() => setCurrentAdminPage('tournaments')}>
             <Plus className="h-5 w-5 mr-2" />
             新しい大会を作成
