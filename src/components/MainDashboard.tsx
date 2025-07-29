@@ -330,12 +330,17 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
           </CardContent>
         </Card>
 
-        {/* Next Tournament Info */}
+        {/* Tournament Info */}
         <Card className="border-fantasy-frame shadow-soft animate-slide-up">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-foreground">
               <Calendar className="h-5 w-5 text-info" />
-              次回大会予定
+              {(() => {
+                if (!nextTournament) return "次回大会予定";
+                const today = new Date().toISOString().split('T')[0];
+                if (nextTournament.date === today) return "本日の大会予定";
+                return "次回大会予定";
+              })()}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">

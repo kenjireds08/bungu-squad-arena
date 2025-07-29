@@ -37,7 +37,6 @@ export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
     date: '',
     time: '',
     location: '',
-    matchType: 'random',
     description: ''
   });
 
@@ -78,7 +77,6 @@ export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
         date: '',
         time: '',
         location: '',
-        matchType: 'random',
         description: ''
       });
     } catch (error) {
@@ -97,7 +95,6 @@ export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
       date: tournament.date,
       time: tournament.time,
       location: tournament.location,
-      matchType: 'random',
       description: tournament.description || ''
     });
     setSelectedTournament(tournament);
@@ -232,19 +229,6 @@ export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="match-type">対戦方式</Label>
-                <Select value={newTournament.matchType} onValueChange={(value) => setNewTournament(prev => ({ ...prev, matchType: value }))}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="random">ランダム</SelectItem>
-                    <SelectItem value="round-robin">総当たり</SelectItem>
-                    <SelectItem value="manual">手動設定</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
 
               <div className="space-y-2">
                 <Label htmlFor="tournament-description">説明（任意）</Label>
