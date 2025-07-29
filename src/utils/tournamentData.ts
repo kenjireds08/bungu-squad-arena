@@ -84,12 +84,15 @@ export const getNextUpcomingTournament = (apiTournaments: ApiTournament[] = []):
 
 // Get tournament to display on main dashboard
 export const getTournamentForMainDashboard = (apiTournaments: ApiTournament[] = []): Tournament | null => {
-  // First try to get active tournament (today)
-  const activeTournament = getCurrentActiveTournament(apiTournaments);
-  if (activeTournament) {
-    return activeTournament;
+  const tournaments = apiTournaments.map(transformTournamentData);
+  const today = new Date().toISOString().split('T')[0];
+  
+  // First check for today's tournament (regardless of status)
+  const todayTournament = tournaments.find(t => t.date === today);
+  if (todayTournament) {
+    return todayTournament;
   }
   
-  // If no active tournament, get next upcoming
+  // If no tournament today, get next upcoming
   return getNextUpcomingTournament(apiTournaments);
 };
