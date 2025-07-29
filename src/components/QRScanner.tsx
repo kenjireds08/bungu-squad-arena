@@ -157,16 +157,39 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
             body: JSON.stringify({ updateTournamentActive: true })
           });
           console.log('Tournament active status updated for player:', currentUserId);
+          
+          // Navigate to the waiting room after 5 seconds
+          setTimeout(() => {
+            // Extract tournament ID from URL
+            const tournamentMatch = data.match(/\/tournament\/([^\/]+)/);
+            if (tournamentMatch && tournamentMatch[1]) {
+              window.location.href = `/tournament/${tournamentMatch[1]}`;
+            } else {
+              // Fallback - close scanner
+              onEntryComplete?.();
+              onClose();
+            }
+          }, 5000);
+          
         } catch (error) {
           console.error('Failed to update tournament active status:', error);
+          // Even if API fails, still navigate to tournament
+          setTimeout(() => {
+            const tournamentMatch = data.match(/\/tournament\/([^\/]+)/);
+            if (tournamentMatch && tournamentMatch[1]) {
+              window.location.href = `/tournament/${tournamentMatch[1]}`;
+            } else {
+              onEntryComplete?.();
+              onClose();
+            }
+          }, 5000);
         }
+      } else {
+        // Not logged in, redirect to entry page after 2 seconds
+        setTimeout(() => {
+          window.location.href = data;
+        }, 2000);
       }
-      
-      // Return to waiting screen after 5 seconds as originally intended
-      setTimeout(() => {
-        onEntryComplete?.();
-        onClose();
-      }, 5000);
       
     } else {
       setScanResult('error');
