@@ -351,9 +351,9 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
         // Get image data for QR detection
         const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
         
-        // Detect QR code using jsQR
+        // Detect QR code using jsQR - try different strategies
         const code = jsQR(imageData.data, imageData.width, imageData.height, {
-          inversionAttempts: "dontInvert",
+          inversionAttempts: "attemptBoth",
         });
         
         if (code && code.data) {
@@ -367,18 +367,14 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
         console.error('BUNGU SQUAD: QR検出エラー:', error);
       }
       
-      // Continue detection loop with a small delay to reduce CPU usage
+      // Continue detection loop with faster scanning
       if (isScanning) {
-        setTimeout(() => {
-          requestAnimationFrame(detectQR);
-        }, 100); // 100ms delay between scans
+        requestAnimationFrame(detectQR);
       }
     };
     
-    // Start detection with a small delay
-    setTimeout(() => {
-      detectQR();
-    }, 100);
+    // Start detection immediately
+    detectQR();
   };
 
   const handleQRDetected = async (data: string) => {
