@@ -154,7 +154,7 @@ export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
   if (currentView === 'matchmaking' && matchmakingTournament) {
     return (
       <TournamentMatchmaking
-        onBack={handleBackFromMatchmaking}
+        onClose={handleBackFromMatchmaking}
         tournamentId={matchmakingTournament.id.toString()}
       />
     );

@@ -27,7 +27,7 @@ import { NotificationBanner } from './NotificationBanner';
 import { NotificationHistory } from './NotificationHistory';
 import { PWAInstallPrompt } from './PWAInstallPrompt';
 import { PullToRefresh } from './PullToRefresh';
-import { getTournamentForMainDashboard } from '@/utils/tournamentData';
+import { getTournamentForMainDashboard, getCategorizedTournaments } from '@/utils/tournamentData';
 import mainCharacter from '@/assets/main-character.png';
 
 interface MainDashboardProps {
@@ -376,6 +376,31 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
                   <Camera className="h-5 w-5" />
                   大会にエントリー
                 </Button>
+
+                {/* Additional tournaments display */}
+                {(() => {
+                  const { upcoming } = getCategorizedTournaments();
+                  const otherUpcoming = upcoming.filter(t => t.id !== nextTournament.id).slice(0, 2);
+                  
+                  if (otherUpcoming.length > 0) {
+                    return (
+                      <div className="pt-4 border-t border-muted">
+                        <h4 className="text-sm font-medium text-muted-foreground mb-2">さらに次回の大会予定</h4>
+                        <div className="space-y-2">
+                          {otherUpcoming.map((tournament) => (
+                            <div key={tournament.id} className="p-2 bg-muted/50 rounded-md">
+                              <p className="text-sm font-medium">{tournament.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {tournament.date} {tournament.time && `${tournament.time}〜`}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
               </>
             ) : (
               <p className="text-sm text-muted-foreground">次回大会の情報はありません</p>
