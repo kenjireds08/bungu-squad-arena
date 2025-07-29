@@ -20,20 +20,8 @@ export const getTournamentStatus = (date: string, time?: string) => {
   const tournamentDate = new Date(date).toISOString().split('T')[0];
   
   if (tournamentDate === today) {
-    // If tournament is today, check if it has started based on time
-    if (time) {
-      const [hours, minutes] = time.split(':').map(Number);
-      const tournamentTime = hours * 60 + minutes; // Tournament time in minutes
-      
-      // If current time is past tournament start time, it's active
-      if (currentTime >= tournamentTime) {
-        return '開催中';
-      } else {
-        return '募集中'; // Still recruiting until start time
-      }
-    } else {
-      return '開催中'; // No time specified, assume active all day
-    }
+    // If tournament is today, always show as active regardless of time
+    return '開催中';
   } else if (tournamentDate > today) {
     return '募集中';
   } else {
@@ -84,22 +72,12 @@ export const getNextUpcomingTournament = (apiTournaments: ApiTournament[] = []):
 
 // Get tournament to display on main dashboard
 export const getTournamentForMainDashboard = (apiTournaments: ApiTournament[] = []): Tournament | null => {
-  const tournaments = apiTournaments.map(transformTournamentData);
-  const today = new Date().toISOString().split('T')[0];
-  
-  console.log('Debug - Today date:', today);
-  console.log('Debug - All tournaments:', tournaments.map(t => ({ id: t.id, name: t.name, date: t.date, status: t.status })));
-  
-  // First check for today's tournament (regardless of status)
-  const todayTournament = tournaments.find(t => t.date === today);
-  console.log('Debug - Today tournament found:', todayTournament);
-  
-  if (todayTournament) {
-    return todayTournament;
+  // First try to get active tournament (today)
+  const activeTournament = getCurrentActiveTournament(apiTournaments);
+  if (activeTournament) {
+    return activeTournament;
   }
   
-  // If no tournament today, get next upcoming
-  const nextUpcoming = getNextUpcomingTournament(apiTournaments);
-  console.log('Debug - Next upcoming tournament:', nextUpcoming);
-  return nextUpcoming;
+  // If no active tournament, get next upcoming
+  return getNextUpcomingTournament(apiTournaments);
 };
