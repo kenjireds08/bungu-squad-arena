@@ -24,5 +24,22 @@
   ],
   "categories": ["games", "sports", "utilities"],
   "lang": "ja",
-  "dir": "ltr"
+  "dir": "ltr",
+  "permissions": ["camera"],
+  "prefer_related_applications": false,
+  "related_applications": [],
+  "shortcuts": [
+    {
+      "name": "QRコードスキャン",
+      "short_name": "QRスキャン",
+      "description": "大会にエントリーするためのQRコードスキャン",
+      "url": "/?action=qr-scan",
+      "icons": [
+        {
+          "src": "/src/assets/main-character.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
 }

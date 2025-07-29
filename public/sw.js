@@ -1,8 +1,8 @@
 // BUNGU SQUAD Service Worker for PWA functionality
 // Update version to force SW update - Change this whenever you need to force update
-const SW_VERSION = '2.0.1'; // Updated to force refresh
-const CACHE_NAME = 'bungu-squad-v2';
-const STATIC_CACHE = 'bungu-squad-static-v2';
+const SW_VERSION = '2.1.0'; // Camera optimization update
+const CACHE_NAME = 'bungu-squad-v2-1';
+const STATIC_CACHE = 'bungu-squad-static-v2-1';
 
 // Assets to cache for offline functionality
 const STATIC_ASSETS = [
@@ -41,6 +41,14 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   // Skip non-GET requests
   if (event.request.method !== 'GET') return;
+  
+  // Don't interfere with camera/media requests
+  if (event.request.url.includes('getUserMedia') || 
+      event.request.url.includes('mediaDevices') ||
+      event.request.destination === 'video' ||
+      event.request.destination === 'audio') {
+    return;
+  }
 
   event.respondWith(
     // Try network first
@@ -51,12 +59,14 @@ self.addEventListener('fetch', (event) => {
           return fetchResponse;
         }
 
-        // Cache the response
-        const responseToCache = fetchResponse.clone();
-        caches.open(CACHE_NAME)
-          .then((cache) => {
-            cache.put(event.request, responseToCache);
-          });
+        // Cache the response for non-sensitive resources
+        if (!event.request.url.includes('/api/') && !event.request.url.includes('camera')) {
+          const responseToCache = fetchResponse.clone();
+          caches.open(CACHE_NAME)
+            .then((cache) => {
+              cache.put(event.request, responseToCache);
+            });
+        }
 
         return fetchResponse;
       })

@@ -23,6 +23,7 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
   const [manualUrl, setManualUrl] = useState('');
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const [diagnosticInfo, setDiagnosticInfo] = useState<string[]>([]);
+  const [showImageUpload, setShowImageUpload] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -82,14 +83,11 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
   };
 
   const startCamera = async () => {
-    console.log('BUNGU SQUAD: カメラ起動開始');
+    console.log('BUNGU SQUAD: カメラ起動開始 - 新実装');
     setIsInitializing(true);
     setCameraError(null);
     setInitializationTimeout(false);
 
-    // First, run diagnostics
-    const canProceed = await checkCameraPermissions();
-    
     // Clear any previous timeout
     if (initTimeoutRef.current) {
       clearTimeout(initTimeoutRef.current);
@@ -102,7 +100,7 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
       setInitializationTimeout(true);
       setIsInitializing(false);
       setCameraError('カメラの起動に時間がかかっています。もう一度お試しください。');
-    }, 8000); // 8 seconds timeout
+    }, 10000); // Increased to 10 seconds
     
     try {
       // Check browser support
@@ -110,33 +108,55 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
         throw new Error('このブラウザはカメラをサポートしていません');
       }
 
-      console.log('BUNGU SQUAD: カメラストリーム要求中...');
+      console.log('BUNGU SQUAD: 段階的カメラアクセス開始');
       
-      // Special handling for Safari PWA
-      const isPWA = window.matchMedia('(display-mode: standalone)').matches;
-      const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-      
-      let constraints;
-      
-      if (isPWA && isSafari) {
-        // Very minimal constraints for Safari PWA
-        console.log('BUNGU SQUAD: Safari PWA 検出、最小制約で試行');
-        constraints = {
-          video: true // Most basic constraints
-        };
-      } else {
-        // Standard constraints for other browsers
-        constraints = {
-          video: {
+      // Progressive enhancement approach - try multiple constraint configurations
+      const constraintOptions = [
+        // Option 1: Basic video only (most compatible)
+        { video: true },
+        
+        // Option 2: Rear camera preference
+        { 
+          video: { 
+            facingMode: 'environment' 
+          } 
+        },
+        
+        // Option 3: Specific dimensions with rear camera
+        { 
+          video: { 
             facingMode: { ideal: 'environment' },
             width: { ideal: 640 },
             height: { ideal: 480 }
-          }
-        };
+          } 
+        }
+      ];
+
+      let stream = null;
+      let lastError = null;
+
+      // Try each constraint option until one works
+      for (let i = 0; i < constraintOptions.length; i++) {
+        const constraints = constraintOptions[i];
+        console.log(`BUNGU SQUAD: 制約オプション ${i + 1} を試行:`, constraints);
+        
+        try {
+          stream = await navigator.mediaDevices.getUserMedia(constraints);
+          console.log(`BUNGU SQUAD: 制約オプション ${i + 1} で成功!`);
+          break;
+        } catch (error: any) {
+          console.warn(`BUNGU SQUAD: 制約オプション ${i + 1} 失敗:`, error.message);
+          lastError = error;
+          
+          // Wait a bit before trying next option
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
       }
 
-      console.log('BUNGU SQUAD: 使用制約:', constraints);
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      if (!stream) {
+        throw lastError || new Error('すべての制約オプションが失敗しました');
+      }
+
       console.log('BUNGU SQUAD: カメラストリーム取得成功');
       
       if (!videoRef.current) {
@@ -146,22 +166,25 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
       const video = videoRef.current;
       streamRef.current = stream;
 
-      // Configure video element for iOS
+      // Configure video element with comprehensive settings
       video.srcObject = stream;
       video.playsInline = true;
       video.muted = true;
       video.autoplay = true;
       video.controls = false;
       
-      // Set iOS-specific attributes
+      // iOS-specific attributes
       video.setAttribute('webkit-playsinline', 'true');
       video.setAttribute('playsinline', 'true');
+      video.setAttribute('muted', 'true');
 
-      console.log('BUNGU SQUAD: ビデオ要素設定完了、再生待機中...');
+      console.log('BUNGU SQUAD: ビデオ要素設定完了、再生開始');
 
-      // Wait for video to be ready and play
+      // Enhanced video initialization with multiple fallbacks
       return new Promise<void>((resolve, reject) => {
         let resolved = false;
+        let attempts = 0;
+        const maxAttempts = 3;
         
         const handleSuccess = () => {
           if (resolved) return;
@@ -188,10 +211,29 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
 
         const handleError = (error: any) => {
           if (resolved) return;
-          resolved = true;
           
           console.error('BUNGU SQUAD: ビデオ再生エラー:', error);
-          reject(error);
+          attempts++;
+          
+          if (attempts < maxAttempts) {
+            console.log(`BUNGU SQUAD: リトライ ${attempts}/${maxAttempts}`);
+            setTimeout(() => {
+              tryPlay();
+            }, 1000);
+          } else {
+            resolved = true;
+            reject(error);
+          }
+        };
+
+        const tryPlay = async () => {
+          try {
+            console.log(`BUNGU SQUAD: play() 試行 ${attempts + 1}`);
+            await video.play();
+            handleSuccess();
+          } catch (error) {
+            handleError(error);
+          }
         };
 
         // Set up event listeners
@@ -201,34 +243,23 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
 
         video.addEventListener('canplay', () => {
           console.log('BUNGU SQUAD: 再生準備完了');
-          handleSuccess();
+          if (!resolved) {
+            handleSuccess();
+          }
         });
 
         video.addEventListener('error', handleError);
 
-        // Force play attempt
-        video.play()
-          .then(() => {
-            console.log('BUNGU SQUAD: play() 成功');
-            if (!resolved) {
-              setTimeout(handleSuccess, 500); // Give it some time
-            }
-          })
-          .catch((error) => {
-            console.log('BUNGU SQUAD: play() 失敗、但し継続:', error);
-            // Don't reject here, just continue - iOS sometimes fails play() but video works
-            if (!resolved) {
-              setTimeout(handleSuccess, 1000);
-            }
-          });
+        // Start play attempt
+        tryPlay();
 
-        // Safety timeout
+        // Safety fallback - if video seems to be working, proceed anyway
         setTimeout(() => {
-          if (!resolved) {
-            console.log('BUNGU SQUAD: ビデオ初期化完了（タイムアウト）');
+          if (!resolved && video.videoWidth > 0 && video.videoHeight > 0) {
+            console.log('BUNGU SQUAD: ビデオが動作しているため強制成功');
             handleSuccess();
           }
-        }, 3000);
+        }, 5000);
       });
       
     } catch (error: any) {
@@ -246,14 +277,19 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
       let errorMessage = 'カメラの起動に失敗しました';
       
       if (error.name === 'NotAllowedError') {
-        errorMessage = 'カメラの使用が許可されていません。設定で許可してください。';
+        errorMessage = 'カメラの使用が許可されていません。ブラウザの設定でカメラへのアクセスを許可してください。';
       } else if (error.name === 'NotFoundError') {
-        errorMessage = 'カメラが見つかりません。';
+        errorMessage = 'カメラが見つかりません。デバイスにカメラが接続されているか確認してください。';
       } else if (error.name === 'NotSupportedError' || error.name === 'NotReadableError') {
         errorMessage = 'カメラにアクセスできません。他のアプリでカメラが使用中の可能性があります。';
+      } else if (error.name === 'OverconstrainedError') {
+        errorMessage = 'カメラの設定に問題があります。デバイスがサポートしていない可能性があります。';
       }
       
       setCameraError(errorMessage);
+      
+      // Run diagnostics after error
+      await checkCameraPermissions();
       
       toast({
         title: "カメラエラー",
@@ -391,7 +427,31 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
     }
   };
 
-  const handleStartScan = () => {
+  const handleStartScan = async () => {
+    console.log('BUNGU SQUAD: ユーザーアクション - カメラ起動要求');
+    
+    // First try to get permission immediately after user interaction
+    try {
+      // Pre-request permission to show browser prompt immediately
+      const permissionStatus = await navigator.permissions?.query({ name: 'camera' as PermissionName });
+      console.log('BUNGU SQUAD: 現在の権限状態:', permissionStatus?.state);
+      
+      if (permissionStatus?.state === 'prompt') {
+        console.log('BUNGU SQUAD: 権限がプロンプト状態、直接getUserMediaで権限要求');
+        // Trigger permission request immediately
+        try {
+          const testStream = await navigator.mediaDevices.getUserMedia({ video: true });
+          console.log('BUNGU SQUAD: 権限取得成功、テストストリームを停止');
+          testStream.getTracks().forEach(track => track.stop());
+        } catch (permError) {
+          console.log('BUNGU SQUAD: 権限要求中のエラー:', permError);
+        }
+      }
+    } catch (permissionError) {
+      console.log('BUNGU SQUAD: 権限チェック不可:', permissionError);
+    }
+    
+    // Now start the camera normally
     startCamera();
   };
 
@@ -434,24 +494,80 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
     }
   };
 
-  const openInSafari = () => {
-    const currentUrl = window.location.href;
-    
-    toast({
-      title: "Safari で開いています",
-      description: "カメラ権限を許可してから戻ってください",
-    });
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
 
-    // PWAからSafariブラウザで開く - カメラパラメータを追加
-    const safariUrl = currentUrl.includes('?') 
-      ? `${currentUrl}&camera=grant` 
-      : `${currentUrl}?camera=grant`;
+    console.log('BUNGU SQUAD: QR画像アップロード開始');
     
-    // ローカルストレージに権限試行フラグを設定
-    localStorage.setItem('camera-permission-attempt', Date.now().toString());
-    
-    window.location.href = safariUrl;
+    try {
+      // Create image element
+      const img = new Image();
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      if (!ctx) {
+        throw new Error('Canvas context not available');
+      }
+
+      // Load and process image
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => {
+          // Set canvas size to image size
+          canvas.width = img.width;
+          canvas.height = img.height;
+          
+          // Draw image to canvas
+          ctx.drawImage(img, 0, 0);
+          
+          // Get image data for QR detection
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          
+          // Detect QR code using jsQR
+          const code = jsQR(imageData.data, imageData.width, imageData.height, {
+            inversionAttempts: "dontInvert",
+          });
+          
+          if (code && code.data) {
+            console.log('BUNGU SQUAD: QRコード検出成功（画像）:', code.data);
+            handleQRDetected(code.data);
+            resolve();
+          } else {
+            reject(new Error('QRコードが見つかりませんでした'));
+          }
+        };
+        
+        img.onerror = () => {
+          reject(new Error('画像の読み込みに失敗しました'));
+        };
+        
+        // Load image
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          img.src = e.target?.result as string;
+        };
+        reader.readAsDataURL(file);
+      });
+
+      toast({
+        title: "成功",
+        description: "QRコードを画像から読み取りました",
+      });
+
+    } catch (error: any) {
+      console.error('BUNGU SQUAD: 画像QR読み取りエラー:', error);
+      toast({
+        title: "エラー",
+        description: error.message || "画像からQRコードを読み取れませんでした",
+        variant: "destructive"
+      });
+    }
+
+    // Reset input
+    event.target.value = '';
   };
+
+  // Remove the failed Safari workaround - focus on PWA-native solution
 
   const isPWASafari = () => {
     const isPWA = window.matchMedia('(display-mode: standalone)').matches;
@@ -459,41 +575,21 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
     return isPWA && isSafari;
   };
 
-  // Auto-retry camera access after Safari permission grant
+  // Check for QR scan shortcut action from PWA
   useEffect(() => {
-    const checkPermissionAndRetry = async () => {
-      // URLパラメータをチェック
-      const urlParams = new URLSearchParams(window.location.search);
-      const cameraParam = urlParams.get('camera');
-      
-      // ローカルストレージのフラグをチェック
-      const attemptTime = localStorage.getItem('camera-permission-attempt');
-      const now = Date.now();
-      const fiveMinutesAgo = now - (5 * 60 * 1000); // 5分前
-      
-      if (cameraParam === 'grant' && attemptTime && parseInt(attemptTime) > fiveMinutesAgo) {
-        console.log('BUNGU SQUAD: Safariから戻ってきました、カメラを自動再試行');
-        
-        // フラグをクリア
-        localStorage.removeItem('camera-permission-attempt');
-        
-        // URLパラメータをクリア
-        const newUrl = window.location.href.replace(/[?&]camera=grant/, '');
-        window.history.replaceState({}, '', newUrl);
-        
-        // 少し待ってからカメラを起動
-        setTimeout(() => {
-          handleStartScan();
-        }, 1000);
-        
-        toast({
-          title: "自動再試行",
-          description: "カメラアクセスを再試行しています...",
-        });
-      }
-    };
+    const urlParams = new URLSearchParams(window.location.search);
+    const action = urlParams.get('action');
     
-    checkPermissionAndRetry();
+    if (action === 'qr-scan') {
+      console.log('BUNGU SQUAD: PWAショートカットからQRスキャン開始');
+      // Clean URL
+      window.history.replaceState({}, '', window.location.pathname);
+      
+      // Auto-start camera after component mount
+      setTimeout(() => {
+        handleStartScan();
+      }, 500);
+    }
   }, []);
 
   // Cleanup on unmount
@@ -665,31 +761,57 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
                 </div>
               )}
 
-              {/* PWA Camera Issue Warning */}
-              {cameraError && isPWASafari() && (
-                <div className="space-y-3 p-4 bg-destructive/10 rounded-lg border border-destructive/20">
+              {/* QR Image Upload Section */}
+              {showImageUpload && (
+                <div className="space-y-3 p-4 bg-muted/50 rounded-lg border">
                   <div className="flex items-center gap-2 mb-2">
-                    <AlertCircle className="h-4 w-4 text-destructive" />
-                    <span className="text-sm font-medium text-destructive">PWA カメラ問題</span>
+                    <QrCode className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-medium">QR画像をアップロード</span>
                   </div>
-                  <div className="text-sm space-y-2 text-muted-foreground">
-                    <p>Safari PWAアプリではカメラ権限に問題が発生することがあります。</p>
-                    <p><strong>解決方法：</strong></p>
-                    <ol className="list-decimal list-inside space-y-1 text-xs">
-                      <li>下の「Safariで開く」ボタンをタップ</li>
-                      <li>Safariブラウザでカメラ権限を許可</li>
-                      <li>PWAアプリに戻ると自動でカメラを再試行します</li>
-                    </ol>
+                  <div className="text-sm text-muted-foreground mb-3">
+                    <p>QRコードの画像ファイルを選択してください。カメラロールやスクリーンショットからも読み取れます。</p>
                   </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="block w-full text-sm text-gray-500
+                      file:mr-4 file:py-2 file:px-4
+                      file:rounded-full file:border-0
+                      file:text-sm file:font-semibold
+                      file:bg-primary file:text-primary-foreground
+                      hover:file:bg-primary/90"
+                  />
                   <Button 
-                    variant="outline" 
+                    variant="ghost" 
                     size="sm" 
-                    onClick={openInSafari}
+                    onClick={() => setShowImageUpload(false)}
                     className="w-full"
                   >
-                    <ExternalLink className="h-4 w-4 mr-1" />
-                    Safariで開く
+                    キャンセル
                   </Button>
+                </div>
+              )}
+
+              {/* Enhanced Camera Issue Help */}
+              {cameraError && (
+                <div className="space-y-3 p-4 bg-info/10 rounded-lg border border-info/20">
+                  <div className="flex items-center gap-2 mb-2">
+                    <AlertCircle className="h-4 w-4 text-info" />
+                    <span className="text-sm font-medium text-info">カメラアクセスのヒント</span>
+                  </div>
+                  <div className="text-sm space-y-2 text-muted-foreground">
+                    <p>カメラが起動しない場合の対処法：</p>
+                    <ol className="list-decimal list-inside space-y-1 text-xs">
+                      <li><strong>PWAを一度終了</strong>してブラウザで再度アクセス</li>
+                      <li><strong>設定でカメラ権限を確認</strong>（Safari設定 → プライバシーとセキュリティ → カメラ）</li>
+                      <li><strong>他のアプリでカメラが使用中</strong>でないか確認</li>
+                      <li><strong>デバイスを再起動</strong>してから再試行</li>
+                    </ol>
+                    <p className="text-xs pt-2 border-t">
+                      <strong>それでも解決しない場合：</strong> 手動URL入力またはシミュレート機能をご利用ください
+                    </p>
+                  </div>
                 </div>
               )}
 
@@ -731,15 +853,26 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
                       <Camera className="h-5 w-5" />
                       カメラを起動
                     </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={toggleManualInput}
-                      className="w-full"
-                    >
-                      <Edit3 className="h-4 w-4 mr-1" />
-                      手動でURL入力
-                    </Button>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={toggleManualInput}
+                        className="w-full"
+                      >
+                        <Edit3 className="h-4 w-4 mr-1" />
+                        手動URL入力
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => setShowImageUpload(!showImageUpload)}
+                        className="w-full"
+                      >
+                        <QrCode className="h-4 w-4 mr-1" />
+                        QR画像読取
+                      </Button>
+                    </div>
                   </>
                 )}
 
@@ -790,14 +923,24 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
                     >
                       もう一度カメラを起動
                     </Button>
-                    <Button 
-                      variant="secondary" 
-                      onClick={toggleManualInput}
-                      className="w-full"
-                    >
-                      <Edit3 className="h-4 w-4 mr-1" />
-                      手動でURL入力
-                    </Button>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button 
+                        variant="secondary" 
+                        onClick={toggleManualInput}
+                        className="w-full"
+                      >
+                        <Edit3 className="h-4 w-4 mr-1" />
+                        手動URL入力
+                      </Button>
+                      <Button 
+                        variant="secondary" 
+                        onClick={() => setShowImageUpload(!showImageUpload)}
+                        className="w-full"
+                      >
+                        <QrCode className="h-4 w-4 mr-1" />
+                        QR画像読取
+                      </Button>
+                    </div>
                     <Button 
                       variant="ghost" 
                       size="sm"
