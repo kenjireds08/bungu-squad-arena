@@ -107,7 +107,6 @@ export const QRCodeDisplay = ({ tournamentId, tournamentName, onClose, isOpen }:
               value={entryUrl}
               size={200}
               level="M"
-              includeMargin={true}
             />
           </div>
 

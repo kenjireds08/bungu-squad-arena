@@ -430,23 +430,61 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
   const handleStartScan = async () => {
     console.log('BUNGU SQUAD: ユーザーアクション - カメラ起動要求');
     
-    // First try to get permission immediately after user interaction
+      // Enhanced permission handling for PWA Safari
     try {
-      // Pre-request permission to show browser prompt immediately
-      const permissionStatus = await navigator.permissions?.query({ name: 'camera' as PermissionName });
-      console.log('BUNGU SQUAD: 現在の権限状態:', permissionStatus?.state);
+      console.log('BUNGU SQUAD: PWA環境でのカメラ権限要求開始');
       
-      if (permissionStatus?.state === 'prompt') {
-        console.log('BUNGU SQUAD: 権限がプロンプト状態、直接getUserMediaで権限要求');
-        // Trigger permission request immediately
+      // In PWA Safari, we need to trigger permission request immediately on user action
+      // This is crucial for PWA environments where permissions work differently
+      if (window.matchMedia('(display-mode: standalone)').matches) {
+        console.log('BUNGU SQUAD: PWA環境検出、即座に権限要求');
+        
+        // Immediately request basic video access to trigger permission dialog
         try {
-          const testStream = await navigator.mediaDevices.getUserMedia({ video: true });
-          console.log('BUNGU SQUAD: 権限取得成功、テストストリームを停止');
-          testStream.getTracks().forEach(track => track.stop());
-        } catch (permError) {
-          console.log('BUNGU SQUAD: 権限要求中のエラー:', permError);
+          const permissionStream = await navigator.mediaDevices.getUserMedia({ 
+            video: { 
+              facingMode: 'environment',
+              width: { min: 320, ideal: 640, max: 1920 },
+              height: { min: 240, ideal: 480, max: 1080 }
+            } 
+          });
+          
+          console.log('BUNGU SQUAD: PWA権限取得成功');
+          // Keep this stream for immediate use
+          streamRef.current = permissionStream;
+          
+          // Set up video element immediately
+          if (videoRef.current) {
+            const video = videoRef.current;
+            video.srcObject = permissionStream;
+            video.playsInline = true;
+            video.muted = true;
+            video.autoplay = true;
+            video.setAttribute('webkit-playsinline', 'true');
+            video.setAttribute('playsinline', 'true');
+            
+            // Start video directly
+            await video.play();
+            setIsScanning(true);
+            setIsInitializing(false);
+            
+            setTimeout(() => {
+              startQRDetection();
+            }, 500);
+            
+            return; // Skip normal startup process
+          }
+          
+        } catch (pwaError: any) {
+          console.log('BUNGU SQUAD: PWA権限エラー:', pwaError);
+          // Continue with normal permission flow
         }
       }
+      
+      // Regular permission check for non-PWA or fallback
+      const permissionStatus = await navigator.permissions?.query({ name: 'camera' as PermissionName });
+      console.log('BUNGU SQUAD: 通常権限状態:', permissionStatus?.state);
+      
     } catch (permissionError) {
       console.log('BUNGU SQUAD: 権限チェック不可:', permissionError);
     }

@@ -26,6 +26,15 @@ export interface Player {
   preferred_language: string;
   tournament_active: boolean;
   rank: number;
+  // Additional fields for statistics and achievements
+  created_at?: string;
+  wins?: number;
+  total_games?: number;
+  highest_rating?: number;
+  first_win_date?: string;
+  win_rate_50_date?: string;
+  rating_1600_date?: string;
+  games_10_date?: string;
 }
 
 export interface Tournament {
@@ -35,6 +44,7 @@ export interface Tournament {
   time?: string;
   location: string;
   participants: string[];
+  status?: string;
 }
 
 export interface Match {

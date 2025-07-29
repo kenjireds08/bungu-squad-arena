@@ -1,17 +1,24 @@
-// BUNGU SQUAD Service Worker for PWA functionality
+// BUNGU SQUAD Service Worker for PWA functionality with camera support
 // Update version to force SW update - Change this whenever you need to force update
-const SW_VERSION = '2.1.0'; // Camera optimization update
-const CACHE_NAME = 'bungu-squad-v2-1';
-const STATIC_CACHE = 'bungu-squad-static-v2-1';
+const SW_VERSION = '2.2.0'; // PWA Camera optimization update
+const CACHE_NAME = 'bungu-squad-v2-2';
+const STATIC_CACHE = 'bungu-squad-static-v2-2';
 
 // Assets to cache for offline functionality
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
-  '/src/assets/main-character.png',
-  '/src/assets/pencil-warrior.png',
-  '/src/assets/tape-ninja.png'
+  '/src/assets/main-character.png'
 ];
+
+// Enhanced message handling for PWA camera permissions
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'CAMERA_PERMISSION_REQUEST') {
+    console.log('BUNGU SQUAD: Service Worker received camera permission request');
+    // Notify client about camera permission handling
+    event.ports[0].postMessage({type: 'CAMERA_PERMISSION_ACKNOWLEDGED'});
+  }
+});
 
 // Install event - cache essential assets
 self.addEventListener('install', (event) => {

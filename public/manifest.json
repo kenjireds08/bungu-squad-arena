@@ -26,6 +26,9 @@
   "lang": "ja",
   "dir": "ltr",
   "permissions": ["camera"],
+  "capture_links": "new-client",
+  "camera": "required",
+  "hardware_acceleration": "true",
   "prefer_related_applications": false,
   "related_applications": [],
   "shortcuts": [

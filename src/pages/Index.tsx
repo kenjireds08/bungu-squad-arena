@@ -37,7 +37,7 @@ const Index = () => {
         console.log('BUNGU SQUAD: Showing PWA install prompt');
         // Trigger PWA install prompt after a short delay
         setTimeout(() => {
-          const event = window.deferredPrompt;
+          const event = (window as any).deferredPrompt;
           if (event) {
             event.prompt();
           }

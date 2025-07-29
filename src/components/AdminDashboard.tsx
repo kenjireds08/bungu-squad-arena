@@ -74,8 +74,8 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
           }).length;
 
           // Calculate tournament stats
-          const activeTournaments = tournaments.filter(t => t.status === 'active').length;
-          const upcomingTournaments = tournaments.filter(t => t.status === 'upcoming').length;
+          const activeTournaments = tournaments.filter(t => (t as any).status === 'active').length;
+          const upcomingTournaments = tournaments.filter(t => (t as any).status === 'upcoming').length;
 
           const data: AdminData = {
             tournaments: {
