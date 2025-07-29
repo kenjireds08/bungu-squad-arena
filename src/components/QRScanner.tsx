@@ -430,62 +430,56 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
   const handleStartScan = async () => {
     console.log('BUNGU SQUAD: ユーザーアクション - カメラ起動要求');
     
-    // PWA環境でのカメラアクセス最適化
-    const isPWA = window.matchMedia('(display-mode: standalone)').matches;
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-    
-    console.log('BUNGU SQUAD: 環境情報', { isPWA, isIOS, isSafari });
-    
-    // iOS PWAの場合、ユーザーアクション内で即座にカメラ権限を要求
-    if (isPWA && isIOS) {
-      console.log('BUNGU SQUAD: iOS PWA環境 - 即座にカメラアクセス');
-      
-      try {
-        // iOS PWAでは最もシンプルな制約から始める
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-          video: {
-            facingMode: 'environment',
-            width: { ideal: 640 },
-            height: { ideal: 480 }
-          }
-        });
-        
-        console.log('BUNGU SQUAD: iOS PWA カメラアクセス成功');
-        
-        if (videoRef.current) {
-          const video = videoRef.current;
-          streamRef.current = stream;
-          video.srcObject = stream;
-          
-          // iOS専用設定
-          video.playsInline = true;
-          video.muted = true;
-          video.autoplay = true;
-          video.controls = false;
-          video.setAttribute('webkit-playsinline', 'true');
-          video.setAttribute('playsinline', 'true');
-          video.setAttribute('muted', 'true');
-          
-          // 即座に再生開始
-          await video.play();
-          setIsScanning(true);
-          
-          setTimeout(() => {
-            startQRDetection();
-          }, 1000);
-          
-          return;
-        }
-        
-      } catch (iosError: any) {
-        console.error('BUNGU SQUAD: iOS PWA カメラエラー:', iosError);
-        // フォールバックで通常の処理を続行
-      }
+    // videoエレメントの存在確認
+    if (!videoRef.current) {
+      console.error('BUNGU SQUAD: ビデオ要素が見つかりません');
+      setCameraError('ビデオ要素の初期化に失敗しました');
+      return;
     }
     
-    // 通常のカメラ起動処理
-    startCamera();
+    console.log('BUNGU SQUAD: ビデオ要素確認済み');
+    
+    try {
+      setIsInitializing(true);
+      setCameraError(null);
+      
+      // 最もシンプルなカメラアクセス
+      console.log('BUNGU SQUAD: カメラアクセス開始');
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: 'environment'
+        }
+      });
+      
+      console.log('BUNGU SQUAD: カメラストリーム取得成功');
+      
+      // ストリームをビデオエレメントに設定
+      const video = videoRef.current;
+      streamRef.current = stream;
+      video.srcObject = stream;
+      
+      // ビデオ設定
+      video.playsInline = true;
+      video.muted = true;
+      video.autoplay = true;
+      
+      // 再生開始を待つ
+      await video.play();
+      console.log('BUNGU SQUAD: ビデオ再生開始');
+      
+      setIsScanning(true);
+      setIsInitializing(false);
+      
+      // QR検出開始
+      setTimeout(() => {
+        startQRDetection();
+      }, 500);
+      
+    } catch (error: any) {
+      console.error('BUNGU SQUAD: カメラアクセスエラー:', error);
+      setCameraError(`カメラの起動に失敗しました: ${error.message}`);
+      setIsInitializing(false);
+    }
   };
 
   const handleRetry = () => {
