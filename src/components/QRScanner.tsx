@@ -43,18 +43,35 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
       (result) => handleQRDetected(result.data),
       {
         returnDetailedScanResult: true,
-        highlightScanRegion: true,
-        highlightCodeOutline: true,
+        highlightScanRegion: false, // Disable highlighting to avoid conflicts
+        highlightCodeOutline: false,
         preferredCamera: 'environment',
-        maxScansPerSecond: 5,
+        maxScansPerSecond: 3, // Lower for better stability
         // Optimize video constraints for better display
         videoConstraints: {
           facingMode: 'environment',
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
+          width: { ideal: 640, min: 320 },
+          height: { ideal: 640, min: 320 }
         }
       }
     );
+
+    // Force video element to be visible after scanner is created
+    qrScanner.onVideoReady = () => {
+      console.log('BUNGU SQUAD: ビデオ準備完了、強制的に表示');
+      if (videoRef.current) {
+        const video = videoRef.current;
+        video.style.opacity = '1';
+        video.style.visibility = 'visible';
+        video.style.display = 'block';
+        video.style.position = 'relative';
+        video.style.zIndex = '1';
+        video.style.width = '100%';
+        video.style.height = '100%';
+        video.style.objectFit = 'cover';
+        console.log('BUNGU SQUAD: ビデオスタイル適用完了');
+      }
+    };
 
     qrScannerRef.current = qrScanner;
     console.log('BUNGU SQUAD: QRスキャナー初期化完了');
@@ -84,6 +101,54 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
       console.log('BUNGU SQUAD: QRスキャナー起動成功');
       setIsScanning(true);
       setIsInitializing(false);
+
+      // Ensure video is visible after starting
+      setTimeout(() => {
+        if (videoRef.current) {
+          console.log('BUNGU SQUAD: ビデオ表示を強制');
+          const video = videoRef.current;
+          video.style.opacity = '1';
+          video.style.visibility = 'visible';
+          video.style.display = 'block';
+          video.style.width = '100%';
+          video.style.height = '100%';
+          video.style.objectFit = 'cover';
+          
+          // Force video to play if paused
+          if (video.paused) {
+            video.play().catch(console.error);
+          }
+          
+          console.log('BUNGU SQUAD: ビデオプロパティ:', {
+            videoWidth: video.videoWidth,
+            videoHeight: video.videoHeight,
+            srcObject: !!video.srcObject,
+            readyState: video.readyState
+          });
+        }
+      }, 200);
+
+      // Additional check after a bit more time
+      setTimeout(() => {
+        if (videoRef.current) {
+          const video = videoRef.current;
+          console.log('BUNGU SQUAD: 1秒後のビデオ状態:', {
+            videoWidth: video.videoWidth,
+            videoHeight: video.videoHeight,
+            readyState: video.readyState,
+            paused: video.paused,
+            srcObject: !!video.srcObject,
+            currentSrc: video.currentSrc
+          });
+          
+          // Force styles again if needed
+          if (video.style.opacity !== '1') {
+            console.log('BUNGU SQUAD: スタイルを再適用');
+            video.style.opacity = '1';
+            video.style.display = 'block';
+          }
+        }
+      }, 1000);
 
       toast({
         title: "QRスキャナー起動",
@@ -257,6 +322,27 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Global styles for video element */}
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          .qr-scanner-video {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            background: transparent !important;
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: cover !important;
+          }
+          .qr-scanner-video::-webkit-media-controls {
+            display: none !important;
+          }
+          .qr-scanner-video::-webkit-media-controls-enclosure {
+            display: none !important;
+          }
+        `
+      }} />
+      
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b">
         <Button 
@@ -277,17 +363,25 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
         {/* Camera View */}
         <Card className="overflow-hidden">
           <CardContent className="p-0">
-            <div className="relative aspect-square bg-black">
+            <div className="relative aspect-square bg-black overflow-hidden">
               <video
                 ref={videoRef}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover qr-scanner-video"
                 style={{
-                  display: 'block',
-                  visibility: isScanning ? 'visible' : 'hidden'
+                  display: 'block !important',
+                  opacity: isScanning ? '1' : '0',
+                  transition: 'opacity 0.3s ease',
+                  position: 'relative',
+                  zIndex: 1,
+                  backgroundColor: 'transparent',
+                  minWidth: '100%',
+                  minHeight: '100%'
                 }}
                 playsInline
                 muted
                 autoPlay
+                controls={false}
+                webkit-playsinline="true"
               />
               
               {/* Camera status indicator */}
