@@ -662,6 +662,20 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
           <CardContent className="space-y-6">
             {/* Camera View */}
             <div className="aspect-square bg-muted rounded-lg border-2 border-dashed border-fantasy-frame flex items-center justify-center relative overflow-hidden">
+              {/* Video element - always present but hidden when not scanning */}
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                webkit-playsinline="true"
+                className={`absolute inset-0 w-full h-full object-cover rounded-lg ${isScanning ? 'block' : 'hidden'}`}
+              />
+              <canvas
+                ref={canvasRef}
+                className="hidden"
+              />
+              
               {isInitializing ? (
                 <div className="text-center space-y-4">
                   <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
@@ -679,18 +693,6 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
                 </div>
               ) : isScanning ? (
                 <>
-                  <video
-                    ref={videoRef}
-                    autoPlay
-                    playsInline
-                    muted
-                    webkit-playsinline="true"
-                    className="absolute inset-0 w-full h-full object-cover rounded-lg"
-                  />
-                  <canvas
-                    ref={canvasRef}
-                    className="hidden"
-                  />
                   {/* Scanning Overlay */}
                   <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
                     <div className="w-48 h-48 border-2 border-primary rounded-lg animate-pulse"></div>
