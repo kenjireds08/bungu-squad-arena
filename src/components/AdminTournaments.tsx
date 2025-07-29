@@ -74,8 +74,7 @@ export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
             tournament_name: newTournament.name,
             date: newTournament.date,
             start_time: newTournament.time,
-            location: newTournament.location,
-            tournament_type: newTournament.matchType
+            location: newTournament.location
           }
         });
         
@@ -91,8 +90,7 @@ export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
           start_time: newTournament.time,
           location: newTournament.location,
           status: 'upcoming',
-          max_participants: 20,
-          tournament_type: newTournament.matchType
+          max_participants: 20
         });
         
         toast({
@@ -179,7 +177,6 @@ export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
       date: tournament.date,
       time: tournament.time,
       location: tournament.location,
-      matchType: tournament.tournament_type || 'random',
       description: tournament.description || ''
     });
     setSelectedTournament(tournament);
@@ -210,7 +207,7 @@ export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
                     date: '',
                     time: '',
                     location: '',
-                    matchType: 'random',
+                    
                     description: ''
                   });
                 }}>
@@ -343,7 +340,7 @@ export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2">
               <Users className="h-5 w-5 text-success" />
-              開催中の大会
+              本日の大会
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">

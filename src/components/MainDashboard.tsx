@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { QrCode, Trophy, TrendingUp, Calendar, Camera, Star, Users, Loader2, RefreshCw } from 'lucide-react';
+import { QrCode, Trophy, TrendingUp, Calendar, Camera, Star, Users, Loader2, RefreshCw, History } from 'lucide-react';
 import { useRankings, useTournaments } from '@/hooks/useApi';
 import { PlayerRanking } from './PlayerRanking';
 import { QRScanner } from './QRScanner';
@@ -379,13 +379,13 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
 
                 {/* Additional tournaments display */}
                 {(() => {
-                  const { upcoming } = getCategorizedTournaments();
+                  const { upcoming } = getCategorizedTournaments(tournaments || []);
                   const otherUpcoming = upcoming.filter(t => t.id !== nextTournament.id).slice(0, 2);
                   
                   if (otherUpcoming.length > 0) {
                     return (
                       <div className="pt-4 border-t border-muted">
-                        <h4 className="text-sm font-medium text-muted-foreground mb-2">さらに次回の大会予定</h4>
+                        <h4 className="text-sm font-medium text-muted-foreground mb-2">次回大会予定</h4>
                         <div className="space-y-2">
                           {otherUpcoming.map((tournament) => (
                             <div key={tournament.id} className="p-2 bg-muted/50 rounded-md">
@@ -409,15 +409,24 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
         </Card>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 gap-4">
+        <div className="grid grid-cols-2 gap-3">
           <Button 
-            variant="tournament" 
+            variant="outline" 
             size="lg" 
             onClick={() => { setPreviousPage('dashboard'); setCurrentPage('ranking'); }}
-            className="h-20 flex-col"
+            className="h-16 flex-col border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary hover:text-primary"
           >
-            <Trophy className="h-6 w-6 mb-1" />
+            <Trophy className="h-5 w-5 mb-1" />
             ランキング
+          </Button>
+          <Button 
+            variant="outline" 
+            size="lg" 
+            onClick={() => { setPreviousPage('dashboard'); setCurrentPage('history'); }}
+            className="h-16 flex-col border-accent/20 bg-accent/5 hover:bg-accent/10 text-accent hover:text-accent"
+          >
+            <History className="h-5 w-5 mb-1" />
+            大会履歴
           </Button>
         </div>
 
