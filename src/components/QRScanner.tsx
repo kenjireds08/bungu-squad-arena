@@ -139,12 +139,19 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
 
   const handleQRDetected = async (data: string) => {
     console.log('BUNGU SQUAD: QRコード検出!', data);
+    console.log('BUNGU SQUAD: QRコードの内容:', JSON.stringify(data));
     
     // Stop scanning immediately to prevent multiple detections
     stopCamera();
     
-    // Check if it's a tournament entry URL
-    if (data.includes('/tournament-entry/')) {
+    // More flexible URL validation - check for tournament-entry anywhere in the URL
+    const isTournamentUrl = data.includes('tournament-entry') || 
+                           data.includes('tournaments') || 
+                           data.match(/\/tournament/i);
+    
+    console.log('BUNGU SQUAD: トーナメントURL判定:', isTournamentUrl);
+    
+    if (isTournamentUrl) {
       setScanResult('success');
       
       toast({
