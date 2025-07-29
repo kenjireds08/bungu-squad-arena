@@ -19,17 +19,12 @@ export const getTournamentStatus = (date: string, time?: string) => {
   const currentTime = now.getHours() * 60 + now.getMinutes(); // Current time in minutes
   const tournamentDate = new Date(date).toISOString().split('T')[0];
   
-  console.log('Debug - getTournamentStatus called with:', { date, tournamentDate, today, comparison: tournamentDate === today });
-  
   if (tournamentDate === today) {
     // If tournament is today, always show as active regardless of time
-    console.log('Debug - Tournament is today, returning 開催中');
     return '開催中';
   } else if (tournamentDate > today) {
-    console.log('Debug - Tournament is future, returning 募集中');
     return '募集中';
   } else {
-    console.log('Debug - Tournament is past, returning 完了');
     return '完了';
   }
 };
