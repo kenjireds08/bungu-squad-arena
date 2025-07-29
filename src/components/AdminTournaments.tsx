@@ -91,6 +91,40 @@ export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
     }
   };
 
+  const handleEditTournament = (tournament: any) => {
+    setNewTournament({
+      name: tournament.name,
+      date: tournament.date,
+      time: tournament.time,
+      location: tournament.location,
+      matchType: 'random',
+      description: tournament.description || ''
+    });
+    setSelectedTournament(tournament);
+    setCurrentView('create');
+  };
+
+  const handleDeleteTournament = async (tournament: any) => {
+    if (confirm(`${tournament.name}を削除してもよろしいですか？`)) {
+      try {
+        // TODO: API call to delete tournament
+        console.log('Deleting tournament:', tournament.id);
+        
+        toast({
+          title: "大会削除完了",
+          description: `${tournament.name}を削除しました`,
+        });
+      } catch (error) {
+        console.error('Failed to delete tournament:', error);
+        toast({
+          title: "エラー",
+          description: "大会の削除に失敗しました",
+          variant: "destructive"
+        });
+      }
+    }
+  };
+
   const handleShowParticipants = (tournament: any) => {
     setSelectedTournament(tournament);
     // Show participants modal or navigate to participants view
@@ -361,8 +395,8 @@ export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
                   </div>
                 </div>
                 <div className="flex gap-2 mt-3">
-                  <Button variant="outline" size="sm">編集</Button>
-                  <Button variant="outline" size="sm">削除</Button>
+                  <Button variant="outline" size="sm" onClick={() => handleEditTournament(tournament)}>編集</Button>
+                  <Button variant="outline" size="sm" onClick={() => handleDeleteTournament(tournament)}>削除</Button>
                   <Button variant="outline" size="sm" onClick={() => handleShowQR(tournament)}>
                     <QrCode className="h-3 w-3" />
                     QRコード

@@ -10,13 +10,28 @@ export interface Tournament {
   description?: string;
 }
 
-// Helper function to determine tournament status based on date
-export const getTournamentStatus = (date: string) => {
-  const today = new Date().toISOString().split('T')[0];
+// Helper function to determine tournament status based on date and time
+export const getTournamentStatus = (date: string, time?: string) => {
+  const now = new Date();
+  const today = now.toISOString().split('T')[0];
+  const currentTime = now.getHours() * 60 + now.getMinutes(); // Current time in minutes
   const tournamentDate = new Date(date).toISOString().split('T')[0];
   
   if (tournamentDate === today) {
-    return '開催中';
+    // If tournament is today, check if it has started based on time
+    if (time) {
+      const [hours, minutes] = time.split(':').map(Number);
+      const tournamentTime = hours * 60 + minutes; // Tournament time in minutes
+      
+      // If current time is past tournament start time, it's active
+      if (currentTime >= tournamentTime) {
+        return '開催中';
+      } else {
+        return '募集中'; // Still recruiting until start time
+      }
+    } else {
+      return '開催中'; // No time specified, assume active all day
+    }
   } else if (tournamentDate > today) {
     return '募集中';
   } else {
@@ -61,7 +76,7 @@ const masterTournaments: Tournament[] = [
 export const getCategorizedTournaments = () => {
   const tournaments = masterTournaments.map(t => ({
     ...t,
-    status: getTournamentStatus(t.date)
+    status: getTournamentStatus(t.date, t.time)
   }));
 
   return {

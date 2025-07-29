@@ -201,28 +201,43 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
       <main className="container mx-auto px-4 py-6 space-y-6">
         {/* Quick Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="border-fantasy-frame shadow-soft animate-fade-in">
+          <Card 
+            className="border-fantasy-frame shadow-soft animate-fade-in cursor-pointer hover:shadow-glow transition-all duration-300"
+            onClick={() => setCurrentAdminPage('tournaments')}
+          >
             <CardContent className="p-4 text-center">
               <div className="text-2xl font-bold text-primary">{adminData.tournaments.active}</div>
               <div className="text-sm text-muted-foreground">開催中の大会</div>
             </CardContent>
           </Card>
           
-          <Card className="border-fantasy-frame shadow-soft animate-fade-in" style={{ animationDelay: '100ms' }}>
+          <Card 
+            className="border-fantasy-frame shadow-soft animate-fade-in cursor-pointer hover:shadow-glow transition-all duration-300" 
+            style={{ animationDelay: '100ms' }}
+            onClick={() => setCurrentAdminPage('players')}
+          >
             <CardContent className="p-4 text-center">
               <div className="text-2xl font-bold text-success">{adminData.players.active}</div>
               <div className="text-sm text-muted-foreground">アクティブプレイヤー</div>
             </CardContent>
           </Card>
 
-          <Card className="border-fantasy-frame shadow-soft animate-fade-in" style={{ animationDelay: '200ms' }}>
+          <Card 
+            className="border-fantasy-frame shadow-soft animate-fade-in cursor-pointer hover:shadow-glow transition-all duration-300" 
+            style={{ animationDelay: '200ms' }}
+            onClick={() => setCurrentAdminPage('approvals')}
+          >
             <CardContent className="p-4 text-center">
               <div className="text-2xl font-bold text-warning">{adminData.pendingApprovals}</div>
               <div className="text-sm text-muted-foreground">承認待ち</div>
             </CardContent>
           </Card>
 
-          <Card className="border-fantasy-frame shadow-soft animate-fade-in" style={{ animationDelay: '300ms' }}>
+          <Card 
+            className="border-fantasy-frame shadow-soft animate-fade-in cursor-pointer hover:shadow-glow transition-all duration-300" 
+            style={{ animationDelay: '300ms' }}
+            onClick={() => setCurrentAdminPage('tournaments')}
+          >
             <CardContent className="p-4 text-center">
               <div className="text-2xl font-bold text-info">{adminData.tournaments.total}</div>
               <div className="text-sm text-muted-foreground">総大会数</div>
