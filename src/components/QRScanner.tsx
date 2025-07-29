@@ -37,41 +37,13 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
 
     console.log('BUNGU SQUAD: qr-scannerライブラリでQRスキャナー初期化');
     
-    // Create QR Scanner instance with optimized settings for video display
+    // Create QR Scanner instance
     const qrScanner = new QrScanner(
       videoRef.current,
-      (result) => handleQRDetected(result.data),
-      {
-        returnDetailedScanResult: true,
-        highlightScanRegion: false, // Disable highlighting to avoid conflicts
-        highlightCodeOutline: false,
-        preferredCamera: 'environment',
-        maxScansPerSecond: 3, // Lower for better stability
-        // Optimize video constraints for better display
-        videoConstraints: {
-          facingMode: 'environment',
-          width: { ideal: 640, min: 320 },
-          height: { ideal: 640, min: 320 }
-        }
+      (result) => {
+        handleQRDetected(result);
       }
     );
-
-    // Force video element to be visible after scanner is created
-    qrScanner.onVideoReady = () => {
-      console.log('BUNGU SQUAD: ビデオ準備完了、強制的に表示');
-      if (videoRef.current) {
-        const video = videoRef.current;
-        video.style.opacity = '1';
-        video.style.visibility = 'visible';
-        video.style.display = 'block';
-        video.style.position = 'relative';
-        video.style.zIndex = '1';
-        video.style.width = '100%';
-        video.style.height = '100%';
-        video.style.objectFit = 'cover';
-        console.log('BUNGU SQUAD: ビデオスタイル適用完了');
-      }
-    };
 
     qrScannerRef.current = qrScanner;
     console.log('BUNGU SQUAD: QRスキャナー初期化完了');
