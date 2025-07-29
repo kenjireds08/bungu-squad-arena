@@ -87,12 +87,19 @@ export const getTournamentForMainDashboard = (apiTournaments: ApiTournament[] = 
   const tournaments = apiTournaments.map(transformTournamentData);
   const today = new Date().toISOString().split('T')[0];
   
+  console.log('Debug - Today date:', today);
+  console.log('Debug - All tournaments:', tournaments.map(t => ({ id: t.id, name: t.name, date: t.date, status: t.status })));
+  
   // First check for today's tournament (regardless of status)
   const todayTournament = tournaments.find(t => t.date === today);
+  console.log('Debug - Today tournament found:', todayTournament);
+  
   if (todayTournament) {
     return todayTournament;
   }
   
   // If no tournament today, get next upcoming
-  return getNextUpcomingTournament(apiTournaments);
+  const nextUpcoming = getNextUpcomingTournament(apiTournaments);
+  console.log('Debug - Next upcoming tournament:', nextUpcoming);
+  return nextUpcoming;
 };
