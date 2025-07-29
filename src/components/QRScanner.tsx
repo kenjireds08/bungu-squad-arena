@@ -156,7 +156,7 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
       
       toast({
         title: "QRコード読み取り成功！",
-        description: "大会ページに移動しています...",
+        description: "大会エントリーが完了しました",
       });
       
       // Update tournament active status if user is logged in
@@ -173,10 +173,11 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
         }
       }
       
-      // Navigate to the scanned URL after a short delay
+      // Return to waiting screen after 5 seconds as originally intended
       setTimeout(() => {
-        window.location.href = data;
-      }, 1500);
+        onEntryComplete?.();
+        onClose();
+      }, 5000);
       
     } else {
       setScanResult('error');
@@ -211,7 +212,10 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
           </CardHeader>
           <CardContent className="text-center">
             <p className="text-sm text-muted-foreground mb-4">
-              大会ページに移動しています...
+              大会エントリーが完了しました
+            </p>
+            <p className="text-xs text-muted-foreground">
+              5秒後に待機画面に戻ります...
             </p>
           </CardContent>
         </Card>
@@ -270,7 +274,15 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
                 style={{ display: isScanning ? 'block' : 'none' }}
                 playsInline
                 muted
+                autoPlay
               />
+              
+              {/* Camera status indicator */}
+              {isScanning && (
+                <div className="absolute top-3 right-3 bg-green-500 rounded-full p-2">
+                  <div className="w-2 h-2 bg-white rounded-full"></div>
+                </div>
+              )}
               
               {!isScanning && !isInitializing && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
