@@ -49,11 +49,20 @@ self.addEventListener('fetch', (event) => {
   // Skip non-GET requests
   if (event.request.method !== 'GET') return;
   
+  // Skip chrome-extension, moz-extension and other extension schemes
+  if (event.request.url.startsWith('chrome-extension://') ||
+      event.request.url.startsWith('moz-extension://') ||
+      event.request.url.startsWith('safari-extension://') ||
+      event.request.url.startsWith('webkit-extension://')) {
+    return;
+  }
+  
   // Don't interfere with camera/media requests
   if (event.request.url.includes('getUserMedia') || 
       event.request.url.includes('mediaDevices') ||
       event.request.destination === 'video' ||
-      event.request.destination === 'audio') {
+      event.request.destination === 'audio' ||
+      event.request.url.includes('blob:')) {
     return;
   }
 
