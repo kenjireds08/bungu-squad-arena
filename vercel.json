@@ -1,13 +1,42 @@
 {
   "functions": {
-    "api/*.js": {
-      "maxDuration": 10
-    }
+    "api/admin.js": { "maxDuration": 10 },
+    "api/rankings.js": { "maxDuration": 10 },
+    "api/tournaments.js": { "maxDuration": 10 },
+    "api/matches.js": { "maxDuration": 10 },
+    "api/players.js": { "maxDuration": 10 },
+    "api/tournament-system.js": { "maxDuration": 10 }
   },
   "crons": [
     {
       "path": "/api/cron/reset-tournament-active",
       "schedule": "0 15 * * *"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/admin",
+      "dest": "/api/admin.js"
+    },
+    {
+      "src": "/api/rankings",
+      "dest": "/api/rankings.js"
+    },
+    {
+      "src": "/api/tournaments",
+      "dest": "/api/tournaments.js"
+    },
+    {
+      "src": "/api/matches",
+      "dest": "/api/matches.js"
+    },
+    {
+      "src": "/api/players",
+      "dest": "/api/players.js"
+    },
+    {
+      "src": "/api/tournament-system",
+      "dest": "/api/tournament-system.js"
     }
   ],
   "rewrites": [
