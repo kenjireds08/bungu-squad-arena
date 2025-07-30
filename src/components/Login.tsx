@@ -41,7 +41,6 @@ export const Login = ({ onLoginSuccess, isNewPlayer = false }: LoginProps) => {
             return;
           }
 
-          // 簡易実装：任意の4桁数字を受け入れます
           if (!/^\d{4}$/.test(verificationCode)) {
             toast({
               title: "エラー",
@@ -52,13 +51,37 @@ export const Login = ({ onLoginSuccess, isNewPlayer = false }: LoginProps) => {
             return;
           }
 
+          // 確認コード検証
+          const verifyResponse = await fetch('/api/verification', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'verify',
+              email: formData.email,
+              code: verificationCode
+            })
+          });
+
+          if (!verifyResponse.ok) {
+            const errorData = await verifyResponse.json();
+            toast({
+              title: "エラー",
+              description: errorData.error || "確認コードが正しくありません",
+              variant: "destructive"
+            });
+            setIsLoading(false);
+            return;
+          }
+
+          const verifyResult = await verifyResponse.json();
+
           // アカウント作成処理
           const createResponse = await fetch('/api/rankings', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              nickname: formData.nickname.trim(),
-              email: formData.email.trim(),
+              nickname: verifyResult.userData.nickname,
+              email: verifyResult.userData.email,
               current_rating: 1200,
               tournament_active: true
             })
@@ -73,7 +96,7 @@ export const Login = ({ onLoginSuccess, isNewPlayer = false }: LoginProps) => {
           
           toast({
             title: "登録完了！",
-            description: `${formData.nickname}さん、ようこそ！大会にエントリーしました。`,
+            description: `${verifyResult.userData.nickname}さん、ようこそ！大会にエントリーしました。`,
           });
 
           localStorage.setItem('userId', newPlayer.id);
@@ -91,11 +114,33 @@ export const Login = ({ onLoginSuccess, isNewPlayer = false }: LoginProps) => {
             return;
           }
 
-          // 簡易実装：実際のメール送信はスキップして、確認コード入力画面に進む
+          // 実際のメール送信
+          const sendResponse = await fetch('/api/verification', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'send',
+              email: formData.email,
+              nickname: formData.nickname
+            })
+          });
+
+          if (!sendResponse.ok) {
+            const errorData = await sendResponse.json();
+            throw new Error(errorData.error || 'Failed to send verification code');
+          }
+
+          const sendResult = await sendResponse.json();
+          
           toast({
             title: "確認コード送信",
-            description: `${formData.email}に4桁の確認コードを送信しました。（デモ用：任意の4桁数字を入力してください）`,
+            description: `${formData.email}に4桁の確認コードを送信しました。メールをご確認ください。`,
           });
+
+          // Development mode: show code in console
+          if (sendResult.code) {
+            console.log('Development mode - Verification code:', sendResult.code);
+          }
 
           setIsVerificationStep(true);
         }
