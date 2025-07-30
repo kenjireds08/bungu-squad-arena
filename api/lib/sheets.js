@@ -1126,6 +1126,67 @@ class SheetsService {
     }
   }
 
+  async addPlayer(playerData) {
+    await this.authenticate();
+    
+    try {
+      // Prepare the row data according to Players sheet structure
+      const playerRow = [
+        playerData.id,                           // A: id
+        playerData.nickname,                     // B: nickname
+        playerData.email,                        // C: email
+        playerData.current_rating,               // D: current_rating
+        0,                                       // E: annual_wins
+        0,                                       // F: annual_losses
+        0,                                       // G: total_wins
+        0,                                       // H: total_losses
+        '',                                      // I: champion_badges
+        'FALSE',                                 // J: trump_rule_experienced
+        '',                                      // K: first_trump_game_date
+        'FALSE',                                 // L: cardplus_rule_experienced
+        '',                                      // M: first_cardplus_game_date
+        'FALSE',                                 // N: first_victory_achieved
+        '',                                      // O: first_victory_date
+        'FALSE',                                 // P: win_rate_50_achieved
+        '',                                      // Q: win_rate_50_date
+        'FALSE',                                 // R: rating_1600_achieved
+        '',                                      // S: rating_1600_date
+        '',                                      // T: last_match_opponent
+        '',                                      // U: last_match_result
+        '',                                      // V: last_match_date
+        playerData.created_at,                   // W: created_at
+        playerData.tournament_active ? 'TRUE' : 'FALSE'  // X: tournament_active
+      ];
+
+      // Find the next empty row
+      const response = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'Players!A:A'
+      });
+
+      const rows = response.data.values || [];
+      const nextRow = rows.length + 1;
+      const range = `Players!A${nextRow}:X${nextRow}`;
+
+      // Add the new player
+      await this.sheets.spreadsheets.values.update({
+        spreadsheetId: this.spreadsheetId,
+        range: range,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+          values: [playerRow]
+        }
+      });
+
+      console.log(`New player added: ${playerData.nickname} (${playerData.id})`);
+      return { success: true, playerId: playerData.id, row: nextRow };
+
+    } catch (error) {
+      console.error('Error adding player:', error);
+      throw new Error(`Failed to add player: ${error.message}`);
+    }
+  }
+
   async createTournamentDailyArchiveSheet() {
     await this.authenticate();
     
