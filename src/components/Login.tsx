@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, LogIn, UserPlus, Mail, Shield } from 'lucide-react';
+import { Loader2, LogIn, UserPlus, Shield } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 
 interface LoginProps {
@@ -14,8 +14,6 @@ interface LoginProps {
 export const Login = ({ onLoginSuccess, isNewPlayer = false }: LoginProps) => {
   const [isSignUp, setIsSignUp] = useState(isNewPlayer);
   const [isLoading, setIsLoading] = useState(false);
-  const [isVerificationStep, setIsVerificationStep] = useState(false);
-  const [verificationCode, setVerificationCode] = useState('');
   const [formData, setFormData] = useState({
     email: '',
     nickname: '',
@@ -29,121 +27,43 @@ export const Login = ({ onLoginSuccess, isNewPlayer = false }: LoginProps) => {
 
     try {
       if (isSignUp) {
-        if (isVerificationStep) {
-          // 確認コード検証ステップ
-          if (!verificationCode || verificationCode.length !== 4) {
-            toast({
-              title: "エラー",
-              description: "4桁の確認コードを入力してください",
-              variant: "destructive"
-            });
-            setIsLoading(false);
-            return;
-          }
-
-          if (!/^\d{4}$/.test(verificationCode)) {
-            toast({
-              title: "エラー",
-              description: "確認コードは4桁の数字で入力してください",
-              variant: "destructive"
-            });
-            setIsLoading(false);
-            return;
-          }
-
-          // 確認コード検証
-          const verifyResponse = await fetch('/api/verification', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              action: 'verify',
-              email: formData.email,
-              code: verificationCode
-            })
-          });
-
-          if (!verifyResponse.ok) {
-            const errorData = await verifyResponse.json();
-            toast({
-              title: "エラー",
-              description: errorData.error || "確認コードが正しくありません",
-              variant: "destructive"
-            });
-            setIsLoading(false);
-            return;
-          }
-
-          const verifyResult = await verifyResponse.json();
-
-          // アカウント作成処理
-          const createResponse = await fetch('/api/rankings', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              nickname: verifyResult.userData.nickname,
-              email: verifyResult.userData.email,
-              current_rating: 1200,
-              tournament_active: true
-            })
-          });
-
-          if (!createResponse.ok) {
-            const errorData = await createResponse.json();
-            throw new Error(errorData.error || 'Failed to create player account');
-          }
-
-          const newPlayer = await createResponse.json();
-          
+        // 新規登録 - ニックネーム+メールで即アカウント作成
+        if (!formData.nickname.trim() || !formData.email.trim()) {
           toast({
-            title: "登録完了！",
-            description: `${verifyResult.userData.nickname}さん、ようこそ！大会にエントリーしました。`,
+            title: "エラー",
+            description: "ニックネームとメールアドレスは必須です",
+            variant: "destructive"
           });
-
-          localStorage.setItem('userId', newPlayer.id);
-          onLoginSuccess(newPlayer.id, false);
-
-        } else {
-          // メール確認コード送信ステップ
-          if (!formData.nickname.trim() || !formData.email.trim()) {
-            toast({
-              title: "エラー",
-              description: "ニックネームとメールアドレスは必須です",
-              variant: "destructive"
-            });
-            setIsLoading(false);
-            return;
-          }
-
-          // 実際のメール送信
-          const sendResponse = await fetch('/api/verification', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              action: 'send',
-              email: formData.email,
-              nickname: formData.nickname
-            })
-          });
-
-          if (!sendResponse.ok) {
-            const errorData = await sendResponse.json();
-            throw new Error(errorData.error || 'Failed to send verification code');
-          }
-
-          const sendResult = await sendResponse.json();
-          
-          toast({
-            title: "確認コード送信",
-            description: `${formData.email}に4桁の確認コードを送信しました。メールをご確認ください。`,
-          });
-
-          // Development mode: show code in console
-          if (sendResult.code) {
-            console.log('Development mode - Verification code:', sendResult.code);
-          }
-
-          setIsVerificationStep(true);
+          setIsLoading(false);
+          return;
         }
+
+        // アカウント作成処理
+        const createResponse = await fetch('/api/rankings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            nickname: formData.nickname.trim(),
+            email: formData.email.trim(),
+            current_rating: 1200,
+            tournament_active: true
+          })
+        });
+
+        if (!createResponse.ok) {
+          const errorData = await createResponse.json();
+          throw new Error(errorData.error || 'Failed to create player account');
+        }
+
+        const newPlayer = await createResponse.json();
+        
+        toast({
+          title: "登録完了！",
+          description: `${formData.nickname}さん、ようこそ！大会にエントリーしました。`,
+        });
+
+        localStorage.setItem('userId', newPlayer.id);
+        onLoginSuccess(newPlayer.id, false);
         
       } else {
         // 既存プレイヤーログイン処理
@@ -225,154 +145,96 @@ export const Login = ({ onLoginSuccess, isNewPlayer = false }: LoginProps) => {
             </CardTitle>
             <CardDescription>
               {isSignUp 
-                ? (isVerificationStep 
-                    ? 'メールに送信された4桁のコードを入力してください'
-                    : 'ニックネームとメールアドレスで登録し、自動的に大会にエントリーします'
-                  )
+                ? 'ニックネームとメールアドレスで登録し、自動的に大会にエントリーします'
                 : 'メールアドレスでログインしてください'
               }
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              {isSignUp && isVerificationStep ? (
-                // 確認コード入力フォーム
-                <>
-                  <div className="text-center space-y-2">
-                    <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                      <Mail className="h-4 w-4" />
-                      {formData.email}に送信しました
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="verification-code">確認コード *</Label>
-                    <Input
-                      id="verification-code"
-                      type="text"
-                      placeholder="1234"
-                      maxLength={4}
-                      value={verificationCode}
-                      onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
-                      className="text-center text-lg tracking-widest"
-                      autoFocus
-                    />
-                  </div>
+              {isSignUp && (
+                <div className="space-y-2">
+                  <Label htmlFor="nickname">ニックネーム *</Label>
+                  <Input
+                    id="nickname"
+                    type="text"
+                    placeholder="あなたのニックネーム"
+                    value={formData.nickname}
+                    onChange={(e) => setFormData({ ...formData, nickname: e.target.value })}
+                    autoFocus
+                  />
+                </div>
+              )}
 
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        登録中...
-                      </>
-                    ) : (
+              <div className="space-y-2">
+                <Label htmlFor="email">メールアドレス *</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="your@email.com"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  autoFocus={!isSignUp}
+                />
+              </div>
+
+              {!isSignUp && (
+                <div className="space-y-2">
+                  <Label htmlFor="password">
+                    <div className="flex items-center gap-2">
+                      <Shield className="h-4 w-4" />
+                      管理者パスワード（管理者のみ）
+                    </div>
+                  </Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="管理者の場合のみ入力"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    ※一般プレイヤーは空欄のままでOKです
+                  </p>
+                </div>
+              )}
+
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    {isSignUp ? '登録中...' : 'ログイン中...'}
+                  </>
+                ) : (
+                  <>
+                    {isSignUp ? (
                       <>
                         <UserPlus className="h-4 w-4 mr-2" />
-                        登録完了
-                      </>
-                    )}
-                  </Button>
-
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    className="w-full"
-                    onClick={() => setIsVerificationStep(false)}
-                    disabled={isLoading}
-                  >
-                    戻る
-                  </Button>
-                </>
-              ) : (
-                // 通常のログイン・登録フォーム
-                <>
-                  {isSignUp && (
-                    <div className="space-y-2">
-                      <Label htmlFor="nickname">ニックネーム *</Label>
-                      <Input
-                        id="nickname"
-                        type="text"
-                        placeholder="あなたのニックネーム"
-                        value={formData.nickname}
-                        onChange={(e) => setFormData({ ...formData, nickname: e.target.value })}
-                        autoFocus
-                      />
-                    </div>
-                  )}
-
-                  <div className="space-y-2">
-                    <Label htmlFor="email">メールアドレス *</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="your@email.com"
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      autoFocus={!isSignUp}
-                    />
-                  </div>
-
-                  {!isSignUp && (
-                    <div className="space-y-2">
-                      <Label htmlFor="password">
-                        <div className="flex items-center gap-2">
-                          <Shield className="h-4 w-4" />
-                          管理者パスワード（管理者のみ）
-                        </div>
-                      </Label>
-                      <Input
-                        id="password"
-                        type="password"
-                        placeholder="管理者の場合のみ入力"
-                        value={formData.password}
-                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        ※一般プレイヤーは空欄のままでOKです
-                      </p>
-                    </div>
-                  )}
-
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        {isSignUp ? '確認コード送信中...' : 'ログイン中...'}
+                        登録して大会にエントリー
                       </>
                     ) : (
                       <>
-                        {isSignUp ? (
-                          <>
-                            <Mail className="h-4 w-4 mr-2" />
-                            確認コードを送信
-                          </>
-                        ) : (
-                          <>
-                            <LogIn className="h-4 w-4 mr-2" />
-                            ログイン
-                          </>
-                        )}
+                        <LogIn className="h-4 w-4 mr-2" />
+                        ログイン
                       </>
                     )}
-                  </Button>
+                  </>
+                )}
+              </Button>
 
-                  <div className="text-center">
-                    <Button
-                      type="button"
-                      variant="link"
-                      onClick={() => {
-                        setIsSignUp(!isSignUp);
-                        setIsVerificationStep(false);
-                        setVerificationCode('');
-                        setFormData({ email: '', nickname: '', password: '' });
-                      }}
-                      className="text-primary hover:text-primary/80"
-                    >
-                      {isSignUp ? '既存プレイヤーの方はこちら' : '初めての方はこちら'}
-                    </Button>
-                  </div>
-                </>
-              )}
+              <div className="text-center">
+                <Button
+                  type="button"
+                  variant="link"
+                  onClick={() => {
+                    setIsSignUp(!isSignUp);
+                    setFormData({ email: '', nickname: '', password: '' });
+                  }}
+                  className="text-primary hover:text-primary/80"
+                >
+                  {isSignUp ? '既存プレイヤーの方はこちら' : '初めての方はこちら'}
+                </Button>
+              </div>
             </form>
           </CardContent>
         </Card>

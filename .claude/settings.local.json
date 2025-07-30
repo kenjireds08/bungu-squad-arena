@@ -27,7 +27,8 @@
       "WebFetch(domain:bungu-squad-arena.vercel.app)",
       "Bash(npm run dev:*)",
       "Bash(npm run build:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(npm uninstall:*)"
     ],
     "deny": []
   }
