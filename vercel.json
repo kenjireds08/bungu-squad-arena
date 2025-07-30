@@ -10,33 +10,7 @@
   "crons": [
     {
       "path": "/api/cron/reset-tournament-active",
-      "schedule": "0 15 * * *"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/admin",
-      "dest": "/api/admin.js"
-    },
-    {
-      "src": "/api/rankings",
-      "dest": "/api/rankings.js"
-    },
-    {
-      "src": "/api/tournaments",
-      "dest": "/api/tournaments.js"
-    },
-    {
-      "src": "/api/matches",
-      "dest": "/api/matches.js"
-    },
-    {
-      "src": "/api/players",
-      "dest": "/api/players.js"
-    },
-    {
-      "src": "/api/tournament-system",
-      "dest": "/api/tournament-system.js"
+      "schedule": "0 15 * * *"  
     }
   ],
   "rewrites": [
