@@ -1,22 +1,10 @@
 {
   "functions": {
-    "api/admin.js": { "maxDuration": 10 },
-    "api/rankings.js": { "maxDuration": 10 },
-    "api/tournaments.js": { "maxDuration": 10 },
-    "api/matches.js": { "maxDuration": 10 },
-    "api/players.js": { "maxDuration": 10 },
-    "api/tournament-system.js": { "maxDuration": 10 }
-  },
-  "crons": [
-    {
-      "path": "/api/cron/reset-tournament-active",
-      "schedule": "0 15 * * *"  
+    "api/*.js": {
+      "maxDuration": 10
+    },
+    "pages/api/*.js": {
+      "maxDuration": 10
     }
-  ],
-  "rewrites": [
-    {
-      "source": "/((?!api).*)",
-      "destination": "/index.html"
-    }
-  ]
+  }
 }
