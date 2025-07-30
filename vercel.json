@@ -1,10 +1,1 @@
-{
-  "functions": {
-    "api/*.js": {
-      "maxDuration": 10
-    },
-    "pages/api/*.js": {
-      "maxDuration": 10
-    }
-  }
-}
+{}
