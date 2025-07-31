@@ -67,10 +67,9 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
     });
     
     for (let matchIndex = 0; matchIndex < matchCount; matchIndex++) {
-      let bestPairing = null;
-      let bestScore = -Infinity;
+      // Create weighted pool of possible pairings
+      const candidatePairings = [];
       
-      // Try all possible pairings (including repeated pairings for random mode)
       for (let i = 0; i < participants.length; i++) {
         for (let j = i + 1; j < participants.length; j++) {
           const player1 = participants[i];
@@ -82,37 +81,59 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
           const player2LastMatch = playerLastMatch.get(player2.id);
           
           // Calculate fairness score (lower match counts are better)
-          const countScore = -(player1Count + player2Count);
+          const countScore = Math.max(0, 10 - (player1Count + player2Count));
           
           // Calculate gap score (higher gaps from last match are better)
           const gap1 = matchIndex - player1LastMatch;
           const gap2 = matchIndex - player2LastMatch;
           const gapScore = Math.min(gap1, gap2);
           
-          // Add some randomness while maintaining fairness
-          const randomFactor = Math.random() * 10;
+          // Calculate weight (higher weight = more likely to be selected)
+          // Good pairings get higher weights, but still allow variety
+          const weight = Math.max(1, countScore + gapScore * 2);
           
-          // Combined score (prioritize fairness, then gaps, then randomness)
-          const totalScore = countScore * 100 + gapScore * 10 + randomFactor;
-          
-          if (totalScore > bestScore) {
-            bestScore = totalScore;
-            bestPairing = { player1, player2 };
-          }
+          candidatePairings.push({
+            player1,
+            player2,
+            weight
+          });
         }
       }
       
-      // If no pairing found (shouldn't happen), create a fallback pairing
-      if (!bestPairing) {
-        const shuffled = [...participants].sort(() => Math.random() - 0.5);
-        bestPairing = { player1: shuffled[0], player2: shuffled[1] };
+      // Weighted random selection
+      let selectedPairing = null;
+      if (candidatePairings.length > 0) {
+        const totalWeight = candidatePairings.reduce((sum, pairing) => sum + pairing.weight, 0);
+        let randomValue = Math.random() * totalWeight;
+        
+        for (const pairing of candidatePairings) {
+          randomValue -= pairing.weight;
+          if (randomValue <= 0) {
+            selectedPairing = pairing;
+            break;
+          }
+        }
+        
+        // Fallback to last pairing if none selected
+        if (!selectedPairing) {
+          selectedPairing = candidatePairings[candidatePairings.length - 1];
+        }
       }
       
-      matches.push(bestPairing);
+      // Final fallback if no pairing found
+      if (!selectedPairing) {
+        const shuffled = [...participants].sort(() => Math.random() - 0.5);
+        selectedPairing = { player1: shuffled[0], player2: shuffled[1] };
+      }
+      
+      matches.push({
+        player1: selectedPairing.player1,
+        player2: selectedPairing.player2
+      });
       
       // Update counts and last match indices
-      const player1Id = bestPairing.player1.id;
-      const player2Id = bestPairing.player2.id;
+      const player1Id = selectedPairing.player1.id;
+      const player2Id = selectedPairing.player2.id;
       playerMatchCount.set(player1Id, playerMatchCount.get(player1Id) + 1);
       playerMatchCount.set(player2Id, playerMatchCount.get(player2Id) + 1);
       playerLastMatch.set(player1Id, matchIndex);
