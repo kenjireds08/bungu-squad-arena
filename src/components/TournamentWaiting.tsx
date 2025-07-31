@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -11,28 +11,33 @@ import {
   Calculator,
   Clock,
   Table,
-  AlertCircle
+  AlertCircle,
+  Loader2
 } from 'lucide-react';
+import { useTournaments, useRankings } from '@/hooks/useApi';
+import { getCategorizedTournaments } from '@/utils/tournamentData';
 
 interface TournamentWaitingProps {
   onClose: () => void;
   onViewRanking: () => void;
 }
 
-const mockTournament = {
-  name: "第8回BUNGU SQUAD大会",
-  date: "2025年8月15日（木）",
-  time: "19:00〜21:30",
-  location: "○○コミュニティセンター 2F会議室",
-  participants: 12,
-  maxParticipants: 16,
-};
-
-// 組み合わせが決まっているかのフラグ（実際はAPIから取得）
-const isPairingDecided = false;
-
 export const TournamentWaiting = ({ onClose, onViewRanking }: TournamentWaitingProps) => {
   const [showRatingDialog, setShowRatingDialog] = useState(false);
+  const { data: tournaments, isLoading: tournamentsLoading } = useTournaments();
+  const { data: players, isLoading: playersLoading } = useRankings();
+  
+  // Get today's tournament and participants
+  const today = new Date().toISOString().split('T')[0];
+  const { active, upcoming } = getCategorizedTournaments(tournaments || []);
+  const todaysTournament = [...active, ...upcoming].find(t => t.date === today);
+  
+  // Get tournament participants
+  const tournamentParticipants = players?.filter(player => player.tournament_active === true) || [];
+  const participantCount = tournamentParticipants.length;
+  
+  // 組み合わせが決まっているかのフラグ（実際はAPIから取得）
+  const isPairingDecided = false;
 
   const handleCheckPairing = () => {
     if (!isPairingDecided) {
@@ -43,6 +48,18 @@ export const TournamentWaiting = ({ onClose, onViewRanking }: TournamentWaitingP
       console.log("対戦詳細を表示");
     }
   };
+
+  // Show loading state while data is being fetched
+  if (tournamentsLoading || playersLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-parchment flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto" />
+          <p className="text-muted-foreground">大会情報を読み込み中...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-parchment">
@@ -72,12 +89,14 @@ export const TournamentWaiting = ({ onClose, onViewRanking }: TournamentWaitingP
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <h3 className="font-bold text-lg mb-2">{mockTournament.name}</h3>
+              <h3 className="font-bold text-lg mb-2">
+                {todaysTournament?.tournament_name || '大会情報取得中...'}
+              </h3>
               <p className="text-sm text-muted-foreground mb-2">
-                {mockTournament.date} {mockTournament.time}
+                {todaysTournament?.date} {todaysTournament?.start_time && `${todaysTournament.start_time}〜`}
               </p>
               <Badge variant="outline">
-                参加者 {mockTournament.participants}/{mockTournament.maxParticipants}名
+                参加者 {participantCount}/{todaysTournament?.max_participants || 16}名
               </Badge>
             </div>
             
@@ -204,6 +223,27 @@ export const TournamentWaiting = ({ onClose, onViewRanking }: TournamentWaitingP
             </DialogContent>
           </Dialog>
         </div>
+
+        {/* Participants List */}
+        {tournamentParticipants.length > 0 && (
+          <Card className="border-info shadow-soft">
+            <CardHeader>
+              <CardTitle className="text-info">参加者一覧</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto">
+                {tournamentParticipants.map((participant, index) => (
+                  <div key={participant.id} className="flex items-center gap-2 p-2 bg-muted/30 rounded">
+                    <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center text-xs text-white">
+                      {index + 1}
+                    </div>
+                    <span className="text-sm font-medium truncate">{participant.nickname}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Character */}
         <div className="text-center py-4">
