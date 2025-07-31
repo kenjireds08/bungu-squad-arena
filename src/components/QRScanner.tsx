@@ -10,9 +10,10 @@ interface QRScannerProps {
   onClose: () => void;
   onEntryComplete?: () => void;
   currentUserId?: string;
+  isAdmin?: boolean;
 }
 
-export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScannerProps) => {
+export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: QRScannerProps) => {
   const [isScanning, setIsScanning] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
   const [scanResult, setScanResult] = useState<'success' | 'error' | null>(null);
@@ -201,17 +202,26 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
           });
           console.log('Tournament active status updated for player:', currentUserId);
           
-          // Navigate to the waiting room after 5 seconds
+          // Navigate to appropriate screen after 5 seconds
           setTimeout(() => {
-            // Navigate directly to tournament waiting page for entered users
-            window.location.href = '/tournament-waiting';
+            if (isAdmin) {
+              // For admin users, go back to main dashboard and let it handle admin state
+              window.location.href = '/';
+            } else {
+              // For regular users, go to tournament waiting page
+              window.location.href = '/tournament-waiting';
+            }
           }, 5000);
           
         } catch (error) {
           console.error('Failed to update tournament active status:', error);
-          // Even if API fails, still navigate to tournament waiting page
+          // Even if API fails, still navigate to appropriate screen
           setTimeout(() => {
-            window.location.href = '/tournament-waiting';
+            if (isAdmin) {
+              window.location.href = '/';
+            } else {
+              window.location.href = '/tournament-waiting';
+            }
           }, 5000);
         }
       } else {

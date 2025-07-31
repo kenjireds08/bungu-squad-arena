@@ -171,6 +171,7 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
       onClose={() => setCurrentPage('dashboard')} 
       onEntryComplete={() => setCurrentPage('tournament-entry-complete')}
       currentUserId={CURRENT_USER_ID}
+      isAdmin={isAdmin}
     />;
   }
 
@@ -384,13 +385,15 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
                 <Button 
                   variant="heroic" 
                   size="lg" 
-                  onClick={currentUser?.tournament_active ? () => setCurrentPage('tournament-waiting') : handleTournamentEntry}
+                  onClick={currentUser?.tournament_active ? 
+                    (isAdmin ? () => setCurrentPage('admin') : () => setCurrentPage('tournament-waiting')) 
+                    : handleTournamentEntry}
                   className="w-full animate-bounce-gentle"
                 >
                   {currentUser?.tournament_active ? (
                     <>
                       <Trophy className="h-5 w-5" />
-                      エントリー済み - 大会待機中画面へ
+                      {isAdmin ? 'エントリー済み - 大会管理へ' : 'エントリー済み - 大会待機中画面へ'}
                     </>
                   ) : (
                     <>
