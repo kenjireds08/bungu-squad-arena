@@ -56,29 +56,21 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
   const currentUser = rankings?.find(player => player.id === CURRENT_USER_ID);
   // Get tournament data from API - prioritize today's tournament
   const today = new Date().toISOString().split('T')[0];
-  const { active, upcoming } = getCategorizedTournaments(tournaments || []);
+  const { active, upcoming, completed } = getCategorizedTournaments(tournaments || []);
   
-  console.log('=== Tournament Debug Info ===');
-  console.log('Today:', today);
-  console.log('Active tournaments:', active);
-  console.log('Upcoming tournaments:', upcoming);
-  
-  // Find today's tournament first (from both active and upcoming)
+  // Find today's tournament specifically (must match today's date exactly)
   const todaysTournament = [...active, ...upcoming].find(t => t.date === today);
   
-  // Get next tournament with better logic: only show upcoming tournaments, not past ones
+  // Get next tournament with proper logic
   let nextTournament = todaysTournament;
   if (!nextTournament) {
-    // Get only upcoming tournaments (future dates)
-    const futureTournaments = upcoming.filter(t => t.date >= today);
+    // No tournament today, so get the next upcoming one
+    const futureTournaments = upcoming.filter(t => t.date > today);
     if (futureTournaments.length > 0) {
-      // Sort by date and get the nearest one
+      // Sort by date and get the nearest future tournament
       nextTournament = futureTournaments.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
     }
   }
-  
-  console.log('Todays tournament:', todaysTournament);
-  console.log('Next tournament:', nextTournament);
 
   // Initialize notifications with tournament data
   useEffect(() => {
@@ -381,7 +373,7 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-foreground">
               <Calendar className="h-5 w-5 text-info" />
-              {todaysTournament ? "本日の大会予定" : "次回大会予定"}
+              {todaysTournament ? "本日の大会予定" : "次の大会予定"}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
