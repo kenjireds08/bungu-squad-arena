@@ -109,10 +109,11 @@ export const TournamentWaiting = ({ onClose, onViewRanking }: TournamentWaitingP
 
   // Handle matches view
   if (showMatches && todaysTournament?.id) {
+    const currentUserId = localStorage.getItem('userId') || '';
     return (
       <TournamentMatchesView 
         onClose={() => setShowMatches(false)}
-        currentUserId={players?.find(p => p.tournament_active)?.id || ''}
+        currentUserId={currentUserId}
         tournamentId={todaysTournament.id}
       />
     );

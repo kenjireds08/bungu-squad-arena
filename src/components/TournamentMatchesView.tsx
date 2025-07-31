@@ -46,10 +46,14 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
         setMatches(matchesData);
         
         // Find current user's match that's ready to start or in progress
+        console.log('Current User ID:', currentUserId);
+        console.log('All matches:', matchesData);
+        
         const userMatch = matchesData.find((match: Match) => 
           (match.player1_id === currentUserId || match.player2_id === currentUserId) &&
           (match.status === 'scheduled' || match.status === 'in_progress')
         );
+        console.log('Found user match:', userMatch);
         setCurrentUserMatch(userMatch || null);
         
         // Calculate tournament progress
@@ -315,7 +319,7 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-medium text-muted-foreground">
-                          試合 {match.match_number}
+                          {match.match_number}試合目
                         </span>
                         {getGameTypeIcon(match.game_type)}
                         <span className="text-xs text-muted-foreground">
