@@ -57,6 +57,15 @@ module.exports = async function handler(req, res) {
         
         return res.status(400).json({ error: 'No valid fields to update' });
 
+      case 'DELETE':
+        if (!req.query.id) {
+          return res.status(400).json({ error: 'Player ID is required' });
+        }
+
+        // Delete player from Google Sheets
+        const deleteResult = await sheetsService.deletePlayer(req.query.id);
+        return res.status(200).json(deleteResult);
+
       default:
         return res.status(405).json({ error: 'Method not allowed' });
     }

@@ -1192,6 +1192,69 @@ class SheetsService {
     }
   }
 
+  async deletePlayer(playerId) {
+    await this.authenticate();
+    
+    try {
+      console.log('Deleting player:', playerId);
+      
+      // First, find the player's row
+      const playersResponse = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'Players!A2:A1000'
+      });
+
+      const playerIds = playersResponse.data.values || [];
+      const rowIndex = playerIds.findIndex(row => row[0] === playerId);
+      
+      if (rowIndex === -1) {
+        console.error('Player not found with ID:', playerId);
+        throw new Error('Player not found');
+      }
+
+      const actualRowNumber = rowIndex + 2; // +2 because array is 0-indexed and we skip header
+      console.log('Deleting player from row:', actualRowNumber);
+
+      // Get the Players sheet ID
+      const spreadsheet = await this.sheets.spreadsheets.get({
+        spreadsheetId: this.spreadsheetId
+      });
+
+      const playersSheet = spreadsheet.data.sheets.find(
+        sheet => sheet.properties.title === 'Players'
+      );
+
+      if (!playersSheet) {
+        throw new Error('Players sheet not found');
+      }
+
+      const sheetId = playersSheet.properties.sheetId;
+
+      // Delete the row
+      await this.sheets.spreadsheets.batchUpdate({
+        spreadsheetId: this.spreadsheetId,
+        requestBody: {
+          requests: [{
+            deleteDimension: {
+              range: {
+                sheetId: sheetId,
+                dimension: 'ROWS',
+                startIndex: actualRowNumber - 1, // 0-indexed for batch update
+                endIndex: actualRowNumber
+              }
+            }
+          }]
+        }
+      });
+
+      console.log('Player deleted successfully:', playerId);
+      return { success: true, playerId };
+    } catch (error) {
+      console.error('Error deleting player:', error);
+      throw new Error('Failed to delete player: ' + error.message);
+    }
+  }
+
   async createTournamentDailyArchiveSheet() {
     await this.authenticate();
     

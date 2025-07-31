@@ -13,10 +13,11 @@ interface AdminPlayersProps {
 }
 
 export const AdminPlayers = ({ onBack }: AdminPlayersProps) => {
-  const { data: players, isLoading, error } = useRankings();
+  const { data: players, isLoading, error, refetch } = useRankings();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'active'>('all');
   const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const filteredPlayers = players?.filter(player => {
     const matchesSearch = player.nickname.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -73,6 +74,37 @@ export const AdminPlayers = ({ onBack }: AdminPlayersProps) => {
     const total = wins + losses;
     if (total === 0) return 0;
     return ((wins / total) * 100).toFixed(1);
+  };
+
+  const handleDeletePlayer = async (playerId: string, playerName: string) => {
+    if (!confirm(`${playerName}を削除しますか？この操作は取り消せません。`)) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/players?id=${playerId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete player');
+      }
+
+      // Success - refresh data and close dialog
+      await refetch();
+      setSelectedPlayer(null);
+      
+      // Show success message (optional)
+      console.log(`Player ${playerName} deleted successfully`);
+    } catch (error) {
+      console.error('Failed to delete player:', error);
+      alert(`プレイヤーの削除に失敗しました: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -365,14 +397,10 @@ export const AdminPlayers = ({ onBack }: AdminPlayersProps) => {
                     <Button 
                       variant="outline" 
                       className="w-32 text-destructive hover:text-destructive hover:bg-destructive/10"
-                      onClick={() => {
-                        if (confirm(`${selectedPlayer.nickname}を削除しますか？この操作は取り消せません。`)) {
-                          // TODO: Implement player deletion
-                          console.log('Delete player:', selectedPlayer.id);
-                        }
-                      }}
+                      onClick={() => handleDeletePlayer(selectedPlayer.id, selectedPlayer.nickname)}
+                      disabled={isDeleting}
                     >
-                      削除
+                      {isDeleting ? '削除中...' : '削除'}
                     </Button>
                   </div>
                 </div>
