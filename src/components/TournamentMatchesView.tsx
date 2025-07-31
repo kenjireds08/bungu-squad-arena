@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Users, Clock, Play, CheckCircle, AlertCircle, Trophy, Spade, Plus } from 'lucide-react';
+import { ArrowLeft, Users, Clock, Play, CheckCircle, AlertCircle, Trophy, Spade, Plus, RefreshCw } from 'lucide-react';
 import { useRankings } from '@/hooks/useApi';
 import { useNotifications } from '@/hooks/useNotifications';
 import { MatchInProgress } from './MatchInProgress';
@@ -36,9 +36,17 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
   const [currentUserMatch, setCurrentUserMatch] = useState<Match | null>(null);
   const [showMatchInProgress, setShowMatchInProgress] = useState(false);
   const [tournamentProgress, setTournamentProgress] = useState<any>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const { data: players } = useRankings();
 
-  // Fetch tournament matches
+  // Manual refresh function
+  const handleManualRefresh = async () => {
+    setIsRefreshing(true);
+    await fetchMatches();
+    setIsRefreshing(false);
+  };
+
+  // Fetch tournament matches with improved error handling
   const fetchMatches = async () => {
     try {
       const response = await fetch(`/api/matches?tournamentId=${tournamentId}`);
@@ -47,14 +55,10 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
         setMatches(matchesData);
         
         // Find current user's match that's ready to start or in progress
-        console.log('Current User ID:', currentUserId);
-        console.log('All matches:', matchesData);
-        
         const userMatch = matchesData.find((match: Match) => 
           (match.player1_id === currentUserId || match.player2_id === currentUserId) &&
           (match.status === 'scheduled' || match.status === 'in_progress')
         );
-        console.log('Found user match:', userMatch);
         setCurrentUserMatch(userMatch || null);
         
         // Calculate tournament progress
@@ -67,13 +71,15 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
           total: totalMatches,
           nextAvailable: nextAvailableMatches
         });
-        
-        console.log('Matches loaded:', matchesData);
-        console.log('User match:', userMatch);
-        console.log('Tournament progress:', { completedMatches, totalMatches });
+      } else if (response.status === 429) {
+        // Rate limit exceeded - wait longer before next request
+        console.warn('API rate limit exceeded. Reducing request frequency.');
+      } else {
+        console.error('API Error:', response.status, response.statusText);
       }
     } catch (error) {
-      console.error('Failed to fetch matches:', error);
+      // Network error or other issues - fail silently to avoid console spam
+      console.warn('Network error fetching matches, will retry later:', error.message);
     } finally {
       setIsLoading(false);
     }
@@ -81,8 +87,8 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
 
   useEffect(() => {
     fetchMatches();
-    // Refresh every 10 seconds for real-time updates
-    const interval = setInterval(fetchMatches, 10000);
+    // Refresh every 60 seconds to avoid API quota issues
+    const interval = setInterval(fetchMatches, 60000);
     return () => clearInterval(interval);
   }, [tournamentId]);
 
@@ -208,14 +214,25 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-fantasy-frame shadow-soft">
         <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={onClose}>
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div className="flex items-center gap-2">
-              <Trophy className="h-6 w-6 text-primary" />
-              <h1 className="text-xl font-bold text-foreground">大会組み合わせ</h1>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Button variant="ghost" size="icon" onClick={onClose}>
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+              <div className="flex items-center gap-2">
+                <Trophy className="h-6 w-6 text-primary" />
+                <h1 className="text-xl font-bold text-foreground">大会組み合わせ</h1>
+              </div>
             </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleManualRefresh}
+              disabled={isRefreshing}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+              更新
+            </Button>
           </div>
         </div>
       </header>

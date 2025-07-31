@@ -86,8 +86,8 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
 
   useEffect(() => {
     fetchMatches();
-    // Auto-refresh every 10 seconds
-    const interval = setInterval(fetchMatches, 10000);
+    // Auto-refresh every 60 seconds to avoid API quota issues
+    const interval = setInterval(fetchMatches, 60000);
     return () => clearInterval(interval);
   }, [tournamentId]);
 
