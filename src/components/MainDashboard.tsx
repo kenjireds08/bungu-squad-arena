@@ -406,26 +406,28 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
                     </p>
                   </div>
                 </div>
-                <Button 
-                  variant="heroic" 
-                  size="lg" 
-                  onClick={currentUser?.tournament_active ? 
-                    () => setCurrentPage('tournament-waiting')
-                    : handleTournamentEntry}
-                  className="w-full animate-bounce-gentle"
-                >
-                  {currentUser?.tournament_active ? (
-                    <>
-                      <Trophy className="h-5 w-5" />
-                      エントリー済み - 大会待機中画面へ
-                    </>
-                  ) : (
-                    <>
-                      <Camera className="h-5 w-5" />
-                      大会にエントリー
-                    </>
-                  )}
-                </Button>
+                {todaysTournament && (
+                  <Button 
+                    variant="heroic" 
+                    size="lg" 
+                    onClick={currentUser?.tournament_active ? 
+                      () => setCurrentPage('tournament-waiting')
+                      : handleTournamentEntry}
+                    className="w-full animate-bounce-gentle"
+                  >
+                    {currentUser?.tournament_active ? (
+                      <>
+                        <Trophy className="h-5 w-5" />
+                        エントリー済み - 大会待機中画面へ
+                      </>
+                    ) : (
+                      <>
+                        <Camera className="h-5 w-5" />
+                        大会にエントリー
+                      </>
+                    )}
+                  </Button>
+                )}
 
                 {/* Additional tournaments display */}
                 {(() => {
