@@ -400,14 +400,14 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
                   variant="heroic" 
                   size="lg" 
                   onClick={currentUser?.tournament_active ? 
-                    (isAdmin ? () => setCurrentPage('admin') : () => setCurrentPage('tournament-waiting')) 
+                    () => setCurrentPage('tournament-waiting')
                     : handleTournamentEntry}
                   className="w-full animate-bounce-gentle"
                 >
                   {currentUser?.tournament_active ? (
                     <>
                       <Trophy className="h-5 w-5" />
-                      {isAdmin ? 'エントリー済み - 大会管理へ' : 'エントリー済み - 大会待機中画面へ'}
+                      エントリー済み - 大会待機中画面へ
                     </>
                   ) : (
                     <>
@@ -428,7 +428,14 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
                         <h4 className="text-sm font-medium text-muted-foreground mb-2">次回大会予定</h4>
                         <div className="space-y-2">
                           {otherUpcoming.map((tournament) => (
-                            <div key={tournament.id} className="p-2 bg-muted/50 rounded-md">
+                            <div 
+                              key={tournament.id} 
+                              className="p-2 bg-muted/50 rounded-md cursor-pointer hover:bg-muted/70 transition-colors"
+                              onClick={() => {
+                                setSelectedTournamentForDetails(tournament);
+                                setShowTournamentDetails(true);
+                              }}
+                            >
                               <p className="text-sm font-medium">{tournament.name}</p>
                               <p className="text-xs text-muted-foreground">
                                 {tournament.date} {tournament.time && `${tournament.time}〜`}
