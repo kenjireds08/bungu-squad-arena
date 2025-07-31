@@ -76,7 +76,9 @@ export const AdminPlayers = ({ onBack }: AdminPlayersProps) => {
   };
 
   const formatDate = (dateString: string) => {
+    if (!dateString || dateString === '') return '未設定';
     const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '未設定';
     return date.toLocaleDateString('ja-JP');
   };
 
@@ -343,28 +345,54 @@ export const AdminPlayers = ({ onBack }: AdminPlayersProps) => {
                   <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">最終ログイン</p>
                     <p className="text-sm">
-                      {selectedPlayer.last_login 
-                        ? new Date(selectedPlayer.last_login).toLocaleString('ja-JP', {
-                            year: 'numeric',
-                            month: '2-digit',
-                            day: '2-digit',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })
+                      {selectedPlayer.last_login && selectedPlayer.last_login !== '' 
+                        ? (() => {
+                            const date = new Date(selectedPlayer.last_login);
+                            return isNaN(date.getTime()) ? '未ログイン' : date.toLocaleString('ja-JP', {
+                              year: 'numeric',
+                              month: '2-digit',
+                              day: '2-digit',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            });
+                          })()
                         : '未ログイン'}
                     </p>
                   </div>
 
                   {/* Action Buttons */}
                   <div className="flex gap-3 pt-4">
-                    <Button variant="outline" className="flex-1">
-                      詳細
-                    </Button>
-                    <Button variant="outline" className="flex-1">
+                    <Button 
+                      variant="outline" 
+                      className="flex-1"
+                      onClick={() => {
+                        // TODO: Implement player edit functionality
+                        console.log('Edit player:', selectedPlayer.id);
+                      }}
+                    >
                       編集
                     </Button>
-                    <Button variant="outline" className="flex-1">
-                      履歴
+                    <Button 
+                      variant="outline" 
+                      className="flex-1"
+                      onClick={() => {
+                        // TODO: Implement tournament history view
+                        console.log('View tournament history for:', selectedPlayer.id);
+                      }}
+                    >
+                      大会履歴
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="flex-1 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={() => {
+                        if (confirm(`${selectedPlayer.nickname}を削除しますか？この操作は取り消せません。`)) {
+                          // TODO: Implement player deletion
+                          console.log('Delete player:', selectedPlayer.id);
+                        }
+                      }}
+                    >
+                      削除
                     </Button>
                   </div>
                 </div>

@@ -203,15 +203,15 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
           
           // Navigate to the waiting room after 5 seconds
           setTimeout(() => {
-            // Navigate to main page and let it handle the tournament waiting state
-            window.location.href = '/';
+            // Navigate directly to tournament waiting page for entered users
+            window.location.href = '/tournament-waiting';
           }, 5000);
           
         } catch (error) {
           console.error('Failed to update tournament active status:', error);
-          // Even if API fails, still navigate to main page
+          // Even if API fails, still navigate to tournament waiting page
           setTimeout(() => {
-            window.location.href = '/';
+            window.location.href = '/tournament-waiting';
           }, 5000);
         }
       } else {
