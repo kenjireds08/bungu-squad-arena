@@ -75,7 +75,8 @@ export const AdminTournaments = ({ onBack, initialView = 'list' }: AdminTourname
             tournament_name: newTournament.name,
             date: newTournament.date,
             start_time: newTournament.time,
-            location: newTournament.location
+            location: newTournament.location,
+            description: newTournament.description
           }
         });
         
@@ -90,6 +91,7 @@ export const AdminTournaments = ({ onBack, initialView = 'list' }: AdminTourname
           date: newTournament.date,
           start_time: newTournament.time,
           location: newTournament.location,
+          description: newTournament.description,
           status: 'upcoming',
           max_participants: 20
         });

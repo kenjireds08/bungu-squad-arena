@@ -375,7 +375,7 @@ class SheetsService {
     try {
       const response = await this.sheets.spreadsheets.values.get({
         spreadsheetId: this.spreadsheetId,
-        range: 'Tournaments!A2:L1000'
+        range: 'Tournaments!A2:M1000'
       });
 
       const rows = response.data.values || [];
@@ -391,7 +391,8 @@ class SheetsService {
         status: row[8] || 'upcoming',
         max_participants: parseInt(row[9]) || 20,
         current_participants: parseInt(row[10]) || 0,
-        tournament_type: row[11] || 'random'
+        tournament_type: row[11] || 'random',
+        description: row[12] || ''
       }));
     } catch (error) {
       console.error('Error fetching tournaments:', error);
@@ -419,12 +420,13 @@ class SheetsService {
         tournamentData.status || 'upcoming',    // I: status
         tournamentData.max_participants || 20,  // J: max_participants
         0,                                      // K: current_participants
-        tournamentData.tournament_type || 'random' // L: tournament_type
+        tournamentData.tournament_type || 'random', // L: tournament_type
+        tournamentData.description || ''        // M: description
       ]];
 
       await this.sheets.spreadsheets.values.append({
         spreadsheetId: this.spreadsheetId,
-        range: 'Tournaments!A:L',
+        range: 'Tournaments!A:M',
         valueInputOption: 'USER_ENTERED',
         requestBody: {
           values
@@ -522,6 +524,17 @@ class SheetsService {
             range: `Tournaments!K${actualRowNumber}`,
             valueInputOption: 'USER_ENTERED',
             requestBody: { values: [[updateData.current_participants]] }
+          })
+        );
+      }
+
+      if (updateData.description !== undefined) {
+        updatePromises.push(
+          this.sheets.spreadsheets.values.update({
+            spreadsheetId: this.spreadsheetId,
+            range: `Tournaments!M${actualRowNumber}`,
+            valueInputOption: 'USER_ENTERED',
+            requestBody: { values: [[updateData.description]] }
           })
         );
       }

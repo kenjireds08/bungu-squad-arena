@@ -39,7 +39,7 @@ export const transformTournamentData = (apiTournament: ApiTournament): Tournamen
     location: apiTournament.location,
     participants: apiTournament.current_participants,
     status: getTournamentStatus(apiTournament.date),
-    description: ''
+    description: apiTournament.description || ''
   };
 };
 

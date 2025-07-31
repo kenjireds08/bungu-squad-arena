@@ -43,6 +43,7 @@ export interface Tournament {
   date: string;
   start_time: string;
   location: string;
+  description?: string;
   qr_code_url?: string;
   created_by?: string;
   created_at?: string;

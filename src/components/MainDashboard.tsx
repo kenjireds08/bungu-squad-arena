@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { QrCode, Trophy, TrendingUp, Calendar, Camera, Star, Users, Loader2, RefreshCw, History } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { QrCode, Trophy, TrendingUp, Calendar, Camera, Star, Users, Loader2, RefreshCw, History, MapPin, Info } from 'lucide-react';
 import { useRankings, useTournaments } from '@/hooks/useApi';
 import { PlayerRanking } from './PlayerRanking';
 import { QRScanner } from './QRScanner';
@@ -43,6 +44,8 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
   const [previousPage, setPreviousPage] = useState<string>('dashboard');
   const [showPWAPrompt, setShowPWAPrompt] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [showTournamentDetails, setShowTournamentDetails] = useState(false);
+  const [selectedTournamentForDetails, setSelectedTournamentForDetails] = useState<any>(null);
   const [acknowledgedTournaments, setAcknowledgedTournaments] = useState<Set<string>>(
     () => new Set(JSON.parse(localStorage.getItem('acknowledgedTournaments') || '[]'))
   );
@@ -366,8 +369,17 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
           <CardContent className="space-y-4">
             {nextTournament ? (
               <>
-                <div className="space-y-2">
-                  <h3 className="font-semibold text-lg">{nextTournament.name}</h3>
+                <div 
+                  className="space-y-2 cursor-pointer hover:bg-muted/50 p-2 rounded-md transition-colors"
+                  onClick={() => {
+                    setSelectedTournamentForDetails(nextTournament);
+                    setShowTournamentDetails(true);
+                  }}
+                >
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold text-lg">{nextTournament.name || nextTournament.tournament_name}</h3>
+                    <Info className="h-4 w-4 text-muted-foreground" />
+                  </div>
                   <div className="space-y-1 text-sm text-muted-foreground">
                     <p className="flex items-center gap-2">
                       <Calendar className="h-4 w-4" />
@@ -379,10 +391,7 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
                       )}
                     </p>
                     <p className="flex items-center gap-2">
-                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
+                      <MapPin className="h-4 w-4" />
                       場所：{nextTournament.location}
                     </p>
                   </div>
@@ -471,6 +480,66 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
           </p>
         </div>
       </main>
+
+      {/* Tournament Details Dialog */}
+      <Dialog open={showTournamentDetails} onOpenChange={setShowTournamentDetails}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">
+              {selectedTournamentForDetails?.name || selectedTournamentForDetails?.tournament_name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm">
+                <Calendar className="h-4 w-4 text-primary" />
+                <span className="font-medium">開催日時</span>
+              </div>
+              <p className="text-sm text-muted-foreground pl-6">
+                {selectedTournamentForDetails?.date}
+                {selectedTournamentForDetails?.start_time && (
+                  <span className="ml-2">{selectedTournamentForDetails.start_time}〜</span>
+                )}
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm">
+                <MapPin className="h-4 w-4 text-primary" />
+                <span className="font-medium">開催場所</span>
+              </div>
+              <p className="text-sm text-muted-foreground pl-6">
+                {selectedTournamentForDetails?.location || '未定'}
+              </p>
+            </div>
+
+            {selectedTournamentForDetails?.description && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm">
+                  <Info className="h-4 w-4 text-primary" />
+                  <span className="font-medium">説明</span>
+                </div>
+                <p className="text-sm text-muted-foreground pl-6 whitespace-pre-wrap">
+                  {selectedTournamentForDetails.description}
+                </p>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm">
+                <Users className="h-4 w-4 text-primary" />
+                <span className="font-medium">参加状況</span>
+              </div>
+              <p className="text-sm text-muted-foreground pl-6">
+                現在の参加者: {selectedTournamentForDetails?.current_participants || 0}名
+                {selectedTournamentForDetails?.max_participants && (
+                  <span> / 最大{selectedTournamentForDetails.max_participants}名</span>
+                )}
+              </p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </PullToRefresh>
   );
 };
