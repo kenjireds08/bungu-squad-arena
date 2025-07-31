@@ -772,7 +772,18 @@ class SheetsService {
           approved_at: row[13] || ''
         }));
 
-      return matches;
+      // Get player data to populate names if missing
+      const players = await this.getPlayers();
+      const playerMap = new Map(players.map(p => [p.id, p.nickname]));
+
+      // Enhance matches with correct player names
+      const enhancedMatches = matches.map(match => ({
+        ...match,
+        player1_name: match.player1_name || playerMap.get(match.player1_id) || match.player1_id,
+        player2_name: match.player2_name || playerMap.get(match.player2_id) || match.player2_id
+      }));
+
+      return enhancedMatches;
     } catch (error) {
       console.error('Error fetching tournament matches:', error);
       throw new Error(`Failed to fetch tournament matches: ${error.message}`);
