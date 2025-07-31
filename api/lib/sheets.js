@@ -65,8 +65,8 @@ class SheetsService {
 
       const rows = response.data.values || [];
       
-      // Auto-reset old tournament participation on each getPlayers call
-      await this.autoResetOldTournamentParticipation();
+      // Skip auto-reset to avoid 500 errors - only run when needed
+      // await this.autoResetOldTournamentParticipation();
       
       return rows.map((row, index) => ({
         id: row[0] || `player_${index + 1}`,
@@ -96,29 +96,52 @@ class SheetsService {
       }));
     } catch (error) {
       console.error('Error fetching players:', error);
-      console.error('Environment check:', {
-        hasServiceAccount: !!process.env.GOOGLE_SERVICE_ACCOUNT_KEY,
-        hasSheetId: !!process.env.GOOGLE_SHEETS_ID,
-        sheetId: process.env.GOOGLE_SHEETS_ID,
-        serviceAccountLength: process.env.GOOGLE_SERVICE_ACCOUNT_KEY?.length
-      });
-      throw new Error(`Failed to fetch players data: ${error.message}`);
+      
+      // Handle specific Google Sheets API errors
+      if (error.code === 404) {
+        throw new Error('Players sheet not found. Please check if the sheet exists.');
+      } else if (error.code === 403) {
+        throw new Error('Permission denied. Please check Google Sheets API credentials.');
+      } else if (error.code === 429) {
+        console.warn('Rate limit hit in getPlayers, implementing backoff');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        throw new Error('API rate limit exceeded. Please try again later.');
+      } else {
+        console.error('Environment check:', {
+          hasServiceAccount: !!process.env.GOOGLE_SERVICE_ACCOUNT_KEY,
+          hasSheetId: !!process.env.GOOGLE_SHEETS_ID,
+          sheetId: process.env.GOOGLE_SHEETS_ID,
+          serviceAccountLength: process.env.GOOGLE_SERVICE_ACCOUNT_KEY?.length
+        });
+        throw new Error(`Failed to fetch players data: ${error.message}`);
+      }
     }
   }
 
   async getRankings() {
-    const players = await this.getPlayers();
-    return players
-      .sort((a, b) => b.current_rating - a.current_rating)
-      .map((player, index) => ({
-        ...player,
-        rank: index + 1
-      }));
+    try {
+      const players = await this.getPlayers();
+      return players
+        .sort((a, b) => b.current_rating - a.current_rating)
+        .map((player, index) => ({
+          ...player,
+          rank: index + 1
+        }));
+    } catch (error) {
+      console.error('Error getting rankings:', error);
+      // Re-throw the error from getPlayers with proper context
+      throw new Error(`Failed to get rankings: ${error.message}`);
+    }
   }
 
   async getPlayer(id) {
-    const players = await this.getPlayers();
-    return players.find(player => player.id === id);
+    try {
+      const players = await this.getPlayers();
+      return players.find(player => player.id === id);
+    } catch (error) {
+      console.error('Error getting player:', error);
+      throw new Error(`Failed to get player: ${error.message}`);
+    }
   }
 
   async updatePlayerRating(playerId, newRating) {
