@@ -170,10 +170,10 @@ class SheetsService {
 
       const now = new Date().toISOString();
       
-      // Update last_login (column K = index 10)
+      // Update last_login (column U = index 20)
       await this.sheets.spreadsheets.values.update({
         spreadsheetId: this.spreadsheetId,
-        range: `Players!K${rowIndex + 2}`,
+        range: `Players!U${rowIndex + 2}`,
         valueInputOption: 'USER_ENTERED',
         requestBody: {
           values: [[now]]
@@ -1145,16 +1145,16 @@ class SheetsService {
         '',                                      // K: first_trump_game_date
         'FALSE',                                 // L: cardplus_rule_experienced
         '',                                      // M: first_cardplus_game_date
-        'FALSE',                                 // N: first_victory_achieved
-        '',                                      // O: first_victory_date
-        'FALSE',                                 // P: win_rate_50_achieved
-        '',                                      // Q: win_rate_50_date
-        'FALSE',                                 // R: rating_1600_achieved
-        '',                                      // S: rating_1600_date
-        '',                                      // T: last_match_opponent
-        '',                                      // U: last_match_result
-        '',                                      // V: last_match_date
-        playerData.created_at,                   // W: created_at
+        playerData.registration_date || playerData.created_at || '', // N: registration_date
+        '',                                      // O: profile_image_url
+        'TRUE',                                  // P: is_active
+        '',                                      // Q: last_activity_date
+        'active',                                // R: player_status
+        '{}',                                    // S: notification_preferences
+        '[]',                                    // T: device_tokens
+        playerData.last_login || playerData.created_at || '', // U: last_login
+        'FALSE',                                 // V: profile_image_uploaded
+        'ja',                                    // W: preferred_language
         playerData.tournament_active ? 'TRUE' : 'FALSE'  // X: tournament_active
       ];
 

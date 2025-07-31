@@ -25,6 +25,7 @@ module.exports = async function handler(req, res) {
       // Generate unique player ID
       const playerId = `player_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
+      const now = new Date().toISOString();
       const newPlayer = {
         id: playerId,
         nickname: nickname.trim(),
@@ -34,7 +35,9 @@ module.exports = async function handler(req, res) {
         total_matches: 0,
         wins: 0,
         losses: 0,
-        created_at: new Date().toISOString(),
+        created_at: now,
+        registration_date: now,
+        last_login: now,
         last_activity_date: new Date().toISOString().split('T')[0]
       };
 
