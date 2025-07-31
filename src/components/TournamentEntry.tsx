@@ -147,22 +147,10 @@ export const TournamentEntry = () => {
           description: `${tournament.name}にエントリーしました！`,
         });
         
-        // Check if PWA is installed and redirect accordingly
-        const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
-                     (window.navigator as any).standalone || 
-                     document.referrer.includes('android-app://');
-        
-        if (isPWA) {
-          // User has PWA installed, redirect to home
-          setTimeout(() => {
-            navigate('/');
-          }, 3000);
-        } else {
-          // User doesn't have PWA, redirect to home with install prompt
-          setTimeout(() => {
-            navigate('/?showInstall=true');
-          }, 3000);
-        }
+        // Auto-redirect to waiting room
+        setTimeout(() => {
+          navigate('/tournament-waiting');
+        }, 3000);
       } else {
         const errorText = await response.text();
         console.error('API error response:', errorText);

@@ -384,11 +384,20 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
                 <Button 
                   variant="heroic" 
                   size="lg" 
-                  onClick={handleTournamentEntry}
+                  onClick={currentUser?.tournament_active ? () => setCurrentPage('tournament-waiting') : handleTournamentEntry}
                   className="w-full animate-bounce-gentle"
                 >
-                  <Camera className="h-5 w-5" />
-                  大会にエントリー
+                  {currentUser?.tournament_active ? (
+                    <>
+                      <Trophy className="h-5 w-5" />
+                      大会待機中画面へ
+                    </>
+                  ) : (
+                    <>
+                      <Camera className="h-5 w-5" />
+                      大会にエントリー
+                    </>
+                  )}
                 </Button>
 
                 {/* Additional tournaments display */}
