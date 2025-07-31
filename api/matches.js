@@ -87,6 +87,18 @@ module.exports = async function handler(req, res) {
           });
         }
 
+      case 'PUT':
+        // Update match result or status
+        const { matchId } = req.query;
+        const updateData = req.body;
+
+        if (!matchId) {
+          return res.status(400).json({ error: 'Match ID is required' });
+        }
+
+        const result = await sheetsService.updateMatchResult(matchId, updateData);
+        return res.status(200).json(result);
+
       default:
         return res.status(405).json({ error: 'Method not allowed' });
     }

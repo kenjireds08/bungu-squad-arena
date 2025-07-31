@@ -844,6 +844,176 @@ class SheetsService {
     }
   }
 
+  async updatePlayerRuleExperience(playerId, gameType) {
+    await this.authenticate();
+    
+    try {
+      // First, find the player's row
+      const playersResponse = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'Players!A2:A1000'
+      });
+
+      const playerIds = playersResponse.data.values || [];
+      const rowIndex = playerIds.findIndex(row => row[0] === playerId);
+      
+      if (rowIndex === -1) {
+        throw new Error('Player not found');
+      }
+
+      const actualRowNumber = rowIndex + 2;
+      const timestamp = new Date().toISOString();
+      
+      if (gameType === 'trump') {
+        // Update trump_rule_experienced (column J) and first_trump_game_date (column K)
+        await this.sheets.spreadsheets.values.batchUpdate({
+          spreadsheetId: this.spreadsheetId,
+          requestBody: {
+            valueInputOption: 'USER_ENTERED',
+            data: [
+              {
+                range: `Players!J${actualRowNumber}`,
+                values: [['TRUE']]
+              },
+              {
+                range: `Players!K${actualRowNumber}`,
+                values: [[timestamp]]
+              }
+            ]
+          }
+        });
+      } else if (gameType === 'cardplus') {
+        // Update cardplus_rule_experienced (column L) and first_cardplus_game_date (column M)
+        await this.sheets.spreadsheets.values.batchUpdate({
+          spreadsheetId: this.spreadsheetId,
+          requestBody: {
+            valueInputOption: 'USER_ENTERED',
+            data: [
+              {
+                range: `Players!L${actualRowNumber}`,
+                values: [['TRUE']]
+              },
+              {
+                range: `Players!M${actualRowNumber}`,
+                values: [[timestamp]]
+              }
+            ]
+          }
+        });
+      }
+
+      console.log(`Updated ${gameType} rule experience for player: ${playerId}`);
+      return { success: true, playerId, gameType };
+    } catch (error) {
+      console.error('Error updating player rule experience:', error);
+      throw new Error('Failed to update player rule experience');
+    }
+  }
+
+  async updateMatchResult(matchId, updateData) {
+    await this.authenticate();
+    
+    try {
+      // Find the match row
+      const response = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'TournamentMatches!A2:N1000'
+      });
+
+      const rows = response.data.values || [];
+      const matchRowIndex = rows.findIndex(row => row[0] === matchId);
+      
+      if (matchRowIndex === -1) {
+        throw new Error('Match not found');
+      }
+
+      const actualRowNumber = matchRowIndex + 2;
+      const timestamp = new Date().toISOString();
+      
+      // Update match status and results
+      const updatePromises = [];
+      
+      if (updateData.winner_id !== undefined) {
+        updatePromises.push(
+          this.sheets.spreadsheets.values.update({
+            spreadsheetId: this.spreadsheetId,
+            range: `TournamentMatches!J${actualRowNumber}`,
+            valueInputOption: 'USER_ENTERED',
+            requestBody: { values: [[updateData.winner_id]] }
+          })
+        );
+      }
+      
+      if (updateData.status !== undefined) {
+        updatePromises.push(
+          this.sheets.spreadsheets.values.update({
+            spreadsheetId: this.spreadsheetId,
+            range: `TournamentMatches!I${actualRowNumber}`,
+            valueInputOption: 'USER_ENTERED',
+            requestBody: { values: [[updateData.status]] }
+          })
+        );
+      }
+      
+      if (updateData.result_details !== undefined) {
+        updatePromises.push(
+          this.sheets.spreadsheets.values.update({
+            spreadsheetId: this.spreadsheetId,
+            range: `TournamentMatches!K${actualRowNumber}`,
+            valueInputOption: 'USER_ENTERED',
+            requestBody: { values: [[updateData.result_details]] }
+          })
+        );
+      }
+      
+      // Update completed_at timestamp when match is completed
+      if (updateData.status === 'completed') {
+        updatePromises.push(
+          this.sheets.spreadsheets.values.update({
+            spreadsheetId: this.spreadsheetId,
+            range: `TournamentMatches!M${actualRowNumber}`,
+            valueInputOption: 'USER_ENTERED',
+            requestBody: { values: [[timestamp]] }
+          })
+        );
+      }
+      
+      // Update approved_at timestamp when match is approved
+      if (updateData.status === 'approved') {
+        updatePromises.push(
+          this.sheets.spreadsheets.values.update({
+            spreadsheetId: this.spreadsheetId,
+            range: `TournamentMatches!N${actualRowNumber}`,
+            valueInputOption: 'USER_ENTERED',
+            requestBody: { values: [[timestamp]] }
+          })
+        );
+      }
+
+      await Promise.all(updatePromises);
+
+      // If match is completed, update rule experience for both players
+      if (updateData.status === 'completed') {
+        const match = rows[matchRowIndex];
+        const gameType = match[7]; // game_type column
+        const player1Id = match[3];
+        const player2Id = match[5];
+        
+        // Update rule experience for both players
+        await Promise.all([
+          this.updatePlayerRuleExperience(player1Id, gameType),
+          this.updatePlayerRuleExperience(player2Id, gameType)
+        ]);
+      }
+
+      console.log(`Match updated: ${matchId}`);
+      return { success: true, matchId };
+    } catch (error) {
+      console.error('Error updating match result:', error);
+      throw new Error(`Failed to update match result: ${error.message}`);
+    }
+  }
+
   async getMatchHistory(playerId = null) {
     await this.authenticate();
     
