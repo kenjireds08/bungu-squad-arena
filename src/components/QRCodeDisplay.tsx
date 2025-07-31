@@ -17,8 +17,9 @@ export const QRCodeDisplay = ({ tournamentId, tournamentName, onClose, isOpen }:
   const [copied, setCopied] = useState(false);
   
   // Generate entry URL for the tournament
-  // Use tournament ID for unique, reliable URLs that work with external scanners
-  const entryUrl = `${window.location.origin}/tournament-entry/${tournamentId}`;
+  // Use date-based URL for proper tournament identification
+  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+  const entryUrl = `${window.location.origin}/tournament/${today}`;
   
   const handleCopyUrl = async () => {
     try {
