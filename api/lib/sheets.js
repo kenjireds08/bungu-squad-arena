@@ -155,6 +155,8 @@ class SheetsService {
     await this.authenticate();
     
     try {
+      console.log('Updating last login for player:', playerId);
+      
       // First, find the player's row
       const playersResponse = await this.sheets.spreadsheets.values.get({
         spreadsheetId: this.spreadsheetId,
@@ -165,10 +167,12 @@ class SheetsService {
       const rowIndex = playerIds.findIndex(row => row[0] === playerId);
       
       if (rowIndex === -1) {
+        console.error('Player not found with ID:', playerId);
         throw new Error('Player not found');
       }
 
       const now = new Date().toISOString();
+      console.log('Updating last login to:', now, 'for row:', rowIndex + 2);
       
       // Update last_login (column U = index 20)
       await this.sheets.spreadsheets.values.update({
@@ -180,6 +184,7 @@ class SheetsService {
         }
       });
 
+      console.log('Last login updated successfully for player:', playerId);
       return { success: true, timestamp: now };
     } catch (error) {
       console.error('Error updating last login:', error);

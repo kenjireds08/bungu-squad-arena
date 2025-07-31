@@ -99,11 +99,14 @@ export const Login = ({ onLoginSuccess, isNewPlayer = false }: LoginProps) => {
         if (isAdmin || !formData.password) {
           // 最終ログイン日時を更新
           try {
-            await fetch(`/api/players?id=${user.id}`, {
+            console.log('Updating last login for user:', user.id);
+            const response = await fetch(`/api/players?id=${user.id}`, {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ updateLastLogin: true })
             });
+            const result = await response.json();
+            console.log('Last login update result:', result);
           } catch (error) {
             console.error('Failed to update last login:', error);
           }
