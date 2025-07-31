@@ -143,7 +143,9 @@ export const TournamentEntry = () => {
       });
       
       // Auto-redirect to waiting room
+      console.log('Setting timeout for waiting room transition...');
       setTimeout(() => {
+        console.log('Timeout executed, setting showWaitingRoom to true');
         setShowWaitingRoom(true);
       }, 3000);
       
