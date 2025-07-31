@@ -21,7 +21,7 @@ interface AdminTournamentsProps {
 
 
 export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
-  const [currentView, setCurrentView] = useState<'list' | 'create' | 'matchmaking'>('list');
+  const [currentView, setCurrentView] = useState<'list' | 'create' | 'matchmaking' | 'participants'>('list');
   const [selectedTournament, setSelectedTournament] = useState<any>(null);
   const [showQRCode, setShowQRCode] = useState(false);
   const [activeParticipants, setActiveParticipants] = useState(0);
@@ -122,11 +122,7 @@ export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
 
   const handleShowParticipants = (tournament: any) => {
     setSelectedTournament(tournament);
-    // Show participants modal or navigate to participants view
-    toast({
-      title: "参加者一覧",
-      description: `${tournament.name}の参加者: ${activeParticipants}名`,
-    });
+    setCurrentView('participants');
   };
 
   const handleShowQR = (tournament: any) => {
@@ -182,6 +178,46 @@ export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
     setSelectedTournament(tournament);
     setCurrentView('create');
   };
+
+  if (currentView === 'participants' && selectedTournament) {
+    return (
+      <div className="min-h-screen bg-gradient-parchment">
+        <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-fantasy-frame shadow-soft">
+          <div className="container mx-auto px-4 py-3">
+            <div className="flex items-center gap-3">
+              <Button variant="ghost" size="icon" onClick={() => setCurrentView('list')}>
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+              <div className="flex items-center gap-2">
+                <Users className="h-6 w-6 text-primary" />
+                <h1 className="text-xl font-bold text-foreground">参加者一覧</h1>
+              </div>
+            </div>
+          </div>
+        </header>
+        <main className="container mx-auto px-4 py-6">
+          <Card className="border-fantasy-frame shadow-soft">
+            <CardHeader>
+              <CardTitle>{selectedTournament.name} - 参加者一覧</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {rankings?.filter(player => player.tournament_active).map((player) => (
+                  <div key={player.id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div>
+                      <p className="font-medium">{player.nickname}</p>
+                      <p className="text-sm text-muted-foreground">レーティング: {player.current_rating}</p>
+                    </div>
+                    <Badge className="bg-green-500 text-white">参加中</Badge>
+                  </div>
+                )) || <p className="text-muted-foreground">参加者がいません</p>}
+              </div>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    );
+  }
 
   if (currentView === 'matchmaking' && matchmakingTournament) {
     return (
@@ -365,7 +401,7 @@ export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
                       </div>
                     </div>
                     <div className="space-y-1">
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1 cursor-pointer hover:text-primary" onClick={() => handleShowParticipants(tournament)}>
                         <Users className="h-3 w-3" />
                         参加者: {tournament.status === '開催中' ? activeParticipants : tournament.participants}名
                       </div>

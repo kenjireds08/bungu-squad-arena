@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Trophy, Calendar, MapPin, Users, Loader2, CheckCircle, XCircle } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { TournamentWaiting } from './TournamentWaiting';
+import { useUpdatePlayerTournamentActive } from '@/hooks/useApi';
 
 interface Tournament {
   id: string;
@@ -26,6 +27,7 @@ export const TournamentEntry = () => {
   const [isEntered, setIsEntered] = useState(false);
   const [userTournamentActive, setUserTournamentActive] = useState(false);
   const [showWaitingRoom, setShowWaitingRoom] = useState(false);
+  const updateTournamentActive = useUpdatePlayerTournamentActive();
   
   // Add component mount log
   console.log('TournamentEntry component mounted', { tournamentId, date });
@@ -128,34 +130,22 @@ export const TournamentEntry = () => {
       // Mock API call
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // Update tournament active status via API
+      // Update tournament active status via API with real-time updates
       console.log('Sending API request for user:', userId);
-      const response = await fetch(`/api/players?id=${userId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ updateTournamentActive: true })
+      
+      await updateTournamentActive.mutateAsync({ id: userId, active: true });
+      
+      console.log('Tournament entry successful for user:', userId);
+      setIsEntered(true);
+      toast({
+        title: "エントリー完了",
+        description: `${tournament.name}にエントリーしました！`,
       });
-
-      console.log('API response status:', response.status);
-      console.log('API response ok:', response.ok);
-
-      if (response.ok) {
-        console.log('Tournament entry successful for user:', userId);
-        setIsEntered(true);
-        toast({
-          title: "エントリー完了",
-          description: `${tournament.name}にエントリーしました！`,
-        });
-        
-        // Auto-redirect to waiting room
-        setTimeout(() => {
-          navigate('/tournament-waiting');
-        }, 3000);
-      } else {
-        const errorText = await response.text();
-        console.error('API error response:', errorText);
-        throw new Error(`Failed to update tournament status: ${response.status} - ${errorText}`);
-      }
+      
+      // Auto-redirect to waiting room
+      setTimeout(() => {
+        setShowWaitingRoom(true);
+      }, 3000);
       
     } catch (error) {
       console.error('Failed to enter tournament:', error);

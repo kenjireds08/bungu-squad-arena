@@ -390,7 +390,7 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
                   {currentUser?.tournament_active ? (
                     <>
                       <Trophy className="h-5 w-5" />
-                      大会待機中画面へ
+                      エントリー済み - 大会待機中画面へ
                     </>
                   ) : (
                     <>

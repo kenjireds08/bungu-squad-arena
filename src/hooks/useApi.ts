@@ -33,6 +33,28 @@ export const useUpdatePlayerRating = () => {
   });
 };
 
+export const useUpdatePlayerTournamentActive = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ id, active }: { id: string; active: boolean }) =>
+      fetch(`/api/players?id=${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ updateTournamentActive: active })
+      }).then(response => {
+        if (!response.ok) throw new Error('Network response was not ok');
+        return response.json();
+      }),
+    onSuccess: () => {
+      // Invalidate all related queries for real-time updates
+      queryClient.invalidateQueries({ queryKey: ['players'] });
+      queryClient.invalidateQueries({ queryKey: ['rankings'] });
+      queryClient.invalidateQueries({ queryKey: ['tournaments'] });
+    },
+  });
+};
+
 // Rankings hooks
 export const useRankings = () => {
   return useQuery({

@@ -55,8 +55,8 @@ export const AdminPlayers = ({ onBack }: AdminPlayersProps) => {
   };
 
   const getStatusBadge = (player: any) => {
-    // 大会参加状態を動的判定で表示
-    if (player.tournament_active && isRecentTournamentParticipant(player)) {
+    // tournament_activeの状態をチェック
+    if (player.tournament_active === true) {
       return <Badge className="bg-green-500 text-white">大会参加中</Badge>;
     }
     
