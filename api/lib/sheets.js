@@ -701,6 +701,84 @@ class SheetsService {
     }
   }
 
+  async saveTournamentMatches(tournamentId, matches) {
+    await this.authenticate();
+    
+    try {
+      // Ensure tournament matches sheet exists
+      await this.createTournamentMatchesSheet();
+      
+      const timestamp = new Date().toISOString();
+      const values = matches.map(match => [
+        `${tournamentId}_${match.id}`,    // A: match_id (tournament_id + match_id)
+        tournamentId,                      // B: tournament_id
+        match.id,                         // C: match_number
+        match.player1.id,                 // D: player1_id
+        match.player1.nickname,           // E: player1_name
+        match.player2.id,                 // F: player2_id
+        match.player2.nickname,           // G: player2_name
+        match.gameType,                   // H: game_type
+        'scheduled',                      // I: status (scheduled, in_progress, completed, approved)
+        '',                              // J: winner_id
+        '',                              // K: result_details
+        timestamp,                       // L: created_at
+        '',                              // M: completed_at
+        ''                               // N: approved_at
+      ]);
+
+      await this.sheets.spreadsheets.values.append({
+        spreadsheetId: this.spreadsheetId,
+        range: 'TournamentMatches!A:N',
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+          values
+        }
+      });
+
+      console.log(`Tournament matches saved for ${tournamentId}: ${matches.length} matches`);
+      return { success: true, matchCount: matches.length };
+    } catch (error) {
+      console.error('Error saving tournament matches:', error);
+      throw new Error(`Failed to save tournament matches: ${error.message}`);
+    }
+  }
+
+  async getTournamentMatches(tournamentId) {
+    await this.authenticate();
+    
+    try {
+      const response = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'TournamentMatches!A2:N1000'
+      });
+
+      const rows = response.data.values || [];
+      const matches = rows
+        .filter(row => row[1] === tournamentId) // Filter by tournament_id
+        .map((row) => ({
+          match_id: row[0] || '',
+          tournament_id: row[1] || '',
+          match_number: row[2] || '',
+          player1_id: row[3] || '',
+          player1_name: row[4] || '',
+          player2_id: row[5] || '',
+          player2_name: row[6] || '',
+          game_type: row[7] || 'trump',
+          status: row[8] || 'scheduled',
+          winner_id: row[9] || '',
+          result_details: row[10] || '',
+          created_at: row[11] || '',
+          completed_at: row[12] || '',
+          approved_at: row[13] || ''
+        }));
+
+      return matches;
+    } catch (error) {
+      console.error('Error fetching tournament matches:', error);
+      throw new Error(`Failed to fetch tournament matches: ${error.message}`);
+    }
+  }
+
   async addMatchResult(matchData) {
     await this.authenticate();
     

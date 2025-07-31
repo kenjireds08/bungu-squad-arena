@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { ArrowLeft, Users, Shuffle, Grid3X3, Hand, Play, Spade, Plus } from 'lucide-react';
+import { ArrowLeft, Users, Shuffle, Grid3X3, Hand, Play, Spade, Plus, Loader2 } from 'lucide-react';
 import { usePlayers } from '@/hooks/useApi';
 import { toast } from '@/components/ui/use-toast';
 
@@ -94,17 +94,59 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
     }, 1000);
   };
 
-  const confirmMatches = () => {
-    // Update player experience badges
-    matches.forEach(match => {
-      if (match.player1 && match.player2) {
-        // This would update the player's experience in real implementation
-        toast({ 
-          title: "組み合わせが確定しました",
-          description: "参加者にプッシュ通知を送信しました"
-        });
+  const confirmMatches = async () => {
+    if (matches.length === 0) {
+      toast({ 
+        title: "エラー",
+        description: "組み合わせが生成されていません",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      setIsGenerating(true);
+      
+      // Save tournament matches to backend
+      const response = await fetch('/api/matches', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'saveTournamentMatches',
+          tournamentId: tournamentId,
+          matches: matches
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save tournament matches');
       }
-    });
+
+      const result = await response.json();
+      console.log('Tournament matches saved:', result);
+
+      toast({ 
+        title: "組み合わせが確定しました",
+        description: `${result.matchCount}試合の組み合わせを保存しました。参加者にプッシュ通知を送信しました。`
+      });
+      
+      // Close the matchmaking screen after successful save
+      setTimeout(() => {
+        onClose();
+      }, 2000);
+      
+    } catch (error) {
+      console.error('Error confirming matches:', error);
+      toast({ 
+        title: "エラー",
+        description: "組み合わせの保存に失敗しました",
+        variant: "destructive"
+      });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleDragStart = (e: React.DragEvent, player: any) => {
@@ -279,10 +321,13 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
                 <AlertDialogTrigger asChild>
                   <Button 
                     variant="heroic" 
-                    disabled={matches.some(m => !m.player1 || !m.player2)}
+                    disabled={matches.some(m => !m.player1 || !m.player2) || isGenerating}
                   >
-                    <Play className="h-4 w-4 mr-2" />
-                    組み合わせ確定
+                    {isGenerating ? (
+                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" />保存中...</>
+                    ) : (
+                      <><Play className="h-4 w-4 mr-2" />組み合わせ確定</>
+                    )}
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>

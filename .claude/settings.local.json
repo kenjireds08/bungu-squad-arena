@@ -28,7 +28,8 @@
       "Bash(npm run dev:*)",
       "Bash(npm run build:*)",
       "Bash(curl:*)",
-      "Bash(npm uninstall:*)"
+      "Bash(npm uninstall:*)",
+      "Bash(vercel:*)"
     ],
     "deny": []
   }

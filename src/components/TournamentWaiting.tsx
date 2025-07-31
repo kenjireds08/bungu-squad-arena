@@ -26,6 +26,8 @@ interface TournamentWaitingProps {
 export const TournamentWaiting = ({ onClose, onViewRanking }: TournamentWaitingProps) => {
   const [showRatingDialog, setShowRatingDialog] = useState(false);
   const [showRanking, setShowRanking] = useState(false);
+  const [tournamentMatches, setTournamentMatches] = useState([]);
+  const [isLoadingMatches, setIsLoadingMatches] = useState(false);
   const { data: tournaments, isLoading: tournamentsLoading } = useTournaments();
   const { data: players, isLoading: playersLoading } = useRankings();
   
@@ -48,16 +50,48 @@ export const TournamentWaiting = ({ onClose, onViewRanking }: TournamentWaitingP
   const tournamentParticipants = players?.filter(player => player.tournament_active === true) || [];
   const participantCount = tournamentParticipants.length;
   
-  // 組み合わせが決まっているかのフラグ（実際はAPIから取得）
-  const isPairingDecided = false;
+  // Check if pairings are decided based on tournament matches
+  const isPairingDecided = tournamentMatches.length > 0;
+
+  // Fetch tournament matches
+  const fetchTournamentMatches = async () => {
+    if (!todaysTournament?.id) return;
+    
+    setIsLoadingMatches(true);
+    try {
+      const response = await fetch(`/api/matches?tournamentId=${todaysTournament.id}`);
+      if (response.ok) {
+        const matches = await response.json();
+        setTournamentMatches(matches);
+        console.log('Tournament matches loaded:', matches);
+      }
+    } catch (error) {
+      console.error('Failed to fetch tournament matches:', error);
+    } finally {
+      setIsLoadingMatches(false);
+    }
+  };
+
+  // Check for tournament matches on component mount and periodically
+  useEffect(() => {
+    if (todaysTournament?.id) {
+      fetchTournamentMatches();
+      
+      // Check for updates every 30 seconds
+      const interval = setInterval(fetchTournamentMatches, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [todaysTournament?.id]);
 
   const handleCheckPairing = () => {
     if (!isPairingDecided) {
       // まだ組み合わせが決まっていない場合の処理
       console.log("組み合わせがまだ決まっていません");
+      fetchTournamentMatches(); // Manual refresh
     } else {
       // 組み合わせが決まっている場合、対戦詳細を表示
-      console.log("対戦詳細を表示");
+      console.log("対戦詳細を表示", tournamentMatches);
+      // TODO: Navigate to match details view
     }
   };
 
@@ -140,10 +174,19 @@ export const TournamentWaiting = ({ onClose, onViewRanking }: TournamentWaitingP
             className="w-full"
             size="lg"
             variant={isPairingDecided ? "default" : "outline"}
-            disabled={!isPairingDecided}
+            disabled={isLoadingMatches}
           >
-            <Table className="h-5 w-5 mr-2" />
-            {isPairingDecided ? "対戦組み合わせを確認" : "組み合わせはまだ決まっていません"}
+            {isLoadingMatches ? (
+              <>
+                <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                確認中...
+              </>
+            ) : (
+              <>
+                <Table className="h-5 w-5 mr-2" />
+                {isPairingDecided ? "対戦組み合わせを確認" : "組み合わせを再確認"}
+              </>
+            )}
           </Button>
 
           {!isPairingDecided && (
