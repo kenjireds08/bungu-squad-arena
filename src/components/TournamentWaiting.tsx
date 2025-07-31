@@ -32,6 +32,16 @@ export const TournamentWaiting = ({ onClose, onViewRanking }: TournamentWaitingP
   const { active, upcoming } = getCategorizedTournaments(tournaments || []);
   const todaysTournament = [...active, ...upcoming].find(t => t.date === today);
   
+  // Debug logging
+  console.log('TournamentWaiting Debug:', {
+    today,
+    tournaments: tournaments?.length || 0,
+    active: active?.length || 0,
+    upcoming: upcoming?.length || 0,
+    todaysTournament,
+    tournamentName: todaysTournament?.name || todaysTournament?.tournament_name
+  });
+  
   // Get tournament participants
   const tournamentParticipants = players?.filter(player => player.tournament_active === true) || [];
   const participantCount = tournamentParticipants.length;
@@ -90,13 +100,13 @@ export const TournamentWaiting = ({ onClose, onViewRanking }: TournamentWaitingP
           <CardContent className="space-y-4">
             <div>
               <h3 className="font-bold text-lg mb-2">
-                {todaysTournament?.tournament_name || '大会情報取得中...'}
+                {todaysTournament?.name || todaysTournament?.tournament_name || '大会情報取得中...'}
               </h3>
               <p className="text-sm text-muted-foreground mb-2">
                 {todaysTournament?.date} {todaysTournament?.start_time && `${todaysTournament.start_time}〜`}
               </p>
               <Badge variant="outline">
-                参加者 {participantCount}/{todaysTournament?.max_participants || 16}名
+                参加者 {participantCount}名
               </Badge>
             </div>
             
