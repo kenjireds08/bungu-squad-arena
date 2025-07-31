@@ -520,17 +520,21 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
               </p>
             </div>
 
-            {selectedTournamentForDetails?.description && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm">
-                  <Info className="h-4 w-4 text-primary" />
-                  <span className="font-medium">説明</span>
-                </div>
-                <p className="text-sm text-muted-foreground pl-6 whitespace-pre-wrap">
-                  {selectedTournamentForDetails.description}
-                </p>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm">
+                <Info className="h-4 w-4 text-primary" />
+                <span className="font-medium">説明</span>
               </div>
-            )}
+              <p className="text-sm text-muted-foreground pl-6 whitespace-pre-wrap">
+                {selectedTournamentForDetails?.description || '説明がありません'}
+              </p>
+              {/* デバッグ情報 */}
+              {process.env.NODE_ENV === 'development' && (
+                <pre className="text-xs bg-gray-100 p-2 rounded">
+                  {JSON.stringify(selectedTournamentForDetails, null, 2)}
+                </pre>
+              )}
+            </div>
 
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm">
