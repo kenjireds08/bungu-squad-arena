@@ -105,10 +105,8 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
       }
     };
 
-    if (rankings && tournaments) {
-      loadAdminData();
-    }
-  }, [rankings, tournaments]);
+    loadAdminData();
+  }, [rankings, tournaments, rankingsLoading, tournamentsLoading]);
 
   if (isLoading || !adminData) {
     return (
