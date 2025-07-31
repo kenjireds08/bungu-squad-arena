@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { QrCode, Trophy, TrendingUp, Calendar, Camera, Star, Users, Loader2, RefreshCw, History, MapPin, Info } from 'lucide-react';
 import { useRankings, useTournaments } from '@/hooks/useApi';
+import { useNotifications } from '@/hooks/useNotifications';
 import { PlayerRanking } from './PlayerRanking';
 import { QRScanner } from './QRScanner';
 import { PlayerMenu } from './PlayerMenu';
@@ -52,6 +53,7 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
 
   const { data: rankings, isLoading: rankingsLoading } = useRankings();
   const { data: tournaments, isLoading: tournamentsLoading } = useTournaments();
+  const { requestPermission } = useNotifications();
 
   const currentUser = rankings?.find(player => player.id === CURRENT_USER_ID);
   // Get tournament data from API - prioritize today's tournament
@@ -102,6 +104,17 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
       setTimeout(() => setShowPWAPrompt(true), 3000);
     }
   }, []);
+
+  // Request notification permission on first load
+  useEffect(() => {
+    const hasRequestedNotifications = localStorage.getItem('notification-permission-requested');
+    if (!hasRequestedNotifications) {
+      setTimeout(async () => {
+        await requestPermission();
+        localStorage.setItem('notification-permission-requested', 'true');
+      }, 2000); // 2秒後に要求
+    }
+  }, [requestPermission]);
 
   const getRankIcon = (rank: number) => {
     if (rank === 1) return "🥇";

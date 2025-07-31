@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Users, Clock, Play, CheckCircle, AlertCircle, Trophy, Spade, Plus } from 'lucide-react';
 import { useRankings } from '@/hooks/useApi';
+import { useNotifications } from '@/hooks/useNotifications';
 import { MatchInProgress } from './MatchInProgress';
 
 interface TournamentMatchesViewProps {

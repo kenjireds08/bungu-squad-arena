@@ -103,7 +103,7 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// Push notification handling (for future use)
+// Push notification handling
 self.addEventListener('push', (event) => {
   if (event.data) {
     const data = event.data.json();
@@ -112,8 +112,65 @@ self.addEventListener('push', (event) => {
         body: data.body,
         icon: '/src/assets/main-character.png',
         badge: '/src/assets/main-character.png',
-        tag: 'bungu-squad-notification'
+        tag: 'bungu-squad-notification',
+        requireInteraction: true,
+        actions: data.actions || []
       })
+    );
+  }
+});
+
+// Notification click handling
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  
+  const action = event.action || 'default';
+  const data = event.notification.data || {};
+  
+  event.waitUntil(
+    clients.matchAll({ type: 'window' }).then((clientList) => {
+      // Check if any client is already open
+      for (let client of clientList) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          client.focus();
+          // Send message to client about the notification action
+          client.postMessage({
+            type: 'NOTIFICATION_CLICKED',
+            action: action,
+            data: data
+          });
+          return;
+        }
+      }
+      
+      // If no client is open, open a new window
+      if (clients.openWindow) {
+        let url = '/';
+        switch (data.type) {
+          case 'match_start':
+            url = '/#/match-waiting';
+            break;
+          case 'match_approved':
+            url = '/#/dashboard';
+            break;
+          case 'tournament_start':
+            url = '/#/tournament-waiting';
+            break;
+          default:
+            url = '/';
+        }
+        return clients.openWindow(url);
+      }
+    })
+  );
+});
+
+// Background sync for notifications (when online again)
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'notification-sync') {
+    event.waitUntil(
+      // Check for pending notifications when back online
+      self.registration.sync.register('check-pending-matches')
     );
   }
 });
