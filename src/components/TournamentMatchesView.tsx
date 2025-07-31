@@ -115,11 +115,36 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
   };
 
   const canStartMatch = (match: Match) => {
-    return isUserInMatch(match) && match.status === 'scheduled';
+    if (!isUserInMatch(match) || match.status !== 'scheduled') {
+      return false;
+    }
+
+    // Check if this is the next match in sequence
+    const matchNumber = parseInt(match.match_number);
+    
+    // Find all completed matches
+    const completedMatches = matches.filter(m => m.status === 'approved');
+    const completedMatchNumbers = completedMatches.map(m => parseInt(m.match_number));
+    
+    // For match 1, it can always start
+    if (matchNumber === 1) {
+      return true;
+    }
+    
+    // For subsequent matches, check if all previous matches are completed
+    for (let i = 1; i < matchNumber; i++) {
+      if (!completedMatchNumbers.includes(i)) {
+        return false; // Previous match not completed yet
+      }
+    }
+    
+    return true;
   };
 
   const handleStartMatch = async (match: Match) => {
     try {
+      console.log('Starting match:', match.match_id, match);
+      
       // Update match status to in_progress
       const response = await fetch(`/api/matches?matchId=${match.match_id}`, {
         method: 'PUT',
@@ -131,14 +156,20 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
         }),
       });
 
+      console.log('API Response:', response.status, response.statusText);
+      
       if (response.ok) {
-        console.log('Match started:', match);
+        const result = await response.json();
+        console.log('Match started successfully:', result);
         setShowMatchInProgress(true);
         // Refresh matches to show updated status
         fetchMatches();
+      } else {
+        const errorText = await response.text();
+        console.error('Failed to start match - API Error:', response.status, errorText);
       }
     } catch (error) {
-      console.error('Failed to start match:', error);
+      console.error('Failed to start match - Network Error:', error);
     }
   };
 
