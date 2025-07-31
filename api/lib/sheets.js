@@ -705,44 +705,49 @@ class SheetsService {
     await this.authenticate();
     
     try {
-      // Get all data to find rows to delete
+      // Get all data from TournamentMatches sheet
       const response = await this.sheets.spreadsheets.values.get({
         spreadsheetId: this.spreadsheetId,
         range: 'TournamentMatches!A:N'
       });
 
       const rows = response.data.values || [];
-      const rowsToDelete = [];
+      const newRows = [];
+      let deletedCount = 0;
 
-      // Find rows that match the tournament ID (skip header row)
-      for (let i = 1; i < rows.length; i++) {
-        if (rows[i][1] === tournamentId) { // Column B contains tournament_id
-          rowsToDelete.push(i + 1); // +1 because sheets are 1-indexed
+      // Keep header row and filter out matching tournament_id rows
+      for (let i = 0; i < rows.length; i++) {
+        if (i === 0) {
+          // Keep header row
+          newRows.push(rows[i]);
+        } else if (rows[i][1] !== tournamentId) {
+          // Keep rows that don't match the tournament ID
+          newRows.push(rows[i]);
+        } else {
+          // This row will be deleted
+          deletedCount++;
         }
       }
 
-      // Delete rows in reverse order to maintain row indices
-      for (let i = rowsToDelete.length - 1; i >= 0; i--) {
-        const rowIndex = rowsToDelete[i];
-        await this.sheets.spreadsheets.batchUpdate({
+      // Clear the entire sheet and rewrite with filtered data
+      await this.sheets.spreadsheets.values.clear({
+        spreadsheetId: this.spreadsheetId,
+        range: 'TournamentMatches!A:N'
+      });
+
+      if (newRows.length > 0) {
+        await this.sheets.spreadsheets.values.update({
           spreadsheetId: this.spreadsheetId,
+          range: 'TournamentMatches!A1',
+          valueInputOption: 'USER_ENTERED',
           requestBody: {
-            requests: [{
-              deleteDimension: {
-                range: {
-                  sheetId: 0, // Assuming TournamentMatches is the first sheet
-                  dimension: 'ROWS',
-                  startIndex: rowIndex - 1,
-                  endIndex: rowIndex
-                }
-              }
-            }]
+            values: newRows
           }
         });
       }
 
-      console.log(`Deleted ${rowsToDelete.length} existing matches for tournament ${tournamentId}`);
-      return { success: true, deletedCount: rowsToDelete.length };
+      console.log(`Deleted ${deletedCount} existing matches for tournament ${tournamentId}`);
+      return { success: true, deletedCount: deletedCount };
     } catch (error) {
       console.error('Error deleting tournament matches:', error);
       throw new Error(`Failed to delete tournament matches: ${error.message}`);
@@ -756,8 +761,14 @@ class SheetsService {
       // Ensure tournament matches sheet exists
       await this.createTournamentMatchesSheet();
       
-      // First, delete existing matches for this tournament
-      await this.deleteTournamentMatches(tournamentId);
+      // Try to delete existing matches for this tournament
+      // If deletion fails, we'll continue with append (backward compatibility)
+      try {
+        await this.deleteTournamentMatches(tournamentId);
+        console.log(`Existing matches deleted for tournament ${tournamentId}`);
+      } catch (deleteError) {
+        console.warn(`Failed to delete existing matches for ${tournamentId}, continuing with append:`, deleteError.message);
+      }
       
       const timestamp = new Date().toISOString();
       const values = matches.map(match => [
@@ -786,7 +797,7 @@ class SheetsService {
         }
       });
 
-      console.log(`Tournament matches replaced for ${tournamentId}: ${matches.length} matches`);
+      console.log(`Tournament matches saved for ${tournamentId}: ${matches.length} matches`);
       return { success: true, matchCount: matches.length };
     } catch (error) {
       console.error('Error saving tournament matches:', error);
