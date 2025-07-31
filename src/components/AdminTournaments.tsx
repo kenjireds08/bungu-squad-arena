@@ -185,7 +185,10 @@ export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
         <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-fantasy-frame shadow-soft">
           <div className="container mx-auto px-4 py-3">
             <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" onClick={() => setCurrentView('list')}>
+              <Button variant="ghost" size="icon" onClick={() => {
+                setCurrentView('list');
+                setSelectedTournament(null);
+              }}>
                 <ArrowLeft className="h-5 w-5" />
               </Button>
               <div className="flex items-center gap-2">
