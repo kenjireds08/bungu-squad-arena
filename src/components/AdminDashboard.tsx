@@ -159,6 +159,10 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
     return <AdminTournaments onBack={() => setCurrentAdminPage('dashboard')} />;
   }
 
+  if (currentAdminPage === 'create-tournament') {
+    return <AdminTournaments onBack={() => setCurrentAdminPage('dashboard')} initialView="create" />;
+  }
+
   if (currentAdminPage === 'approvals') {
     return <AdminApprovals onBack={() => setCurrentAdminPage('dashboard')} />;
   }

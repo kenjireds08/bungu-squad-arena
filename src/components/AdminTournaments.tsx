@@ -17,11 +17,12 @@ import { getCategorizedTournaments, getTournamentStatus } from '@/utils/tourname
 
 interface AdminTournamentsProps {
   onBack: () => void;
+  initialView?: 'list' | 'create';
 }
 
 
-export const AdminTournaments = ({ onBack }: AdminTournamentsProps) => {
-  const [currentView, setCurrentView] = useState<'list' | 'create' | 'matchmaking' | 'participants'>('list');
+export const AdminTournaments = ({ onBack, initialView = 'list' }: AdminTournamentsProps) => {
+  const [currentView, setCurrentView] = useState<'list' | 'create' | 'matchmaking' | 'participants'>(initialView);
   const [selectedTournament, setSelectedTournament] = useState<any>(null);
   const [showQRCode, setShowQRCode] = useState(false);
   const [activeParticipants, setActiveParticipants] = useState(0);
