@@ -319,7 +319,7 @@ export const AdminPlayers = ({ onBack }: AdminPlayersProps) => {
                       </p>
                     </div>
                     <div className="space-y-1">
-                      <p className="text-sm text-muted-foreground">参加日</p>
+                      <p className="text-sm text-muted-foreground">登録日</p>
                       <p className="text-sm flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
                         {formatDate(selectedPlayer.registration_date)}

@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, User, Camera, Save, Star, Calendar, Trophy, Loader2 } from 'lucide-react';
+import { ArrowLeft, User, Camera, Save, Star, Calendar, Trophy, Loader2, RefreshCw } from 'lucide-react';
 import { usePlayer } from '@/hooks/useApi';
 
 interface PlayerProfileProps {
@@ -31,9 +31,10 @@ const mockProfile = {
 };
 
 export const PlayerProfile = ({ onClose, currentUserId }: PlayerProfileProps) => {
-  const { data: player, isLoading, error } = usePlayer(currentUserId);
+  const { data: player, isLoading, error, refetch } = usePlayer(currentUserId);
   const [nickname, setNickname] = useState('');
   const [isEditing, setIsEditing] = useState(false);
+  const [isUpdatingLogin, setIsUpdatingLogin] = useState(false);
 
   // Update nickname when player data loads
   if (player && nickname !== player.nickname) {
@@ -43,6 +44,26 @@ export const PlayerProfile = ({ onClose, currentUserId }: PlayerProfileProps) =>
   const handleSave = () => {
     // TODO: Save profile changes
     setIsEditing(false);
+  };
+
+  const updateLastLogin = async () => {
+    setIsUpdatingLogin(true);
+    try {
+      const response = await fetch(`/api/players?id=${currentUserId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ updateLastLogin: true })
+      });
+      
+      if (response.ok) {
+        // Refresh player data to show updated last login
+        refetch();
+      }
+    } catch (error) {
+      console.error('Failed to update last login:', error);
+    } finally {
+      setIsUpdatingLogin(false);
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -170,7 +191,19 @@ export const PlayerProfile = ({ onClose, currentUserId }: PlayerProfileProps) =>
                 <div className="space-y-1">
                   <div className="text-2xl font-bold text-foreground">{(player.total_wins + player.total_losses)}</div>
                   <div className="text-sm text-muted-foreground">総対戦数</div>
-                  <div className="text-xs text-muted-foreground">最終ログイン: {player.last_login ? formatDate(player.last_login) : '未設定'}</div>
+                  <div className="text-xs text-muted-foreground flex items-center gap-1 justify-center">
+                    最終ログイン: {player.last_login ? formatDate(player.last_login) : '未設定'}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={updateLastLogin}
+                      disabled={isUpdatingLogin}
+                      className="h-4 w-4 p-0 ml-1"
+                      title="最終ログイン日を更新"
+                    >
+                      <RefreshCw className={`h-3 w-3 ${isUpdatingLogin ? 'animate-spin' : ''}`} />
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -191,7 +224,7 @@ export const PlayerProfile = ({ onClose, currentUserId }: PlayerProfileProps) =>
               <div className="p-2 bg-muted/30 rounded border text-sm">{player.email}</div>
             </div>
             <div className="space-y-2">
-              <Label className="text-sm text-muted-foreground">参加日</Label>
+              <Label className="text-sm text-muted-foreground">登録日</Label>
               <div className="p-2 bg-muted/30 rounded border text-sm flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-primary" />
                 {formatDate(player.registration_date)}
