@@ -202,26 +202,17 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
           });
           console.log('Tournament active status updated for player:', currentUserId);
           
-          // Navigate to appropriate screen after 5 seconds
+          // Navigate to tournament waiting screen after 5 seconds (for all users)
           setTimeout(() => {
-            if (isAdmin) {
-              // For admin users, go back to main dashboard and let it handle admin state
-              window.location.href = '/';
-            } else {
-              // For regular users, go to tournament waiting page
-              window.location.href = '/tournament-waiting';
-            }
+            // All users (admin or regular) go to tournament waiting page after entry
+            window.location.href = '/tournament-waiting';
           }, 5000);
           
         } catch (error) {
           console.error('Failed to update tournament active status:', error);
-          // Even if API fails, still navigate to appropriate screen
+          // Even if API fails, still navigate to tournament waiting page
           setTimeout(() => {
-            if (isAdmin) {
-              window.location.href = '/';
-            } else {
-              window.location.href = '/tournament-waiting';
-            }
+            window.location.href = '/tournament-waiting';
           }, 5000);
         }
       } else {
