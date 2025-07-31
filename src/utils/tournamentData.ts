@@ -15,7 +15,7 @@ export interface Tournament {
 // Helper function to determine tournament status based on date and time
 export const getTournamentStatus = (date: string, time?: string) => {
   const now = new Date();
-  const today = now.toISOString().split('T')[0];
+  const today = now.toLocaleDateString('sv-SE'); // Use local date YYYY-MM-DD
   const tournamentDate = new Date(date).toISOString().split('T')[0];
   
   if (tournamentDate === today) {

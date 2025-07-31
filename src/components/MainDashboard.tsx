@@ -55,7 +55,7 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
 
   const currentUser = rankings?.find(player => player.id === CURRENT_USER_ID);
   // Get tournament data from API - prioritize today's tournament
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toLocaleDateString('sv-SE'); // Use local date YYYY-MM-DD
   const { active, upcoming, completed } = getCategorizedTournaments(tournaments || []);
   
   // Find today's tournament specifically (must match today's date exactly)
