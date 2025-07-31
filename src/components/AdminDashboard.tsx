@@ -122,7 +122,7 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
     {
       icon: Trophy,
       title: "大会管理",
-      description: "大会作成・組み合わせ設定",
+      description: "大会作成・運営・進行管理",
       page: "tournaments",
       count: adminData.tournaments.active
     },
@@ -132,19 +132,6 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
       description: "登録・承認・統計",
       page: "players",
       count: adminData.players.registered
-    },
-    {
-      icon: FileText,
-      title: "対戦結果承認",
-      description: "試合結果の確認・承認",
-      page: "approvals",
-      count: adminData.pendingApprovals
-    },
-    {
-      icon: TrendingUp,
-      title: "大会進行管理",
-      description: "進行状況・次の試合案内",
-      page: "tournament-progress"
     },
     {
       icon: FileText,
@@ -162,17 +149,8 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
     return <AdminTournaments onBack={() => setCurrentAdminPage('dashboard')} initialView="create" />;
   }
 
-  if (currentAdminPage === 'approvals') {
-    return <AdminApprovals onBack={() => setCurrentAdminPage('dashboard')} />;
-  }
-
   if (currentAdminPage === 'players') {
     return <AdminPlayers onBack={() => setCurrentAdminPage('dashboard')} />;
-  }
-
-
-  if (currentAdminPage === 'tournament-progress') {
-    return <TournamentProgress onBack={() => setCurrentAdminPage('dashboard')} />;
   }
 
 
@@ -325,9 +303,9 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
             新しい大会を作成
           </Button>
           
-          <Button variant="tournament" size="lg" className="h-16" onClick={() => setCurrentAdminPage('approvals')}>
-            <FileText className="h-5 w-5 mr-2" />
-            承認待ちを確認
+          <Button variant="tournament" size="lg" className="h-16" onClick={() => setCurrentAdminPage('tournaments')}>
+            <TrendingUp className="h-5 w-5 mr-2" />
+            試合経過を確認
           </Button>
         </div>
       </main>

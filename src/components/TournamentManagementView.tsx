@@ -283,7 +283,7 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
                 <ArrowLeft className="h-5 w-5" />
               </Button>
               <div>
-                <h1 className="text-xl font-bold text-foreground">大会管理</h1>
+                <h1 className="text-xl font-bold text-foreground">大会運営</h1>
                 <p className="text-sm text-muted-foreground">{tournamentName}</p>
               </div>
             </div>
