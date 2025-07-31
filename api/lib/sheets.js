@@ -637,10 +637,28 @@ class SheetsService {
     await this.authenticate();
     
     try {
+      // Ensure the sheet has the correct structure
+      await this.ensureTournamentSheetStructure();
+      
+      // Get sheet metadata to find the correct sheet ID
+      const sheetResponse = await this.sheets.spreadsheets.get({
+        spreadsheetId: this.spreadsheetId,
+      });
+      
+      const tournamentSheet = sheetResponse.data.sheets.find(sheet => 
+        sheet.properties.title === 'Tournaments'
+      );
+      
+      if (!tournamentSheet) {
+        throw new Error('Tournaments sheet not found');
+      }
+      
+      const sheetId = tournamentSheet.properties.sheetId;
+      
       // Get current tournament data to find the row
       const response = await this.sheets.spreadsheets.values.get({
         spreadsheetId: this.spreadsheetId,
-        range: 'Tournaments!A:L'
+        range: 'Tournaments!A:M'
       });
 
       const rows = response.data.values || [];
@@ -656,7 +674,7 @@ class SheetsService {
         throw new Error('Tournament not found');
       }
 
-      // Delete the row by clearing it and then removing empty rows
+      // Delete the row
       const actualRowNumber = tournamentRowIndex + 1; // +1 because findIndex includes the header
       
       await this.sheets.spreadsheets.batchUpdate({
@@ -665,7 +683,7 @@ class SheetsService {
           requests: [{
             deleteDimension: {
               range: {
-                sheetId: 0, // Assuming tournaments is the first sheet
+                sheetId: sheetId,
                 dimension: 'ROWS',
                 startIndex: actualRowNumber - 1, // 0-indexed for batch update
                 endIndex: actualRowNumber
