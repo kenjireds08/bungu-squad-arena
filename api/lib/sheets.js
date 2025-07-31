@@ -373,19 +373,44 @@ class SheetsService {
     await this.authenticate();
     
     try {
-      // Check if description column (M) exists by trying to read the header
-      const headerResponse = await this.sheets.spreadsheets.values.get({
+      // First, get sheet metadata to check current column count
+      const sheetResponse = await this.sheets.spreadsheets.get({
         spreadsheetId: this.spreadsheetId,
-        range: 'Tournaments!A1:M1'
       });
-
-      const headers = headerResponse.data.values?.[0] || [];
       
-      // If description column doesn't exist or is empty, add it
-      if (headers.length < 13 || !headers[12]) {
-        console.log('Adding description column to Tournaments sheet...');
+      const tournamentSheet = sheetResponse.data.sheets.find(sheet => 
+        sheet.properties.title === 'Tournaments'
+      );
+      
+      if (!tournamentSheet) {
+        throw new Error('Tournaments sheet not found');
+      }
+      
+      const currentColumns = tournamentSheet.properties.gridProperties.columnCount;
+      console.log(`Current Tournaments sheet has ${currentColumns} columns`);
+      
+      // If we don't have at least 13 columns (A-M), expand the sheet
+      if (currentColumns < 13) {
+        console.log('Expanding Tournaments sheet to include description column...');
         
-        // Add the description header
+        await this.sheets.spreadsheets.batchUpdate({
+          spreadsheetId: this.spreadsheetId,
+          requestBody: {
+            requests: [{
+              updateSheetProperties: {
+                properties: {
+                  sheetId: tournamentSheet.properties.sheetId,
+                  gridProperties: {
+                    columnCount: 13
+                  }
+                },
+                fields: 'gridProperties.columnCount'
+              }
+            }]
+          }
+        });
+        
+        // Now add the header
         await this.sheets.spreadsheets.values.update({
           spreadsheetId: this.spreadsheetId,
           range: 'Tournaments!M1',
@@ -396,6 +421,24 @@ class SheetsService {
         });
         
         console.log('Description column added successfully');
+      } else {
+        // Check if header exists
+        const headerResponse = await this.sheets.spreadsheets.values.get({
+          spreadsheetId: this.spreadsheetId,
+          range: 'Tournaments!M1'
+        });
+        
+        if (!headerResponse.data.values || !headerResponse.data.values[0] || !headerResponse.data.values[0][0]) {
+          await this.sheets.spreadsheets.values.update({
+            spreadsheetId: this.spreadsheetId,
+            range: 'Tournaments!M1',
+            valueInputOption: 'USER_ENTERED',
+            requestBody: {
+              values: [['description']]
+            }
+          });
+          console.log('Description header added');
+        }
       }
     } catch (error) {
       console.error('Error ensuring tournament sheet structure:', error);
