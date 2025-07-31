@@ -80,7 +80,12 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
   // Check for PWA install prompt
   useEffect(() => {
     const hasShownPrompt = localStorage.getItem('pwa-prompt-shown');
-    if (!hasShownPrompt) {
+    // Check if running as PWA (standalone mode)
+    const isRunningStandalone = window.matchMedia('(display-mode: standalone)').matches || 
+                                (window.navigator as any).standalone === true;
+    
+    // Don't show prompt if already shown or if running as PWA
+    if (!hasShownPrompt && !isRunningStandalone) {
       setTimeout(() => setShowPWAPrompt(true), 3000);
     }
   }, []);
