@@ -8,9 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ArrowLeft, Plus, Calendar, MapPin, QrCode, Users, Settings } from 'lucide-react';
+import { ArrowLeft, Plus, Calendar, MapPin, QrCode, Users, Settings, Shuffle } from 'lucide-react';
 import { QRCodeDisplay } from './QRCodeDisplay';
 import { TournamentManagementView } from './TournamentManagementView';
+import { TournamentMatchmaking } from './TournamentMatchmaking';
 import { useRankings, useTournaments, useCreateTournament, useUpdateTournament, useDeleteTournament } from '@/hooks/useApi';
 import { useToast } from '@/components/ui/use-toast';
 import { getCategorizedTournaments, getTournamentStatus } from '@/utils/tournamentData';
@@ -138,6 +139,11 @@ export const AdminTournaments = ({ onBack, initialView = 'list' }: AdminTourname
     setQrTournament(null);
   };
 
+  const handleShowMatchmaking = (tournament: any) => {
+    setManagementTournament(tournament);
+    setCurrentView('matchmaking');
+  };
+
   const handleShowManagement = (tournament: any) => {
     setManagementTournament(tournament);
     setCurrentView('management');
@@ -222,6 +228,15 @@ export const AdminTournaments = ({ onBack, initialView = 'list' }: AdminTourname
           </Card>
         </main>
       </div>
+    );
+  }
+
+  if (currentView === 'matchmaking' && managementTournament) {
+    return (
+      <TournamentMatchmaking
+        onClose={handleBackFromManagement}
+        tournamentId={managementTournament.id.toString()}
+      />
     );
   }
 
@@ -415,6 +430,10 @@ export const AdminTournaments = ({ onBack, initialView = 'list' }: AdminTourname
                     </div>
                   </div>
                   <div className="flex gap-2 mt-3">
+                    <Button variant="outline" size="sm" onClick={() => handleShowMatchmaking(tournament)}>
+                      <Shuffle className="h-3 w-3" />
+                      組み合わせ
+                    </Button>
                     <Button variant="outline" size="sm" onClick={() => handleShowManagement(tournament)}>
                       <Settings className="h-3 w-3" />
                       大会管理

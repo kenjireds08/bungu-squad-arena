@@ -701,12 +701,63 @@ class SheetsService {
     }
   }
 
+  async deleteTournamentMatches(tournamentId) {
+    await this.authenticate();
+    
+    try {
+      // Get all data to find rows to delete
+      const response = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'TournamentMatches!A:N'
+      });
+
+      const rows = response.data.values || [];
+      const rowsToDelete = [];
+
+      // Find rows that match the tournament ID (skip header row)
+      for (let i = 1; i < rows.length; i++) {
+        if (rows[i][1] === tournamentId) { // Column B contains tournament_id
+          rowsToDelete.push(i + 1); // +1 because sheets are 1-indexed
+        }
+      }
+
+      // Delete rows in reverse order to maintain row indices
+      for (let i = rowsToDelete.length - 1; i >= 0; i--) {
+        const rowIndex = rowsToDelete[i];
+        await this.sheets.spreadsheets.batchUpdate({
+          spreadsheetId: this.spreadsheetId,
+          requestBody: {
+            requests: [{
+              deleteDimension: {
+                range: {
+                  sheetId: 0, // Assuming TournamentMatches is the first sheet
+                  dimension: 'ROWS',
+                  startIndex: rowIndex - 1,
+                  endIndex: rowIndex
+                }
+              }
+            }]
+          }
+        });
+      }
+
+      console.log(`Deleted ${rowsToDelete.length} existing matches for tournament ${tournamentId}`);
+      return { success: true, deletedCount: rowsToDelete.length };
+    } catch (error) {
+      console.error('Error deleting tournament matches:', error);
+      throw new Error(`Failed to delete tournament matches: ${error.message}`);
+    }
+  }
+
   async saveTournamentMatches(tournamentId, matches) {
     await this.authenticate();
     
     try {
       // Ensure tournament matches sheet exists
       await this.createTournamentMatchesSheet();
+      
+      // First, delete existing matches for this tournament
+      await this.deleteTournamentMatches(tournamentId);
       
       const timestamp = new Date().toISOString();
       const values = matches.map(match => [
@@ -735,7 +786,7 @@ class SheetsService {
         }
       });
 
-      console.log(`Tournament matches saved for ${tournamentId}: ${matches.length} matches`);
+      console.log(`Tournament matches replaced for ${tournamentId}: ${matches.length} matches`);
       return { success: true, matchCount: matches.length };
     } catch (error) {
       console.error('Error saving tournament matches:', error);
