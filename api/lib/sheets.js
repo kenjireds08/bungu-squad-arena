@@ -2250,6 +2250,122 @@ class SheetsService {
     }
   }
 
+  async adminDirectMatchResult(resultData) {
+    await this.authenticate();
+    
+    try {
+      const { matchId, winnerId, loserId, timestamp } = resultData;
+      
+      // Create result records for both players (already approved)
+      const winnerResultId = `admin_${Date.now()}_${winnerId}`;
+      const loserResultId = `admin_${Date.now()}_${loserId}`;
+      
+      // Ensure MatchResults sheet exists
+      await this.createMatchResultsSheet();
+      
+      // Add both result records as approved
+      await this.sheets.spreadsheets.values.append({
+        spreadsheetId: this.spreadsheetId,
+        range: 'MatchResults!A:H',
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+          values: [
+            [
+              winnerResultId,
+              matchId,
+              winnerId,
+              loserId,
+              'win',
+              timestamp,
+              'approved',
+              'Admin direct input'
+            ],
+            [
+              loserResultId,
+              matchId,
+              loserId,
+              winnerId,
+              'lose',
+              timestamp,
+              'approved',
+              'Admin direct input'
+            ]
+          ]
+        }
+      });
+      
+      // Update player ratings immediately
+      const ratingUpdateResult = await this.updatePlayersRating(winnerId, loserId, 'win');
+      
+      // Update match status to completed
+      await this.updateMatchStatus(matchId, 'completed', winnerId);
+      
+      return {
+        success: true,
+        winnerResultId,
+        loserResultId,
+        ratingUpdate: ratingUpdateResult
+      };
+    } catch (error) {
+      console.error('Error with admin direct match result:', error);
+      throw new Error('Failed to process admin direct match result');
+    }
+  }
+
+  async updateMatchStatus(matchId, status, winnerId = null) {
+    await this.authenticate();
+    
+    try {
+      // Get current matches to find the row
+      const response = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'TournamentMatches!A2:Z1000'
+      });
+      
+      const rows = response.data.values || [];
+      const matchRowIndex = rows.findIndex(row => row[0] === matchId);
+      
+      if (matchRowIndex === -1) {
+        throw new Error('Match not found');
+      }
+      
+      const actualRowNumber = matchRowIndex + 2;
+      
+      // Update status (column F)
+      await this.sheets.spreadsheets.values.update({
+        spreadsheetId: this.spreadsheetId,
+        range: `TournamentMatches!F${actualRowNumber}`,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: { values: [[status]] }
+      });
+      
+      // Update winner if provided (column G)
+      if (winnerId) {
+        await this.sheets.spreadsheets.values.update({
+          spreadsheetId: this.spreadsheetId,
+          range: `TournamentMatches!G${actualRowNumber}`,
+          valueInputOption: 'USER_ENTERED',
+          requestBody: { values: [[winnerId]] }
+        });
+      }
+      
+      // Update completed timestamp (column I)
+      if (status === 'completed') {
+        await this.sheets.spreadsheets.values.update({
+          spreadsheetId: this.spreadsheetId,
+          range: `TournamentMatches!I${actualRowNumber}`,
+          valueInputOption: 'USER_ENTERED',
+          requestBody: { values: [[new Date().toISOString()]] }
+        });
+      }
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Error updating match status:', error);
+      throw new Error('Failed to update match status');
+    }
+  }
+
   async createMatchResultsSheet() {
     await this.authenticate();
     

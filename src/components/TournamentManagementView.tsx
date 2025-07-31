@@ -9,7 +9,7 @@ import {
   AlertCircle, RefreshCw, Trophy, Clock, Play, CheckCircle, Bell, 
   Edit2, Timer, Shuffle, Settings
 } from 'lucide-react';
-import { useRankings } from '@/hooks/useApi';
+import { useRankings, useAdminDirectInput } from '@/hooks/useApi';
 import { toast } from '@/components/ui/use-toast';
 import { TournamentMatchmaking } from './TournamentMatchmaking';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -49,7 +49,9 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
   const [deleteMatchId, setDeleteMatchId] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isSaving, setIsSaving] = useState(false);
+  const [directInputMatch, setDirectInputMatch] = useState<Match | null>(null);
   const { data: players } = useRankings();
+  const adminDirectInputMutation = useAdminDirectInput();
   
   const activePlayers = players?.filter(p => p.tournament_active) || [];
 
@@ -127,6 +129,49 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
 
   const canEditMatch = (match: Match) => {
     return match.status === 'scheduled';
+  };
+
+  // 管理者手動入力
+  const handleAdminDirectInput = async (match: Match, winnerId: string) => {
+    const loserId = winnerId === match.player1_id ? match.player2_id : match.player1_id;
+    
+    try {
+      await adminDirectInputMutation.mutateAsync({
+        matchId: match.match_id,
+        winnerId,
+        loserId
+      });
+
+      toast({
+        title: "試合結果を確定しました",
+        description: "レーティングが更新され、次の試合に進行できます。",
+      });
+
+      // 試合データを再取得
+      fetchMatches();
+    } catch (error) {
+      toast({
+        title: "エラーが発生しました",
+        description: "試合結果の確定に失敗しました。",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // 代理入力ダイアログを表示
+  const handleDirectInput = (matchId: string) => {
+    const match = matches.find(m => m.match_id === matchId);
+    if (match) {
+      setDirectInputMatch(match);
+    }
+  };
+
+  // 催促通知（将来実装予定）
+  const handleSendReminder = (matchId: string) => {
+    toast({
+      title: "催促通知を送信しました",
+      description: "プレイヤーに試合結果の報告を促す通知を送信しました。",
+    });
   };
 
   const canDeleteMatch = (match: Match) => {
@@ -251,15 +296,6 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
     }
   };
 
-  const handleSendReminder = (matchId: string) => {
-    console.log('Sending reminder for match:', matchId);
-    // TODO: Implement reminder notification
-  };
-
-  const handleDirectInput = (matchId: string) => {
-    console.log('Opening direct input for match:', matchId);
-    // TODO: Open direct input modal
-  };
 
   if (showMatchmaking) {
     return (
@@ -604,6 +640,67 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
                 )}
               </CardContent>
             </Card>
+
+            {/* Completed Matches */}
+            <Card className="border-fantasy-frame shadow-soft">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2">
+                  <CheckCircle className="h-5 w-5 text-success" />
+                  完了した試合 ({completedMatches.length}件)
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {completedMatches.length > 0 ? (
+                  completedMatches.map((match) => {
+                    const winnerName = match.winner_id === match.player1_id ? match.player1_name : match.player2_name;
+                    const loserName = match.winner_id === match.player1_id ? match.player2_name : match.player1_name;
+                    const completedAt = match.approved_at ? new Date(match.approved_at) : new Date(match.completed_at);
+                    
+                    return (
+                      <div
+                        key={match.match_id}
+                        className="p-4 bg-success/10 border border-success/20 rounded-lg"
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="space-y-1">
+                            <h3 className="font-semibold text-foreground">
+                              {match.player1_name} vs {match.player2_name}
+                            </h3>
+                            <div className="text-sm text-muted-foreground">
+                              試合{match.match_number} • {match.game_type === 'trump' ? 'トランプルール' : 'カードプラスルール'}
+                            </div>
+                          </div>
+                          <div className="text-right space-y-1">
+                            <Badge className="bg-success text-success-foreground">
+                              完了
+                            </Badge>
+                            <div className="text-sm text-muted-foreground">
+                              <Clock className="h-3 w-3 inline mr-1" />
+                              {completedAt.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center justify-between mt-3 pt-3 border-t border-success/20">
+                          <div className="flex items-center gap-2">
+                            <Trophy className="h-4 w-4 text-success" />
+                            <span className="font-medium text-success">勝者: {winnerName}</span>
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            敗者: {loserName}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <CheckCircle className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                    <p>完了した試合はありません</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </main>
@@ -718,6 +815,82 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Direct Input Dialog - Winner Selection */}
+      <Dialog open={!!directInputMatch} onOpenChange={() => setDirectInputMatch(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>管理者代理入力 - 試合 {directInputMatch?.match_number}</DialogTitle>
+          </DialogHeader>
+          {directInputMatch && (
+            <div className="space-y-4">
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <div className="text-center space-y-2">
+                  <div className="text-lg font-semibold">
+                    {directInputMatch.player1_name} vs {directInputMatch.player2_name}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    試合{directInputMatch.match_number} • {directInputMatch.game_type === 'trump' ? 'トランプルール' : 'カードプラスルール'}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="text-center space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  勝者を選択してください。選択と同時に試合結果が確定され、レーティングが更新されます。
+                </p>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="h-20 flex-col space-y-2 hover:bg-success/10 hover:border-success"
+                    onClick={() => {
+                      handleAdminDirectInput(directInputMatch, directInputMatch.player1_id);
+                      setDirectInputMatch(null);
+                    }}
+                    disabled={adminDirectInputMutation.isPending}
+                  >
+                    <Trophy className="h-6 w-6" />
+                    <span className="font-semibold">{directInputMatch.player1_name}</span>
+                    <span className="text-xs text-muted-foreground">勝利</span>
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="h-20 flex-col space-y-2 hover:bg-success/10 hover:border-success"
+                    onClick={() => {
+                      handleAdminDirectInput(directInputMatch, directInputMatch.player2_id);
+                      setDirectInputMatch(null);
+                    }}
+                    disabled={adminDirectInputMutation.isPending}
+                  >
+                    <Trophy className="h-6 w-6" />
+                    <span className="font-semibold">{directInputMatch.player2_name}</span>
+                    <span className="text-xs text-muted-foreground">勝利</span>
+                  </Button>
+                </div>
+                
+                {adminDirectInputMutation.isPending && (
+                  <div className="text-sm text-muted-foreground">
+                    試合結果を処理中...
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setDirectInputMatch(null)}
+              disabled={adminDirectInputMutation.isPending}
+            >
+              キャンセル
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

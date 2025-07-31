@@ -89,13 +89,13 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'scheduled':
-        return <Badge variant="outline"><Clock className="h-3 w-3 mr-1" />待機中</Badge>;
+        return <Badge variant="outline" className="text-muted-foreground"><Clock className="h-3 w-3 mr-1" />待機中</Badge>;
       case 'in_progress':
-        return <Badge variant="default" className="bg-blue-500"><Play className="h-3 w-3 mr-1" />進行中</Badge>;
+        return <Badge variant="default" className="bg-blue-500 text-white animate-pulse"><Play className="h-3 w-3 mr-1" />対戦中</Badge>;
       case 'completed':
-        return <Badge variant="default" className="bg-orange-500"><AlertCircle className="h-3 w-3 mr-1" />承認待ち</Badge>;
+        return <Badge variant="default" className="bg-orange-500 text-white"><AlertCircle className="h-3 w-3 mr-1" />報告待ち</Badge>;
       case 'approved':
-        return <Badge variant="default" className="bg-green-500"><CheckCircle className="h-3 w-3 mr-1" />完了</Badge>;
+        return <Badge variant="default" className="bg-green-500 text-white"><CheckCircle className="h-3 w-3 mr-1" />完了</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -234,8 +234,8 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-4">
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-primary">
-                      {tournamentProgress.completed}
+                    <div className="text-2xl font-bold text-success">
+                      {matches.filter(m => m.status === 'approved').length}
                     </div>
                     <div className="text-sm text-muted-foreground">完了試合</div>
                   </div>
@@ -249,34 +249,90 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
                 </div>
                 <div className="text-right">
                   <div className="text-lg font-bold text-primary">
-                    {Math.round((tournamentProgress.completed / tournamentProgress.total) * 100)}%
+                    {Math.round((matches.filter(m => m.status === 'approved').length / tournamentProgress.total) * 100)}%
                   </div>
                   <div className="text-sm text-muted-foreground">進行率</div>
                 </div>
               </div>
               
               {/* Progress bar */}
-              <div className="w-full bg-muted rounded-full h-2 mb-3">
+              <div className="w-full bg-muted rounded-full h-2 mb-4">
                 <div 
                   className="bg-primary h-2 rounded-full transition-all duration-500"
                   style={{ 
-                    width: `${(tournamentProgress.completed / tournamentProgress.total) * 100}%` 
+                    width: `${(matches.filter(m => m.status === 'approved').length / tournamentProgress.total) * 100}%` 
                   }}
                 ></div>
               </div>
+
+              {/* Detailed Status Overview */}
+              <div className="space-y-3">
+                {/* Current Status Summary */}
+                <div className="grid grid-cols-2 gap-3">
+                  {matches.filter(m => m.status === 'in_progress').length > 0 && (
+                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <Play className="h-4 w-4 text-blue-600 animate-pulse" />
+                        <span className="font-medium text-blue-800">現在対戦中</span>
+                      </div>
+                      <div className="text-sm text-blue-600 mt-1">
+                        {matches.filter(m => m.status === 'in_progress').map(m => 
+                          `${m.match_number}試合目`
+                        ).join(', ')}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {matches.filter(m => m.status === 'completed').length > 0 && (
+                    <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <AlertCircle className="h-4 w-4 text-orange-600" />
+                        <span className="font-medium text-orange-800">報告待ち</span>
+                      </div>
+                      <div className="text-sm text-orange-600 mt-1">
+                        {matches.filter(m => m.status === 'completed').length}件
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Next Up */}
+                {(() => {
+                  const nextMatch = matches.find(m => m.status === 'scheduled' && canStartMatch(m));
+                  if (nextMatch) {
+                    return (
+                      <div className="p-3 bg-primary/10 border border-primary/20 rounded-lg">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <Clock className="h-4 w-4 text-primary" />
+                              <span className="font-medium text-primary">次の試合</span>
+                            </div>
+                            <div className="text-sm text-muted-foreground mt-1">
+                              {nextMatch.match_number}試合目: {nextMatch.player1_name} vs {nextMatch.player2_name}
+                            </div>
+                          </div>
+                          {isUserInMatch(nextMatch) && (
+                            <Badge className="bg-primary text-white animate-bounce">
+                              あなたの番！
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+              </div>
               
-              {tournamentProgress.completed === tournamentProgress.total ? (
-                <div className="text-center py-2">
+              {matches.filter(m => m.status === 'approved').length === tournamentProgress.total ? (
+                <div className="text-center py-2 mt-4">
                   <Badge className="bg-success text-white">
                     <Trophy className="h-3 w-3 mr-1" />
                     大会完了！
                   </Badge>
                 </div>
-              ) : (
-                <div className="text-center text-sm text-muted-foreground">
-                  残り {tournamentProgress.total - tournamentProgress.completed} 試合
-                </div>
-              )}
+              ) : null}
             </CardContent>
           </Card>
         )}
@@ -338,41 +394,54 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
                 <p>組み合わせがまだ決まっていません</p>
               </div>
             ) : (
-              matches.map((match) => (
-                <div 
-                  key={match.match_id} 
-                  className={`p-4 rounded-lg border transition-colors ${
-                    isUserInMatch(match) 
-                      ? 'bg-primary/10 border-primary/20' 
-                      : 'bg-muted/50 border-muted'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-muted-foreground">
-                          {match.match_number}試合目
-                        </span>
-                        {getGameTypeIcon(match.game_type)}
-                        <span className="text-xs text-muted-foreground">
-                          {getGameTypeName(match.game_type)}
-                        </span>
-                      </div>
-                      <p className="font-medium">
-                        {match.player1_name} vs {match.player2_name}
-                      </p>
-                      {match.winner_id && (
-                        <p className="text-sm text-success">
-                          勝者: {match.winner_id === match.player1_id ? match.player1_name : match.player2_name}
+              matches.map((match) => {
+                const matchStatusColor = {
+                  'scheduled': 'bg-muted/50 border-muted',
+                  'in_progress': 'bg-blue-50 border-blue-200',
+                  'completed': 'bg-orange-50 border-orange-200',
+                  'approved': 'bg-green-50 border-green-200'
+                }[match.status] || 'bg-muted/50 border-muted';
+
+                const userMatchHighlight = isUserInMatch(match) ? 'ring-2 ring-primary/20' : '';
+                
+                return (
+                  <div 
+                    key={match.match_id} 
+                    className={`p-4 rounded-lg border transition-colors ${matchStatusColor} ${userMatchHighlight}`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-muted-foreground">
+                            match_{match.match_number}試合目
+                          </span>
+                          {getGameTypeIcon(match.game_type)}
+                          <span className="text-xs text-muted-foreground">
+                            {getGameTypeName(match.game_type)}
+                          </span>
+                        </div>
+                        <p className="font-medium">
+                          {match.player1_name} vs {match.player2_name}
                         </p>
-                      )}
-                    </div>
-                    <div className="text-right">
-                      {getStatusBadge(match.status)}
+                        {match.status === 'approved' && match.winner_id && (
+                          <div className="flex items-center gap-2 mt-2 p-2 bg-success/10 rounded border border-success/20">
+                            <Trophy className="h-4 w-4 text-success" />
+                            <span className="text-sm font-medium text-success">
+                              勝者: {match.winner_id === match.player1_id ? match.player1_name : match.player2_name}
+                            </span>
+                            <span className="text-xs text-muted-foreground ml-2">
+                              ({match.winner_id === match.player1_id ? match.player2_name : match.player1_name} 敗北)
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        {getStatusBadge(match.status)}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </CardContent>
         </Card>

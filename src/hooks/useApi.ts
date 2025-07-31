@@ -172,3 +172,20 @@ export const useApproveMatchResult = () => {
     },
   });
 };
+
+export const useAdminDirectInput = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (matchData: { matchId: string; winnerId: string; loserId: string }) => 
+      api.adminDirectInput(matchData),
+    onSuccess: () => {
+      // Invalidate all related queries
+      queryClient.invalidateQueries({ queryKey: ['pendingMatchResults'] });
+      queryClient.invalidateQueries({ queryKey: ['players'] });
+      queryClient.invalidateQueries({ queryKey: ['rankings'] });
+      queryClient.invalidateQueries({ queryKey: ['tournaments'] });
+      queryClient.invalidateQueries({ queryKey: ['matches'] });
+    },
+  });
+};

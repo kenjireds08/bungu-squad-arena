@@ -156,6 +156,9 @@ self.addEventListener('notificationclick', (event) => {
           case 'tournament_start':
             url = '/#/tournament-waiting';
             break;
+          case 'your_turn':
+            url = '/#/tournament-waiting';
+            break;
           default:
             url = '/';
         }

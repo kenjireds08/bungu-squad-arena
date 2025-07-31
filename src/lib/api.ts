@@ -169,4 +169,10 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify({ resultId, approved }),
     }),
+
+  adminDirectInput: (matchData: { matchId: string; winnerId: string; loserId: string }): Promise<{ success: boolean; message: string; ratingUpdate: any }> =>
+    apiCall('/matchResults', {
+      method: 'PATCH',
+      body: JSON.stringify(matchData),
+    }),
 };

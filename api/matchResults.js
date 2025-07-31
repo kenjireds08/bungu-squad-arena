@@ -15,6 +15,8 @@ module.exports = async function handler(req, res) {
         return await handleGetPendingResults(req, res, sheetsService);
       case 'PUT':
         return await handleApproveMatchResult(req, res, sheetsService);
+      case 'PATCH':
+        return await handleAdminDirectInput(req, res, sheetsService);
       default:
         return res.status(405).json({ error: 'Method not allowed' });
     }
@@ -79,5 +81,32 @@ async function handleApproveMatchResult(req, res, sheetsService) {
   } catch (error) {
     console.error('Error approving match result:', error);
     return res.status(500).json({ error: 'Failed to approve match result' });
+  }
+}
+
+// 管理者が直接試合結果を入力・承認
+async function handleAdminDirectInput(req, res, sheetsService) {
+  const { matchId, winnerId, loserId } = req.body;
+
+  if (!matchId || !winnerId || !loserId) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+
+  try {
+    const result = await sheetsService.adminDirectMatchResult({
+      matchId,
+      winnerId,
+      loserId,
+      timestamp: new Date().toISOString()
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: '管理者により試合結果が入力・承認されました',
+      ratingUpdate: result.ratingUpdate
+    });
+  } catch (error) {
+    console.error('Error with admin direct input:', error);
+    return res.status(500).json({ error: 'Failed to process admin direct input' });
   }
 }

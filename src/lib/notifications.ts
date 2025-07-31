@@ -155,6 +155,23 @@ export class NotificationManager {
       }
     );
   }
+
+  /**
+   * 自分の番通知
+   */
+  async notifyYourTurn(opponentName: string, matchNumber: number): Promise<boolean> {
+    return this.sendNotification(
+      `🎯 あなたの番です！`,
+      {
+        body: `${matchNumber}試合目 vs ${opponentName}\n試合を開始してください。`,
+        data: { action: 'your_turn' },
+        actions: [
+          { action: 'start', title: '試合開始' },
+          { action: 'later', title: '後で' }
+        ]
+      }
+    );
+  }
 }
 
 // シングルトンインスタンスをエクスポート

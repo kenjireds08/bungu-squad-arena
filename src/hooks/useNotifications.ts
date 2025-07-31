@@ -45,11 +45,17 @@ export const useNotifications = () => {
     return await notificationManager.notifyTurnComing(matchNumber, estimatedTime);
   }, []);
 
+  // 自分の番通知
+  const notifyYourTurn = useCallback(async (opponentName: string, matchNumber: number) => {
+    return await notificationManager.notifyYourTurn(opponentName, matchNumber);
+  }, []);
+
   return {
     requestPermission,
     notifyMatchStart,
     notifyMatchApproved,
     notifyTournamentStart,
-    notifyTurnComing
+    notifyTurnComing,
+    notifyYourTurn
   };
 };
