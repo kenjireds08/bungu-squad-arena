@@ -68,9 +68,9 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
     
     for (let matchIndex = 0; matchIndex < matchCount; matchIndex++) {
       let bestPairing = null;
-      let bestScore = -1;
+      let bestScore = -Infinity;
       
-      // Try all possible pairings
+      // Try all possible pairings (including repeated pairings for random mode)
       for (let i = 0; i < participants.length; i++) {
         for (let j = i + 1; j < participants.length; j++) {
           const player1 = participants[i];
@@ -89,8 +89,11 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
           const gap2 = matchIndex - player2LastMatch;
           const gapScore = Math.min(gap1, gap2);
           
-          // Combined score (prioritize fairness, then gaps)
-          const totalScore = countScore * 100 + gapScore;
+          // Add some randomness while maintaining fairness
+          const randomFactor = Math.random() * 10;
+          
+          // Combined score (prioritize fairness, then gaps, then randomness)
+          const totalScore = countScore * 100 + gapScore * 10 + randomFactor;
           
           if (totalScore > bestScore) {
             bestScore = totalScore;
@@ -99,17 +102,21 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
         }
       }
       
-      if (bestPairing) {
-        matches.push(bestPairing);
-        
-        // Update counts and last match indices
-        const player1Id = bestPairing.player1.id;
-        const player2Id = bestPairing.player2.id;
-        playerMatchCount.set(player1Id, playerMatchCount.get(player1Id) + 1);
-        playerMatchCount.set(player2Id, playerMatchCount.get(player2Id) + 1);
-        playerLastMatch.set(player1Id, matchIndex);
-        playerLastMatch.set(player2Id, matchIndex);
+      // If no pairing found (shouldn't happen), create a fallback pairing
+      if (!bestPairing) {
+        const shuffled = [...participants].sort(() => Math.random() - 0.5);
+        bestPairing = { player1: shuffled[0], player2: shuffled[1] };
       }
+      
+      matches.push(bestPairing);
+      
+      // Update counts and last match indices
+      const player1Id = bestPairing.player1.id;
+      const player2Id = bestPairing.player2.id;
+      playerMatchCount.set(player1Id, playerMatchCount.get(player1Id) + 1);
+      playerMatchCount.set(player2Id, playerMatchCount.get(player2Id) + 1);
+      playerLastMatch.set(player1Id, matchIndex);
+      playerLastMatch.set(player2Id, matchIndex);
     }
     
     return matches;
