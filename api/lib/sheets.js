@@ -899,33 +899,24 @@ class SheetsService {
           approved_at: row[13] || ''
         }));
 
-      // Get player data to populate names if missing
-      const players = await this.getPlayers();
-      const playerMap = new Map(players.map(p => [p.id, p.nickname]));
-
-      console.log('Players Map:', Array.from(playerMap.entries()).slice(0, 5)); // Show first 5 players
-      console.log('Raw match data sample:', matches.slice(0, 2)); // Show first 2 matches
-
-      // Enhance matches with correct player names
-      const enhancedMatches = matches.map(match => {
-        const player1_resolved = match.player1_name || playerMap.get(match.player1_id) || match.player1_id;
-        const player2_resolved = match.player2_name || playerMap.get(match.player2_id) || match.player2_id;
-        
-        console.log(`Match ${match.match_id}:`);
-        console.log(`  Player1: ID="${match.player1_id}" | Original Name="${match.player1_name}" | Resolved="${player1_resolved}"`);
-        console.log(`  Player2: ID="${match.player2_id}" | Original Name="${match.player2_name}" | Resolved="${player2_resolved}"`);
-        
-        return {
-          ...match,
-          player1_name: player1_resolved,
-          player2_name: player2_resolved
-        };
-      });
-
-      return enhancedMatches;
+      // Skip player name resolution to avoid recursive API calls and 500 errors
+      // Return matches as stored in the sheet
+      return matches;
     } catch (error) {
       console.error('Error fetching tournament matches:', error);
-      throw new Error(`Failed to fetch tournament matches: ${error.message}`);
+      
+      // Handle specific Google Sheets API errors
+      if (error.code === 404) {
+        throw new Error('TournamentMatches sheet not found. Please check if the sheet exists.');
+      } else if (error.code === 403) {
+        throw new Error('Permission denied. Please check Google Sheets API credentials.');
+      } else if (error.code === 429) {
+        console.warn('Rate limit hit in getTournamentMatches, implementing backoff');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        throw new Error('API rate limit exceeded. Please try again later.');
+      } else {
+        throw new Error(`Failed to fetch tournament matches: ${error.message}`);
+      }
     }
   }
 
@@ -1981,18 +1972,11 @@ class SheetsService {
           adminNotes: row[7] || ''
         }));
       
-      // Get player names for display
-      const players = await this.getPlayers();
-      const playerMap = new Map();
-      players.forEach(player => {
-        playerMap.set(player.id, player.nickname);
-      });
+      // Skip player name resolution to avoid recursive API calls and 500 errors
+      // Player names should be resolved on the frontend side
       
-      return pendingResults.map(result => ({
-        ...result,
-        playerName: playerMap.get(result.playerId) || result.playerId,
-        opponentName: playerMap.get(result.opponentId) || result.opponentId
-      }));
+      // Return raw results without player name resolution
+      return pendingResults;
     } catch (error) {
       console.error('Error getting pending match results:', error);
       throw new Error('Failed to get pending match results');
