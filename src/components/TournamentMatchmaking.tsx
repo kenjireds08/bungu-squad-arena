@@ -344,8 +344,8 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
     return badges;
   };
 
-  // For manual mode, show all players as draggable (since they can be used multiple times)
-  const availablePlayers = matchType === 'manual' ? tournamentParticipants : tournamentParticipants.filter(player => 
+  // For manual and random modes, show all players as draggable (since they can be used multiple times)
+  const availablePlayers = (matchType === 'manual' || matchType === 'random') ? tournamentParticipants : tournamentParticipants.filter(player => 
     !matches.some(match => 
       match.player1?.id === player.id || match.player2?.id === player.id
     )
@@ -462,10 +462,10 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
               {tournamentParticipants.map((player) => (
                 <div
                   key={player.id}
-                  draggable={matchType === 'manual'}
+                  draggable={matchType === 'manual' || matchType === 'random'}
                   onDragStart={(e) => handleDragStart(e, player)}
                   className={`p-3 bg-muted rounded-lg border ${
-                    matchType === 'manual' ? 'cursor-move hover:bg-muted/80' : ''
+                    (matchType === 'manual' || matchType === 'random') ? 'cursor-move hover:bg-muted/80' : ''
                   } border-muted`}
                 >
                   <p className="font-medium text-sm">{player.nickname}</p>
@@ -483,7 +483,14 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
         {matches.length > 0 && (
           <Card className="border-fantasy-frame shadow-soft">
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>対戦組み合わせ ({matches.length}試合)</CardTitle>
+              <CardTitle>
+                対戦組み合わせ ({matches.length}試合)
+                {matchType === 'random' && (
+                  <span className="text-sm font-normal text-muted-foreground ml-2">
+                    (ドラッグ&ドロップで手動調整可能)
+                  </span>
+                )}
+              </CardTitle>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button 
@@ -546,7 +553,7 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
                     <div className="grid grid-cols-2 gap-4">
                       <div
                         className={`p-3 border-2 border-dashed rounded-lg ${
-                          matchType === 'manual' ? 'min-h-[80px]' : ''
+                          (matchType === 'manual' || matchType === 'random') ? 'min-h-[80px]' : ''
                         }`}
                         onDragOver={handleDragOver}
                         onDrop={(e) => handleDrop(e, match.id, 'player1')}
@@ -565,7 +572,7 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
                       </div>
                       <div
                         className={`p-3 border-2 border-dashed rounded-lg ${
-                          matchType === 'manual' ? 'min-h-[80px]' : ''
+                          (matchType === 'manual' || matchType === 'random') ? 'min-h-[80px]' : ''
                         }`}
                         onDragOver={handleDragOver}
                         onDrop={(e) => handleDrop(e, match.id, 'player2')}
@@ -590,14 +597,17 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
           </Card>
         )}
 
-        {/* Available Players (for manual mode) */}
-        {matchType === 'manual' && (
+        {/* Available Players (for manual and random modes) */}
+        {(matchType === 'manual' || matchType === 'random') && (
           <Card className="border-fantasy-frame shadow-soft border-info">
             <CardHeader>
               <CardTitle className="text-info">
                 プレイヤー選択エリア 
                 <span className="text-sm font-normal text-muted-foreground ml-2">
-                  (同じプレイヤーを複数試合に割り当て可能)
+                  {matchType === 'random' 
+                    ? '(ランダム生成後の手動調整用)' 
+                    : '(同じプレイヤーを複数試合に割り当て可能)'
+                  }
                 </span>
               </CardTitle>
             </CardHeader>
