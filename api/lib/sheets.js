@@ -1446,6 +1446,10 @@ class SheetsService {
         });
 
         console.log(`Match ${match_id} approved and ratings updated`);
+        
+        // Check if this was the last match and handle tournament completion
+        const tournamentProgress = await this.checkTournamentProgress(matchRow[1]);
+        
         return { 
           success: true, 
           match_id,
@@ -1455,7 +1459,8 @@ class SheetsService {
           rating_changes: {
             player1: eloResult.player1,
             player2: eloResult.player2
-          }
+          },
+          tournament_progress: tournamentProgress
         };
 
       } else if (action === 'reject') {
@@ -1491,6 +1496,99 @@ class SheetsService {
     } catch (error) {
       console.error('Error approving match result:', error);
       throw new Error(`Failed to approve match result: ${error.message}`);
+    }
+  }
+
+  async checkTournamentProgress(tournamentId) {
+    await this.authenticate();
+    
+    try {
+      // Get all matches for this tournament
+      const allMatches = await this.getTournamentMatches(tournamentId);
+      
+      if (allMatches.length === 0) {
+        return { 
+          status: 'no_matches',
+          completed_matches: 0,
+          total_matches: 0,
+          next_matches: []
+        };
+      }
+
+      // Count completed matches
+      const completedMatches = allMatches.filter(match => match.status === 'completed').length;
+      const totalMatches = allMatches.length;
+      
+      // Find next available matches (scheduled status)
+      const nextMatches = allMatches.filter(match => match.status === 'scheduled');
+      
+      // Check if tournament is completed
+      const isCompleted = completedMatches === totalMatches;
+      
+      if (isCompleted) {
+        // Tournament is completed, trigger completion process
+        await this.completeTournament(tournamentId);
+        return {
+          status: 'completed',
+          completed_matches: completedMatches,
+          total_matches: totalMatches,
+          next_matches: []
+        };
+      }
+      
+      return {
+        status: 'in_progress',
+        completed_matches: completedMatches,
+        total_matches: totalMatches,
+        next_matches: nextMatches.slice(0, 2) // Return next 2 available matches
+      };
+      
+    } catch (error) {
+      console.error('Error checking tournament progress:', error);
+      throw new Error(`Failed to check tournament progress: ${error.message}`);
+    }
+  }
+
+  async completeTournament(tournamentId) {
+    await this.authenticate();
+    
+    try {
+      // Update tournament status to completed
+      const tournamentsResponse = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'Tournaments!A:M'
+      });
+
+      const tournamentRows = tournamentsResponse.data.values || [];
+      const tournamentRowIndex = tournamentRows.findIndex(row => row[0] === tournamentId);
+      
+      if (tournamentRowIndex !== -1) {
+        await this.sheets.spreadsheets.values.update({
+          spreadsheetId: this.spreadsheetId,
+          range: `Tournaments!I${tournamentRowIndex + 1}`, // Status column
+          valueInputOption: 'USER_ENTERED',
+          requestBody: {
+            values: [['completed']]
+          }
+        });
+
+        // Set completion timestamp
+        await this.sheets.spreadsheets.values.update({
+          spreadsheetId: this.spreadsheetId,
+          range: `Tournaments!M${tournamentRowIndex + 1}`, // Completed_at column
+          valueInputOption: 'USER_ENTERED',
+          requestBody: {
+            values: [[new Date().toISOString()]]
+          }
+        });
+
+        console.log(`Tournament ${tournamentId} marked as completed`);
+      }
+      
+      return { success: true, tournament_id: tournamentId, status: 'completed' };
+    } catch (error) {
+      console.error('Error completing tournament:', error);
+      throw new Error(`Failed to complete tournament: ${error.message}`);
     }
   }
 

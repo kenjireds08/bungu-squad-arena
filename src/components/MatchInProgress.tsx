@@ -2,10 +2,13 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Swords, Clock, Flag } from 'lucide-react';
+import { MatchResult } from './MatchResult';
 
 interface MatchInProgressProps {
   onClose: () => void;
   onFinishMatch: () => void;
+  currentUserId?: string;
+  matchId?: string;
 }
 
 // Mock match data
@@ -16,8 +19,9 @@ const mockMatch = {
   startTime: new Date(Date.now() - 15 * 60 * 1000) // 15 minutes ago
 };
 
-export const MatchInProgress = ({ onClose, onFinishMatch }: MatchInProgressProps) => {
+export const MatchInProgress = ({ onClose, onFinishMatch, currentUserId, matchId }: MatchInProgressProps) => {
   const [elapsedTime, setElapsedTime] = useState(0);
+  const [showResultScreen, setShowResultScreen] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -33,6 +37,26 @@ export const MatchInProgress = ({ onClose, onFinishMatch }: MatchInProgressProps
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
+
+  const handleFinishMatch = () => {
+    setShowResultScreen(true);
+  };
+
+  const handleResultBack = () => {
+    setShowResultScreen(false);
+    onFinishMatch();
+  };
+
+  // Show result screen if triggered
+  if (showResultScreen) {
+    return (
+      <MatchResult 
+        onBack={handleResultBack}
+        currentUserId={currentUserId || ''}
+        matchId={matchId}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-parchment">
@@ -102,7 +126,7 @@ export const MatchInProgress = ({ onClose, onFinishMatch }: MatchInProgressProps
               <Button 
                 variant="fantasy" 
                 size="xl" 
-                onClick={onFinishMatch}
+                onClick={handleFinishMatch}
                 className="w-full max-w-xs mx-auto"
               >
                 <Flag className="h-5 w-5" />

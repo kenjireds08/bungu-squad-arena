@@ -9,6 +9,13 @@ module.exports = async function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
+      const { action } = req.query;
+      
+      if (action === 'get-daily-archive') {
+        const archive = await sheetsService.getTournamentDailyArchive();
+        return res.status(200).json(archive);
+      }
+      
       const tournaments = await sheetsService.getTournaments();
       return res.status(200).json(tournaments);
     }

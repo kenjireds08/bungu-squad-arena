@@ -51,38 +51,14 @@ async function handleResetTournamentActive(req, res) {
   try {
     const sheetsService = new SheetsService();
     
-    // Get all players
-    const players = await sheetsService.getRankings();
+    // Use the comprehensive reset method that includes archiving
+    const result = await sheetsService.resetAllTournamentActive();
     
-    // Count players with tournament_active = true
-    const activePlayers = players.filter(player => player.tournament_active === true);
-    const activeCount = activePlayers.length;
-    
-    if (activeCount === 0) {
-      return res.status(200).json({
-        success: true,
-        message: 'No players to reset',
-        updatedCount: 0,
-        archivedCount: 0
-      });
-    }
-
-    // Reset tournament_active to false for all active players
-    let updatedCount = 0;
-    for (const player of activePlayers) {
-      try {
-        await sheetsService.updateTournamentActive(player.id, false);
-        updatedCount++;
-      } catch (error) {
-        console.error(`Failed to reset player ${player.id}:`, error);
-      }
-    }
-
     return res.status(200).json({
       success: true,
-      message: `Successfully reset ${updatedCount} players`,
-      updatedCount: updatedCount,
-      archivedCount: 0 // TODO: Implement archiving if needed
+      message: `Successfully reset ${result.updatedCount} players and archived ${result.archivedCount} tournament entries`,
+      updatedCount: result.updatedCount,
+      archivedCount: result.archivedCount
     });
 
   } catch (error) {

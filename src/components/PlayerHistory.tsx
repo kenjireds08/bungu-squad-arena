@@ -1,87 +1,151 @@
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, History, Trophy, Calendar, TrendingUp, TrendingDown } from 'lucide-react';
+import { ArrowLeft, History, Trophy, Calendar, TrendingUp, TrendingDown, Loader2 } from 'lucide-react';
 
 interface PlayerHistoryProps {
   onClose: () => void;
+  currentUserId?: string;
 }
 
-// Mock history data
-const mockHistory = {
-  tournaments: [
-    {
-      id: 1,
-      name: "第7回BUNGU SQUAD大会",
-      date: "2024-07-18",
-      place: "3位",
-      participants: 12,
-      games: 4,
-      wins: 3,
-      ratingChange: +35
-    },
-    {
-      id: 2,
-      name: "第6回BUNGU SQUAD大会",
-      date: "2024-07-04",
-      place: "5位",
-      participants: 10,
-      games: 3,
-      wins: 1,
-      ratingChange: -18
-    },
-    {
-      id: 3,
-      name: "第5回BUNGU SQUAD大会",
-      date: "2024-06-20",
-      place: "2位",
-      participants: 8,
-      games: 3,
-      wins: 2,
-      ratingChange: +42
-    }
-  ],
-  recentGames: [
-    {
-      id: 1,
-      opponent: "鈴木さん",
-      opponentRating: 1850,
-      result: "負け",
-      ratingChange: -12,
-      rule: "カードプラス",
-      date: "2024-07-18 20:30"
-    },
-    {
-      id: 2,
-      opponent: "田中さん",
-      opponentRating: 1620,
-      result: "勝ち",
-      ratingChange: +18,
-      rule: "トランプ",
-      date: "2024-07-18 20:00"
-    },
-    {
-      id: 3,
-      opponent: "山田さん",
-      opponentRating: 1580,
-      result: "勝ち",
-      ratingChange: +16,
-      rule: "カードプラス",
-      date: "2024-07-18 19:30"
-    },
-    {
-      id: 4,
-      opponent: "佐藤さん",
-      opponentRating: 1685,
-      result: "勝ち",
-      ratingChange: +23,
-      rule: "トランプ",
-      date: "2024-07-18 19:00"
-    }
-  ]
-};
+interface Match {
+  id: string;
+  tournament_id: string;
+  player1_id: string;
+  player2_id: string;
+  winner_id: string;
+  loser_id: string;
+  game_rule: string;
+  match_start_time: string;
+  match_end_time: string;
+  player1_rating_before: number;
+  player2_rating_before: number;
+  player1_rating_after: number;
+  player2_rating_after: number;
+  player1_rating_change: number;
+  player2_rating_change: number;
+  table_number: string;
+  notes: string;
+}
 
-export const PlayerHistory = ({ onClose }: PlayerHistoryProps) => {
+interface TournamentArchive {
+  archive_id: string;
+  tournament_date: string;
+  player_id: string;
+  player_nickname: string;
+  entry_timestamp: string;
+  total_participants_that_day: number;
+  created_at: string;
+}
+
+
+export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) => {
+  const [matches, setMatches] = useState<Match[]>([]);
+  const [tournamentArchive, setTournamentArchive] = useState<TournamentArchive[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [players, setPlayers] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (currentUserId) {
+      loadPlayerHistory();
+    }
+  }, [currentUserId]);
+
+  const loadPlayerHistory = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Load match history for current player
+      const matchResponse = await fetch(`/api/matches?playerId=${currentUserId}`);
+      if (matchResponse.ok) {
+        const matchData = await matchResponse.json();
+        setMatches(matchData);
+      }
+
+      // Load tournament archive for current player  
+      const archiveResponse = await fetch('/api/tournaments?action=get-daily-archive');
+      if (archiveResponse.ok) {
+        const archiveData = await archiveResponse.json();
+        const playerArchive = archiveData.filter((entry: TournamentArchive) => 
+          entry.player_id === currentUserId
+        );
+        setTournamentArchive(playerArchive);
+      }
+
+      // Load player data for opponent names
+      const playersResponse = await fetch('/api/players');
+      if (playersResponse.ok) {
+        const playersData = await playersResponse.json();
+        setPlayers(playersData);
+      }
+
+    } catch (error) {
+      console.error('Failed to load player history:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const getOpponentName = (match: Match) => {
+    const opponentId = match.player1_id === currentUserId ? match.player2_id : match.player1_id;
+    const opponent = players.find(p => p.id === opponentId);
+    return opponent?.nickname || '不明';
+  };
+
+  const getOpponentRating = (match: Match) => {
+    return match.player1_id === currentUserId ? match.player2_rating_before : match.player1_rating_before;
+  };
+
+  const getPlayerResult = (match: Match) => {
+    if (match.winner_id === currentUserId) return '勝ち';
+    if (match.loser_id === currentUserId) return '負け';
+    return '引き分け';
+  };
+
+  const getPlayerRatingChange = (match: Match) => {
+    return match.player1_id === currentUserId ? match.player1_rating_change : match.player2_rating_change;
+  };
+
+  const getGameTypeName = (gameRule: string) => {
+    return gameRule === 'trump' ? 'トランプ' : 'カード+';
+  };
+
+  // Group tournament archive by date to create tournament history
+  const getTournamentHistory = () => {
+    const groupedByDate = tournamentArchive.reduce((acc, entry) => {
+      const date = entry.tournament_date;
+      if (!acc[date]) {
+        acc[date] = {
+          date,
+          participants: entry.total_participants_that_day,
+          matches: matches.filter(m => m.match_start_time.startsWith(date))
+        };
+      }
+      return acc;
+    }, {} as any);
+
+    return Object.values(groupedByDate).map((tournament: any) => ({
+      name: `BUNGU SQUAD大会`,
+      date: tournament.date,
+      participants: tournament.participants,
+      matches: tournament.matches,
+      games: tournament.matches.length,
+      wins: tournament.matches.filter((m: Match) => getPlayerResult(m) === '勝ち').length,
+      ratingChange: tournament.matches.reduce((sum: number, m: Match) => sum + getPlayerRatingChange(m), 0)
+    }));
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-parchment flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto" />
+          <p className="text-muted-foreground">履歴を読み込み中...</p>
+        </div>
+      </div>
+    );
+  }
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('ja-JP', { 
@@ -128,9 +192,15 @@ export const PlayerHistory = ({ onClose }: PlayerHistoryProps) => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {mockHistory.tournaments.map((tournament, index) => (
+            {getTournamentHistory().length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Trophy className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                <p>大会参加履歴がありません</p>
+              </div>
+            ) : (
+              getTournamentHistory().map((tournament, index) => (
               <div
-                key={tournament.id}
+                key={`${tournament.date}-${index}`}
                 className="p-4 bg-muted/30 rounded-lg border border-fantasy-frame/20 animate-slide-up"
                 style={{ animationDelay: `${index * 100}ms` }}
               >
@@ -142,11 +212,8 @@ export const PlayerHistory = ({ onClose }: PlayerHistoryProps) => {
                       {formatDate(tournament.date)}
                     </div>
                   </div>
-                  <Badge 
-                    variant={tournament.place === "1位" ? "default" : tournament.place === "2位" || tournament.place === "3位" ? "secondary" : "outline"}
-                    className={tournament.place === "1位" ? "bg-gradient-gold" : ""}
-                  >
-                    {tournament.place}
+                  <Badge variant="outline">
+                    参加
                   </Badge>
                 </div>
                 
@@ -174,7 +241,8 @@ export const PlayerHistory = ({ onClose }: PlayerHistoryProps) => {
                   </div>
                 </div>
               </div>
-            ))}
+              ))
+            )}
           </CardContent>
         </Card>
 
@@ -187,49 +255,56 @@ export const PlayerHistory = ({ onClose }: PlayerHistoryProps) => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {mockHistory.recentGames.map((game, index) => (
+            {matches.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <History className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                <p>対戦記録がありません</p>
+              </div>
+            ) : (
+              matches.slice(0, 10).map((match, index) => (
               <div
-                key={game.id}
+                key={match.id}
                 className="p-3 bg-muted/20 rounded-lg border border-fantasy-frame/10 animate-slide-up"
                 style={{ animationDelay: `${(index + 3) * 100}ms` }}
               >
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium text-foreground">vs {game.opponent}</span>
+                    <span className="font-medium text-foreground">vs {getOpponentName(match)}</span>
                     <Badge variant="outline" className="text-xs">
-                      {game.rule === "トランプ" ? "♠️" : "➕"}
+                      {getGameTypeName(match.game_rule) === "トランプ" ? "♠️" : "➕"}
                     </Badge>
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {formatDateTime(game.date)}
+                    {formatDateTime(match.match_start_time)}
                   </div>
                 </div>
                 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Badge 
-                      variant={game.result === "勝ち" ? "default" : "destructive"}
-                      className={game.result === "勝ち" ? "bg-success" : ""}
+                      variant={getPlayerResult(match) === "勝ち" ? "default" : "destructive"}
+                      className={getPlayerResult(match) === "勝ち" ? "bg-success" : ""}
                     >
-                      {game.result}
+                      {getPlayerResult(match)}
                     </Badge>
                     <span className="text-sm text-muted-foreground">
-                      対戦相手レート: {game.opponentRating}
+                      対戦相手レート: {getOpponentRating(match)}
                     </span>
                   </div>
                   <div className={`font-semibold text-sm flex items-center gap-1 ${
-                    game.ratingChange > 0 ? 'text-success' : 'text-destructive'
+                    getPlayerRatingChange(match) > 0 ? 'text-success' : 'text-destructive'
                   }`}>
-                    {game.ratingChange > 0 ? (
+                    {getPlayerRatingChange(match) > 0 ? (
                       <TrendingUp className="h-3 w-3" />
                     ) : (
                       <TrendingDown className="h-3 w-3" />
                     )}
-                    {game.ratingChange > 0 ? '+' : ''}{game.ratingChange}
+                    {getPlayerRatingChange(match) > 0 ? '+' : ''}{getPlayerRatingChange(match)}
                   </div>
                 </div>
               </div>
-            ))}
+              ))
+            )}
           </CardContent>
         </Card>
       </main>

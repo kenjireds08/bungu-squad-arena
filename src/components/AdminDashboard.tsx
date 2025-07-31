@@ -16,12 +16,14 @@ import {
   FileText,
   LogOut,
   Loader2,
-  Database
+  Database,
+  TrendingUp
 } from 'lucide-react';
 import { AdminTournaments } from './AdminTournaments';
 import { AdminApprovals } from './AdminApprovals';
 import { AdminPlayers } from './AdminPlayers';
 import { MatchProgressManager } from './MatchProgressManager';
+import { TournamentProgress } from './TournamentProgress';
 import { DataExport } from './DataExport';
 import { useRankings, useTournaments } from '@/hooks/useApi';
 
@@ -52,8 +54,8 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
   const [currentAdminPage, setCurrentAdminPage] = useState('dashboard');
   const [adminData, setAdminData] = useState<AdminData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const { data: rankings } = useRankings();
-  const { data: tournaments } = useTournaments();
+  const { data: rankings, isLoading: rankingsLoading } = useRankings();
+  const { data: tournaments, isLoading: tournamentsLoading } = useTournaments();
 
   useEffect(() => {
     const loadAdminData = async () => {
@@ -148,6 +150,12 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
       page: "match-progress"
     },
     {
+      icon: TrendingUp,
+      title: "大会進行管理",
+      description: "進行状況・次の試合案内",
+      page: "tournament-progress"
+    },
+    {
       icon: FileText,
       title: "データ出力",
       description: "CSV・PDFレポート生成",
@@ -173,6 +181,10 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
 
   if (currentAdminPage === 'match-progress') {
     return <MatchProgressManager onBack={() => setCurrentAdminPage('dashboard')} />;
+  }
+
+  if (currentAdminPage === 'tournament-progress') {
+    return <TournamentProgress onBack={() => setCurrentAdminPage('dashboard')} />;
   }
 
 

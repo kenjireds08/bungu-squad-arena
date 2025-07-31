@@ -17,6 +17,7 @@ import {
 import { useTournaments, useRankings } from '@/hooks/useApi';
 import { getCategorizedTournaments } from '@/utils/tournamentData';
 import { PlayerRanking } from './PlayerRanking';
+import { TournamentMatchesView } from './TournamentMatchesView';
 
 interface TournamentWaitingProps {
   onClose: () => void;
@@ -26,6 +27,7 @@ interface TournamentWaitingProps {
 export const TournamentWaiting = ({ onClose, onViewRanking }: TournamentWaitingProps) => {
   const [showRatingDialog, setShowRatingDialog] = useState(false);
   const [showRanking, setShowRanking] = useState(false);
+  const [showMatches, setShowMatches] = useState(false);
   const [tournamentMatches, setTournamentMatches] = useState([]);
   const [isLoadingMatches, setIsLoadingMatches] = useState(false);
   const { data: tournaments, isLoading: tournamentsLoading } = useTournaments();
@@ -83,6 +85,7 @@ export const TournamentWaiting = ({ onClose, onViewRanking }: TournamentWaitingP
     }
   }, [todaysTournament?.id]);
 
+
   const handleCheckPairing = () => {
     if (!isPairingDecided) {
       // まだ組み合わせが決まっていない場合の処理
@@ -91,7 +94,7 @@ export const TournamentWaiting = ({ onClose, onViewRanking }: TournamentWaitingP
     } else {
       // 組み合わせが決まっている場合、対戦詳細を表示
       console.log("対戦詳細を表示", tournamentMatches);
-      // TODO: Navigate to match details view
+      setShowMatches(true);
     }
   };
 
@@ -100,6 +103,17 @@ export const TournamentWaiting = ({ onClose, onViewRanking }: TournamentWaitingP
     return (
       <PlayerRanking 
         onClose={() => setShowRanking(false)} 
+      />
+    );
+  }
+
+  // Handle matches view
+  if (showMatches && todaysTournament?.id) {
+    return (
+      <TournamentMatchesView 
+        onClose={() => setShowMatches(false)}
+        currentUserId={players?.find(p => p.tournament_active)?.id || ''}
+        tournamentId={todaysTournament.id}
       />
     );
   }
