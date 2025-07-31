@@ -99,6 +99,17 @@ module.exports = async function handler(req, res) {
         const result = await sheetsService.updateMatchResult(matchId, updateData);
         return res.status(200).json(result);
 
+      case 'DELETE':
+        // Delete a match
+        const { matchId: deleteMatchId } = req.query;
+
+        if (!deleteMatchId) {
+          return res.status(400).json({ error: 'Match ID is required' });
+        }
+
+        const deleteResult = await sheetsService.deleteMatch(deleteMatchId);
+        return res.status(200).json(deleteResult);
+
       default:
         return res.status(405).json({ error: 'Method not allowed' });
     }

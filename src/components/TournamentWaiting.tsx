@@ -169,12 +169,24 @@ export const TournamentWaiting = ({ onClose, onViewRanking }: TournamentWaitingP
               </Badge>
             </div>
             
-            <div className="bg-info/10 p-4 rounded-lg border border-info/20">
-              <p className="text-sm text-info font-medium">
-                組み合わせ抽選をお待ちください
+            <div className={`p-4 rounded-lg border ${
+              isPairingDecided 
+                ? 'bg-success/10 border-success/20' 
+                : 'bg-info/10 border-info/20'
+            }`}>
+              <p className={`text-sm font-medium ${
+                isPairingDecided ? 'text-success' : 'text-info'
+              }`}>
+                {isPairingDecided 
+                  ? '🎉 組み合わせが確定しました！' 
+                  : '組み合わせ抽選をお待ちください'
+                }
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                管理者が全参加者の確認後、対戦組み合わせを決定します
+                {isPairingDecided
+                  ? '下記のボタンより対戦組み合わせをご確認ください'
+                  : '管理者が全参加者の確認後、対戦組み合わせを決定します'
+                }
               </p>
             </div>
           </CardContent>

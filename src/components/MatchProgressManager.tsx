@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { useTournaments } from '@/hooks/useApi';
+import { getCategorizedTournaments } from '@/utils/tournamentData';
 import { 
   Clock, 
   Play, 
@@ -15,72 +17,54 @@ import {
 } from 'lucide-react';
 
 interface Match {
-  id: number;
-  player1: string;
-  player2: string;
-  table: string;
-  rule: 'トランプルール' | 'カードプラスルール';
-  startTime?: string;
-  status: 'waiting' | 'in-progress' | 'result-pending' | 'completed';
-  elapsedMinutes?: number;
-  reportedBy?: string;
-  reportedAt?: string;
+  match_id: string;
+  tournament_id: string;
+  match_number: string;
+  player1_id: string;
+  player1_name: string;
+  player2_id: string;
+  player2_name: string;
+  game_type: 'trump' | 'cardplus';
+  status: 'scheduled' | 'in_progress' | 'completed' | 'approved';
+  winner_id: string;
+  result_details: string;
+  created_at: string;
+  completed_at: string;
+  approved_at: string;
 }
 
 interface MatchProgressManagerProps {
   onBack: () => void;
 }
 
-// Mock data for demonstration
-const mockMatches: Match[] = [
-  {
-    id: 1,
-    player1: "鈴木さん",
-    player2: "佐藤さん",
-    table: "卓1",
-    rule: "トランプルール",
-    status: "in-progress",
-    startTime: "20:15",
-    elapsedMinutes: 25
-  },
-  {
-    id: 2,
-    player1: "田中さん",
-    player2: "山田さん",
-    table: "卓2",
-    rule: "カードプラスルール",
-    status: "in-progress",
-    startTime: "20:10",
-    elapsedMinutes: 30
-  },
-  {
-    id: 3,
-    player1: "高橋さん",
-    player2: "中村さん",
-    table: "卓3",
-    rule: "トランプルール",
-    status: "result-pending",
-    startTime: "19:45",
-    elapsedMinutes: 60,
-    reportedBy: "高橋さん",
-    reportedAt: "20:40"
-  },
-  {
-    id: 4,
-    player1: "小林さん",
-    player2: "伊藤さん",
-    table: "卓4",
-    rule: "カードプラスルール",
-    status: "completed",
-    startTime: "19:30",
-    elapsedMinutes: 45
-  }
-];
-
 export const MatchProgressManager = ({ onBack }: MatchProgressManagerProps) => {
-  const [matches, setMatches] = useState<Match[]>(mockMatches);
+  const [matches, setMatches] = useState<Match[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { data: tournamentsData } = useTournaments();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showOnlyToday, setShowOnlyToday] = useState(true);
+
+  // Fetch today's tournament matches
+  const fetchTodayMatches = async () => {
+    try {
+      setIsLoading(true);
+      const tournaments = getCategorizedTournaments(tournamentsData || []);
+      const today = new Date().toISOString().split('T')[0];
+      const todaysTournament = [...tournaments.active, ...tournaments.upcoming].find(t => t.date === today);
+      
+      if (todaysTournament?.id) {
+        const response = await fetch(`/api/matches?tournamentId=${todaysTournament.id}`);
+        if (response.ok) {
+          const matchesData = await response.json();
+          setMatches(matchesData);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch today\'s matches:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Update current time every minute
   useEffect(() => {
@@ -89,6 +73,13 @@ export const MatchProgressManager = ({ onBack }: MatchProgressManagerProps) => {
     }, 60000);
     return () => clearInterval(timer);
   }, []);
+
+  // Fetch matches when component mounts or tournaments data changes
+  useEffect(() => {
+    if (tournamentsData) {
+      fetchTodayMatches();
+    }
+  }, [tournamentsData]);
 
   const getElapsedTime = (startTime: string): number => {
     const [hours, minutes] = startTime.split(':').map(Number);
@@ -114,34 +105,34 @@ export const MatchProgressManager = ({ onBack }: MatchProgressManagerProps) => {
 
   const getStatusText = (status: string): string => {
     switch (status) {
-      case 'waiting':
+      case 'scheduled':
         return '待機中';
-      case 'in-progress':
+      case 'in_progress':
         return '対戦中';
-      case 'result-pending':
-        return '報告待ち';
       case 'completed':
+        return '報告待ち';
+      case 'approved':
         return '完了';
       default:
         return '不明';
     }
   };
 
-  const handleSendReminder = (matchId: number) => {
+  const handleSendReminder = (matchId: string) => {
     console.log('Sending reminder for match:', matchId);
     // TODO: Implement reminder notification
   };
 
-  const handleDirectInput = (matchId: number) => {
+  const handleDirectInput = (matchId: string) => {
     console.log('Opening direct input for match:', matchId);
     // TODO: Open direct input modal
   };
 
-  const inProgressMatches = matches.filter(m => m.status === 'in-progress');
-  const pendingMatches = matches.filter(m => m.status === 'result-pending');
+  const inProgressMatches = matches.filter(m => m.status === 'in_progress');
+  const pendingMatches = matches.filter(m => m.status === 'completed');
   const completedMatches = showOnlyToday 
-    ? matches.filter(m => m.status === 'completed')
-    : matches.filter(m => m.status === 'completed');
+    ? matches.filter(m => m.status === 'approved')
+    : matches.filter(m => m.status === 'approved');
 
   return (
     <div className="min-h-screen bg-gradient-parchment">
@@ -193,34 +184,35 @@ export const MatchProgressManager = ({ onBack }: MatchProgressManagerProps) => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {inProgressMatches.length > 0 ? (
+            {isLoading ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-3"></div>
+                <p>試合データを読み込み中...</p>
+              </div>
+            ) : inProgressMatches.length > 0 ? (
               inProgressMatches.map((match, index) => (
                 <div
-                  key={match.id}
+                  key={match.match_id}
                   className="p-4 bg-info/10 border border-info/20 rounded-lg"
                 >
                   <div className="flex items-center justify-between mb-3">
                     <div className="space-y-1">
                       <h3 className="font-semibold text-foreground">
-                        {match.player1} vs {match.player2}
+                        {match.player1_name} vs {match.player2_name}
                       </h3>
                       <div className="text-sm text-muted-foreground">
-                        {match.table} • {match.rule}
+                        試合{match.match_number} • {match.game_type === 'trump' ? 'トランプルール' : 'カードプラスルール'}
                       </div>
                     </div>
                     <div className="text-right space-y-1">
                       <Badge className={getStatusColor(match.status)}>
                         {getStatusText(match.status)}
                       </Badge>
-                      <div className="text-sm font-mono text-info">
-                        <Clock className="h-3 w-3 inline mr-1" />
-                        {match.elapsedMinutes}分経過
-                      </div>
                     </div>
                   </div>
                   
                   <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <div>開始時刻: {match.startTime}</div>
+                    <div>開始時刻: {match.created_at}</div>
                     <div className="flex gap-2">
                       <Button variant="outline" size="sm">
                         <Pause className="h-3 w-3 mr-1" />
@@ -248,11 +240,19 @@ export const MatchProgressManager = ({ onBack }: MatchProgressManagerProps) => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {pendingMatches.map((match, index) => {
-              const isOvertime = match.elapsedMinutes && match.elapsedMinutes > 15;
+            {isLoading ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-3"></div>
+                <p>試合データを読み込み中...</p>
+              </div>
+            ) : pendingMatches.length > 0 ? (
+              pendingMatches.map((match, index) => {
+              const createdAt = new Date(match.created_at);
+              const elapsedMinutes = Math.floor((currentTime.getTime() - createdAt.getTime()) / (1000 * 60));
+              const isOvertime = elapsedMinutes > 15;
               return (
                 <div
-                  key={match.id}
+                  key={match.match_id}
                   className={`p-4 rounded-lg border ${
                     isOvertime 
                       ? 'bg-destructive/10 border-destructive/20' 
@@ -262,14 +262,14 @@ export const MatchProgressManager = ({ onBack }: MatchProgressManagerProps) => {
                   <div className="flex items-center justify-between mb-3">
                     <div className="space-y-1">
                       <h3 className="font-semibold text-foreground">
-                        {match.player1} vs {match.player2}
+                        {match.player1_name} vs {match.player2_name}
                       </h3>
                       <div className="text-sm text-muted-foreground">
-                        {match.table} • {match.rule}
+                        試合{match.match_number} • {match.game_type === 'trump' ? 'トランプルール' : 'カードプラスルール'}
                       </div>
-                      {match.reportedBy && (
+                      {match.completed_at && (
                         <div className="text-xs text-muted-foreground">
-                          申告者: {match.reportedBy} • {match.reportedAt}
+                          完了時刻: {new Date(match.completed_at).toLocaleTimeString('ja-JP')}
                         </div>
                       )}
                     </div>
@@ -279,7 +279,7 @@ export const MatchProgressManager = ({ onBack }: MatchProgressManagerProps) => {
                       </Badge>
                       <div className={`text-sm font-mono ${isOvertime ? 'text-destructive' : 'text-warning'}`}>
                         <Clock className="h-3 w-3 inline mr-1" />
-                        {match.elapsedMinutes}分経過
+                        {Math.max(0, elapsedMinutes)}分経過
                       </div>
                     </div>
                   </div>
@@ -288,7 +288,7 @@ export const MatchProgressManager = ({ onBack }: MatchProgressManagerProps) => {
                     <Button 
                       variant="outline" 
                       size="sm"
-                      onClick={() => handleSendReminder(match.id)}
+                      onClick={() => handleSendReminder(match.match_id)}
                     >
                       <Bell className="h-3 w-3 mr-1" />
                       催促通知
@@ -296,7 +296,7 @@ export const MatchProgressManager = ({ onBack }: MatchProgressManagerProps) => {
                     <Button 
                       variant="tournament" 
                       size="sm"
-                      onClick={() => handleDirectInput(match.id)}
+                      onClick={() => handleDirectInput(match.match_id)}
                     >
                       <Edit2 className="h-3 w-3 mr-1" />
                       代理入力
@@ -304,7 +304,12 @@ export const MatchProgressManager = ({ onBack }: MatchProgressManagerProps) => {
                   </div>
                 </div>
               );
-            })}
+            })) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <AlertCircle className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                <p>報告待ちの試合はありません</p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -317,27 +322,46 @@ export const MatchProgressManager = ({ onBack }: MatchProgressManagerProps) => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {completedMatches.slice(0, 5).map((match, index) => (
+            {isLoading ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-3"></div>
+                <p>試合データを読み込み中...</p>
+              </div>
+            ) : completedMatches.length > 0 ? (
+              <>
+                {completedMatches.slice(0, 5).map((match, index) => (
               <div
-                key={match.id}
+                key={match.match_id}
                 className="p-3 bg-success/10 border border-success/20 rounded-lg flex items-center justify-between"
               >
                 <div>
                   <div className="font-medium text-foreground">
-                    {match.player1} vs {match.player2}
+                    {match.player1_name} vs {match.player2_name}
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    {match.table} • {match.rule} • {match.elapsedMinutes}分
+                    試合{match.match_number} • {match.game_type === 'trump' ? 'トランプルール' : 'カードプラスルール'}
                   </div>
+                  {match.approved_at && (
+                    <div className="text-xs text-muted-foreground">
+                      承認時刻: {new Date(match.approved_at).toLocaleTimeString('ja-JP')}
+                    </div>
+                  )}
                 </div>
                 <Badge className="bg-success text-success-foreground">
                   完了
                 </Badge>
               </div>
-            ))}
-            {completedMatches.length > 5 && (
-              <div className="text-center text-sm text-muted-foreground">
-                他 {completedMatches.length - 5} 件...
+                ))}
+                {completedMatches.length > 5 && (
+                  <div className="text-center text-sm text-muted-foreground">
+                    他 {completedMatches.length - 5} 件...
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <CheckCircle className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                <p>完了済みの試合はありません</p>
               </div>
             )}
           </CardContent>

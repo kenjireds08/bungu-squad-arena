@@ -22,7 +22,6 @@ import {
 import { AdminTournaments } from './AdminTournaments';
 import { AdminApprovals } from './AdminApprovals';
 import { AdminPlayers } from './AdminPlayers';
-import { MatchProgressManager } from './MatchProgressManager';
 import { TournamentProgress } from './TournamentProgress';
 import { DataExport } from './DataExport';
 import { useRankings, useTournaments } from '@/hooks/useApi';
@@ -142,12 +141,6 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
       count: adminData.pendingApprovals
     },
     {
-      icon: BarChart3,
-      title: "試合進行管理",
-      description: "リアルタイム進行・催促機能",
-      page: "match-progress"
-    },
-    {
       icon: TrendingUp,
       title: "大会進行管理",
       description: "進行状況・次の試合案内",
@@ -177,9 +170,6 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
     return <AdminPlayers onBack={() => setCurrentAdminPage('dashboard')} />;
   }
 
-  if (currentAdminPage === 'match-progress') {
-    return <MatchProgressManager onBack={() => setCurrentAdminPage('dashboard')} />;
-  }
 
   if (currentAdminPage === 'tournament-progress') {
     return <TournamentProgress onBack={() => setCurrentAdminPage('dashboard')} />;

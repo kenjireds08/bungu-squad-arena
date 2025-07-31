@@ -1166,60 +1166,6 @@ class SheetsService {
     }
   }
 
-  async saveTournamentMatches(tournamentId, matches) {
-    await this.authenticate();
-    
-    try {
-      const timestamp = new Date().toISOString();
-      
-      // Create entries for each match
-      const matchEntries = matches.map((match, index) => [
-        `tournament_match_${tournamentId}_${Date.now()}_${index}`, // match_id
-        tournamentId, // tournament_id
-        match.player1.id, // player1_id
-        match.player2.id, // player2_id
-        match.tableNumber, // table_number
-        'pending', // match_status
-        timestamp, // created_at
-        '', // winner_id (empty initially)
-        '', // loser_id (empty initially)
-        '', // match_start_time (empty initially)
-        '', // match_end_time (empty initially)
-        '', // reported_by (empty initially)
-        '', // reported_at (empty initially)
-        '', // approved_by (empty initially)
-        '', // approved_at (empty initially)
-        match.player1.current_rating, // player1_rating_before
-        match.player2.current_rating, // player2_rating_before
-        '', // player1_rating_after (empty initially)
-        '', // player2_rating_after (empty initially)
-        '', // player1_rating_change (empty initially)
-        '', // player2_rating_change (empty initially)
-        '', // notes (empty initially)
-        'system' // created_by
-      ]);
-
-      // Save to TournamentMatches sheet
-      await this.sheets.spreadsheets.values.append({
-        spreadsheetId: this.spreadsheetId,
-        range: 'TournamentMatches!A:W',
-        valueInputOption: 'USER_ENTERED',
-        requestBody: {
-          values: matchEntries
-        }
-      });
-
-      console.log(`Saved ${matches.length} tournament matches for tournament ${tournamentId}`);
-      return { 
-        success: true, 
-        matchCount: matches.length, 
-        tournamentId 
-      };
-    } catch (error) {
-      console.error('Error saving tournament matches:', error);
-      throw new Error(`Failed to save tournament matches: ${error.message}`);
-    }
-  }
 
   async submitMatchResult(resultData) {
     await this.authenticate();
@@ -1782,6 +1728,46 @@ class SheetsService {
     } catch (error) {
       console.error('Error creating TournamentDailyArchive sheet:', error);
       throw new Error('Failed to create TournamentDailyArchive sheet: ' + error.message);
+    }
+  }
+
+  async deleteMatch(matchId) {
+    await this.authenticate();
+    
+    try {
+      // First check if the match exists and hasn't started
+      const matchesResponse = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'TournamentMatches!A2:Z1000'
+      });
+
+      const matches = matchesResponse.data.values || [];
+      const matchIndex = matches.findIndex(row => row[0] === matchId);
+      
+      if (matchIndex === -1) {
+        throw new Error('Match not found');
+      }
+
+      const match = matches[matchIndex];
+      const matchStatus = match[9]; // status column
+      
+      // Only allow deletion of scheduled matches
+      if (matchStatus !== 'scheduled') {
+        throw new Error('Cannot delete match that has already started');
+      }
+
+      // Delete the match by clearing the row
+      const rowNumber = matchIndex + 2; // +2 because of header row and 0-indexing
+      await this.sheets.spreadsheets.values.clear({
+        spreadsheetId: this.spreadsheetId,
+        range: `TournamentMatches!A${rowNumber}:Z${rowNumber}`
+      });
+
+      console.log(`Match deleted: ${matchId}`);
+      return { success: true, matchId };
+    } catch (error) {
+      console.error('Error deleting match:', error);
+      throw new Error(`Failed to delete match: ${error.message}`);
     }
   }
 }

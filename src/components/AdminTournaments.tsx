@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ArrowLeft, Plus, Calendar, MapPin, QrCode, Users, Settings } from 'lucide-react';
 import { QRCodeDisplay } from './QRCodeDisplay';
-import { TournamentMatchmaking } from './TournamentMatchmaking';
+import { TournamentManagementView } from './TournamentManagementView';
 import { useRankings, useTournaments, useCreateTournament, useUpdateTournament, useDeleteTournament } from '@/hooks/useApi';
 import { useToast } from '@/components/ui/use-toast';
 import { getCategorizedTournaments, getTournamentStatus } from '@/utils/tournamentData';
@@ -22,7 +22,7 @@ interface AdminTournamentsProps {
 
 
 export const AdminTournaments = ({ onBack, initialView = 'list' }: AdminTournamentsProps) => {
-  const [currentView, setCurrentView] = useState<'list' | 'create' | 'matchmaking' | 'participants'>(initialView);
+  const [currentView, setCurrentView] = useState<'list' | 'create' | 'management' | 'participants'>(initialView);
   const [selectedTournament, setSelectedTournament] = useState<any>(null);
   const [showQRCode, setShowQRCode] = useState(false);
   const [activeParticipants, setActiveParticipants] = useState(0);
@@ -36,7 +36,7 @@ export const AdminTournaments = ({ onBack, initialView = 'list' }: AdminTourname
   // Get tournaments from API data
   const tournaments = getCategorizedTournaments(tournamentsData || []);
   const [qrTournament, setQrTournament] = useState<any>(null);
-  const [matchmakingTournament, setMatchmakingTournament] = useState<any>(null);
+  const [managementTournament, setManagementTournament] = useState<any>(null);
   const [newTournament, setNewTournament] = useState({
     name: '',
     date: '',
@@ -138,14 +138,14 @@ export const AdminTournaments = ({ onBack, initialView = 'list' }: AdminTourname
     setQrTournament(null);
   };
 
-  const handleShowMatchmaking = (tournament: any) => {
-    setMatchmakingTournament(tournament);
-    setCurrentView('matchmaking');
+  const handleShowManagement = (tournament: any) => {
+    setManagementTournament(tournament);
+    setCurrentView('management');
   };
 
-  const handleBackFromMatchmaking = () => {
+  const handleBackFromManagement = () => {
     setCurrentView('list');
-    setMatchmakingTournament(null);
+    setManagementTournament(null);
   };
 
   const handleDeleteTournament = async (tournamentId: string, tournamentName: string) => {
@@ -225,11 +225,12 @@ export const AdminTournaments = ({ onBack, initialView = 'list' }: AdminTourname
     );
   }
 
-  if (currentView === 'matchmaking' && matchmakingTournament) {
+  if (currentView === 'management' && managementTournament) {
     return (
-      <TournamentMatchmaking
-        onClose={handleBackFromMatchmaking}
-        tournamentId={matchmakingTournament.id.toString()}
+      <TournamentManagementView
+        onClose={handleBackFromManagement}
+        tournamentId={managementTournament.id.toString()}
+        tournamentName={managementTournament.name}
       />
     );
   }
@@ -414,9 +415,9 @@ export const AdminTournaments = ({ onBack, initialView = 'list' }: AdminTourname
                     </div>
                   </div>
                   <div className="flex gap-2 mt-3">
-                    <Button variant="outline" size="sm" onClick={() => handleShowMatchmaking(tournament)}>
+                    <Button variant="outline" size="sm" onClick={() => handleShowManagement(tournament)}>
                       <Settings className="h-3 w-3" />
-                      組み合わせ
+                      大会管理
                     </Button>
                     <Button variant="outline" size="sm" onClick={() => handleShowQR(tournament)}>
                       <QrCode className="h-3 w-3" />
