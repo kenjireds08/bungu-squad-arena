@@ -266,13 +266,10 @@ export const TournamentWaiting = ({ onClose, onViewRanking }: TournamentWaitingP
           </Card>
         )}
 
-        {/* Character */}
+        {/* Message */}
         <div className="text-center py-4">
-          <div className="flex justify-center mb-4">
-            <Users className="w-20 h-20 text-primary animate-bounce-gentle" />
-          </div>
           <p className="text-sm text-muted-foreground">
-            テープ忍者：「組み合わせが決まるまで、ルールを確認して準備しましょう！」
+            組み合わせが決まるまで、ルールを確認して準備しましょう！
           </p>
         </div>
       </main>
