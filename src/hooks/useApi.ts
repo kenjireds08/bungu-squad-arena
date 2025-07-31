@@ -134,3 +134,41 @@ export const useAddMatch = () => {
     },
   });
 };
+
+// Match Results hooks
+export const useSubmitMatchResult = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (resultData: { matchId: string; playerId: string; result: 'win' | 'lose'; opponentId: string }) => 
+      api.submitMatchResult(resultData),
+    onSuccess: () => {
+      // Invalidate pending results query for admin
+      queryClient.invalidateQueries({ queryKey: ['pendingMatchResults'] });
+    },
+  });
+};
+
+export const usePendingMatchResults = () => {
+  return useQuery({
+    queryKey: ['pendingMatchResults'],
+    queryFn: api.getPendingMatchResults,
+    staleTime: 1000 * 30, // 30 seconds
+    refetchInterval: 1000 * 30, // Auto-refetch every 30 seconds for admin notifications
+  });
+};
+
+export const useApproveMatchResult = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ resultId, approved }: { resultId: string; approved: boolean }) => 
+      api.approveMatchResult(resultId, approved),
+    onSuccess: () => {
+      // Invalidate related queries
+      queryClient.invalidateQueries({ queryKey: ['pendingMatchResults'] });
+      queryClient.invalidateQueries({ queryKey: ['players'] });
+      queryClient.invalidateQueries({ queryKey: ['rankings'] });
+    },
+  });
+};

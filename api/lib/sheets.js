@@ -1889,4 +1889,184 @@ class SheetsService {
   }
 }
 
+  // Match Results Management
+  async submitMatchResult(resultData) {
+    await this.authenticate();
+    
+    try {
+      const resultId = `result_${Date.now()}_${resultData.playerId}`;
+      
+      // Ensure MatchResults sheet exists
+      await this.createMatchResultsSheet();
+      
+      // Add match result record
+      await this.sheets.spreadsheets.values.append({
+        spreadsheetId: this.spreadsheetId,
+        range: 'MatchResults!A:H',
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+          values: [[
+            resultId,
+            resultData.matchId,
+            resultData.playerId,
+            resultData.opponentId,
+            resultData.result,
+            resultData.timestamp,
+            resultData.status,
+            '' // admin_notes
+          ]]
+        }
+      });
+      
+      return resultId;
+    } catch (error) {
+      console.error('Error submitting match result:', error);
+      throw new Error('Failed to submit match result');
+    }
+  }
+
+  async getPendingMatchResults() {
+    await this.authenticate();
+    
+    try {
+      const response = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'MatchResults!A2:H1000'
+      });
+      
+      const rows = response.data.values || [];
+      const pendingResults = rows
+        .filter(row => row[6] === 'pending_approval') // status column
+        .map(row => ({
+          resultId: row[0],
+          matchId: row[1],
+          playerId: row[2],
+          opponentId: row[3],
+          result: row[4],
+          timestamp: row[5],
+          status: row[6],
+          adminNotes: row[7] || ''
+        }));
+      
+      // Get player names for display
+      const players = await this.getPlayers();
+      const playerMap = new Map();
+      players.forEach(player => {
+        playerMap.set(player.id, player.nickname);
+      });
+      
+      return pendingResults.map(result => ({
+        ...result,
+        playerName: playerMap.get(result.playerId) || result.playerId,
+        opponentName: playerMap.get(result.opponentId) || result.opponentId
+      }));
+    } catch (error) {
+      console.error('Error getting pending match results:', error);
+      throw new Error('Failed to get pending match results');
+    }
+  }
+
+  async approveMatchResult(resultId, approved) {
+    await this.authenticate();
+    
+    try {
+      // Find the result row
+      const response = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'MatchResults!A2:H1000'
+      });
+      
+      const rows = response.data.values || [];
+      const resultRowIndex = rows.findIndex(row => row[0] === resultId);
+      
+      if (resultRowIndex === -1) {
+        throw new Error('Match result not found');
+      }
+      
+      const actualRowNumber = resultRowIndex + 2; // +2 because array is 0-indexed and we skip header
+      const newStatus = approved ? 'approved' : 'rejected';
+      
+      // Update status
+      await this.sheets.spreadsheets.values.update({
+        spreadsheetId: this.spreadsheetId,
+        range: `MatchResults!G${actualRowNumber}`,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: { values: [[newStatus]] }
+      });
+      
+      if (approved) {
+        // TODO: Update player ratings based on match result
+        // This would involve implementing the rating calculation logic
+      }
+      
+      return {
+        success: true,
+        resultId,
+        status: newStatus,
+        message: approved ? '試合結果を承認しました' : '試合結果を却下しました'
+      };
+    } catch (error) {
+      console.error('Error approving match result:', error);
+      throw new Error('Failed to approve match result');
+    }
+  }
+
+  async createMatchResultsSheet() {
+    await this.authenticate();
+    
+    try {
+      // Check if MatchResults sheet exists
+      const spreadsheet = await this.sheets.spreadsheets.get({
+        spreadsheetId: this.spreadsheetId
+      });
+      
+      const sheetExists = spreadsheet.data.sheets.some(sheet => 
+        sheet.properties.title === 'MatchResults'
+      );
+      
+      if (!sheetExists) {
+        // Create MatchResults sheet
+        await this.sheets.spreadsheets.batchUpdate({
+          spreadsheetId: this.spreadsheetId,
+          requestBody: {
+            requests: [{
+              addSheet: {
+                properties: {
+                  title: 'MatchResults',
+                  gridProperties: {
+                    rowCount: 1000,
+                    columnCount: 8
+                  }
+                }
+              }
+            }]
+          }
+        });
+        
+        // Add headers
+        await this.sheets.spreadsheets.values.update({
+          spreadsheetId: this.spreadsheetId,
+          range: 'MatchResults!A1:H1',
+          valueInputOption: 'USER_ENTERED',
+          requestBody: {
+            values: [[
+              'result_id',
+              'match_id', 
+              'player_id',
+              'opponent_id',
+              'result',
+              'timestamp',
+              'status',
+              'admin_notes'
+            ]]
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error creating MatchResults sheet:', error);
+      throw new Error('Failed to create MatchResults sheet');
+    }
+  }
+}
+
 module.exports = SheetsService;

@@ -143,4 +143,30 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(matchResult),
     }),
+
+  // Match Results (Player reporting and Admin approval)
+  submitMatchResult: (resultData: { matchId: string; playerId: string; result: 'win' | 'lose'; opponentId: string }): Promise<{ success: boolean; resultId: string; message: string }> =>
+    apiCall('/matchResults', {
+      method: 'POST',
+      body: JSON.stringify(resultData),
+    }),
+
+  getPendingMatchResults: (): Promise<Array<{
+    resultId: string;
+    matchId: string;
+    playerId: string;
+    opponentId: string;
+    result: string;
+    timestamp: string;
+    status: string;
+    playerName: string;
+    opponentName: string;
+  }>> =>
+    apiCall('/matchResults'),
+
+  approveMatchResult: (resultId: string, approved: boolean): Promise<{ success: boolean; message: string }> =>
+    apiCall('/matchResults', {
+      method: 'PUT',
+      body: JSON.stringify({ resultId, approved }),
+    }),
 };
