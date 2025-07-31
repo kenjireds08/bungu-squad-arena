@@ -776,12 +776,24 @@ class SheetsService {
       const players = await this.getPlayers();
       const playerMap = new Map(players.map(p => [p.id, p.nickname]));
 
+      console.log('Players Map:', Array.from(playerMap.entries()).slice(0, 5)); // Show first 5 players
+      console.log('Raw match data sample:', matches.slice(0, 2)); // Show first 2 matches
+
       // Enhance matches with correct player names
-      const enhancedMatches = matches.map(match => ({
-        ...match,
-        player1_name: match.player1_name || playerMap.get(match.player1_id) || match.player1_id,
-        player2_name: match.player2_name || playerMap.get(match.player2_id) || match.player2_id
-      }));
+      const enhancedMatches = matches.map(match => {
+        const player1_resolved = match.player1_name || playerMap.get(match.player1_id) || match.player1_id;
+        const player2_resolved = match.player2_name || playerMap.get(match.player2_id) || match.player2_id;
+        
+        console.log(`Match ${match.match_id}:`);
+        console.log(`  Player1: ID="${match.player1_id}" | Original Name="${match.player1_name}" | Resolved="${player1_resolved}"`);
+        console.log(`  Player2: ID="${match.player2_id}" | Original Name="${match.player2_name}" | Resolved="${player2_resolved}"`);
+        
+        return {
+          ...match,
+          player1_name: player1_resolved,
+          player2_name: player2_resolved
+        };
+      });
 
       return enhancedMatches;
     } catch (error) {
