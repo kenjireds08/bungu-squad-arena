@@ -361,30 +361,10 @@ export const AdminPlayers = ({ onBack }: AdminPlayersProps) => {
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="flex gap-3 pt-4">
+                  <div className="flex justify-center pt-4">
                     <Button 
                       variant="outline" 
-                      className="flex-1"
-                      onClick={() => {
-                        // TODO: Implement player edit functionality
-                        console.log('Edit player:', selectedPlayer.id);
-                      }}
-                    >
-                      編集
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      className="flex-1"
-                      onClick={() => {
-                        // TODO: Implement tournament history view
-                        console.log('View tournament history for:', selectedPlayer.id);
-                      }}
-                    >
-                      大会履歴
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      className="flex-1 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      className="w-32 text-destructive hover:text-destructive hover:bg-destructive/10"
                       onClick={() => {
                         if (confirm(`${selectedPlayer.nickname}を削除しますか？この操作は取り消せません。`)) {
                           // TODO: Implement player deletion
