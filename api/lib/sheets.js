@@ -369,10 +369,47 @@ class SheetsService {
     }
   }
 
+  async ensureTournamentSheetStructure() {
+    await this.authenticate();
+    
+    try {
+      // Check if description column (M) exists by trying to read the header
+      const headerResponse = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'Tournaments!A1:M1'
+      });
+
+      const headers = headerResponse.data.values?.[0] || [];
+      
+      // If description column doesn't exist or is empty, add it
+      if (headers.length < 13 || !headers[12]) {
+        console.log('Adding description column to Tournaments sheet...');
+        
+        // Add the description header
+        await this.sheets.spreadsheets.values.update({
+          spreadsheetId: this.spreadsheetId,
+          range: 'Tournaments!M1',
+          valueInputOption: 'USER_ENTERED',
+          requestBody: {
+            values: [['description']]
+          }
+        });
+        
+        console.log('Description column added successfully');
+      }
+    } catch (error) {
+      console.error('Error ensuring tournament sheet structure:', error);
+      // Don't throw error here, continue with the operation
+    }
+  }
+
   async getTournaments() {
     await this.authenticate();
     
     try {
+      // Ensure the sheet has the correct structure
+      await this.ensureTournamentSheetStructure();
+      
       const response = await this.sheets.spreadsheets.values.get({
         spreadsheetId: this.spreadsheetId,
         range: 'Tournaments!A2:M1000'
@@ -404,6 +441,8 @@ class SheetsService {
     await this.authenticate();
     
     try {
+      // Ensure the sheet has the correct structure
+      await this.ensureTournamentSheetStructure();
       const timestamp = new Date().toISOString();
       const tournamentId = `tournament_${Date.now()}`;
       const qrCodeUrl = `${process.env.FRONTEND_URL || 'https://bungu-squad-arena.vercel.app'}/qr/${tournamentId}`;
@@ -445,6 +484,8 @@ class SheetsService {
     await this.authenticate();
     
     try {
+      // Ensure the sheet has the correct structure
+      await this.ensureTournamentSheetStructure();
       // First, find the tournament's row
       const tournamentsResponse = await this.sheets.spreadsheets.values.get({
         spreadsheetId: this.spreadsheetId,
