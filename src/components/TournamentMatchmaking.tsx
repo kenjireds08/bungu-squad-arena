@@ -3,8 +3,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { ArrowLeft, Users, Shuffle, Grid3X3, Hand, Play, Spade, Plus, Loader2 } from 'lucide-react';
+import { ArrowLeft, Users, Shuffle, Grid3X3, Hand, Play, Spade, Plus, Loader2, Settings, Hash } from 'lucide-react';
 import { usePlayers } from '@/hooks/useApi';
 import { toast } from '@/components/ui/use-toast';
 
@@ -24,6 +25,7 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
   const { data: players = [] } = usePlayers();
   const [matchType, setMatchType] = useState<'random' | 'round-robin' | 'manual'>('random');
   const [gameType, setGameType] = useState<'trump' | 'cardplus'>('trump');
+  const [customMatchCount, setCustomMatchCount] = useState<number>(4);
   const [matches, setMatches] = useState<Match[]>([]);
   const [draggedPlayer, setDraggedPlayer] = useState<any>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -32,41 +34,104 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
   const tournamentParticipants = players.filter(p => p.tournament_active).slice(0, 8);
 
   const generateRandomMatches = useCallback(() => {
-    const shuffled = [...tournamentParticipants].sort(() => Math.random() - 0.5);
     const newMatches: Match[] = [];
+    const participants = [...tournamentParticipants];
     
-    for (let i = 0; i < shuffled.length; i += 2) {
-      if (i + 1 < shuffled.length) {
+    for (let matchNum = 1; matchNum <= customMatchCount; matchNum++) {
+      // Shuffle participants for each match to ensure randomness
+      const shuffled = [...participants].sort(() => Math.random() - 0.5);
+      
+      // Select two players for this match
+      if (shuffled.length >= 2) {
         newMatches.push({
-          id: `match_${i / 2 + 1}`,
-          player1: shuffled[i],
-          player2: shuffled[i + 1],
+          id: `match_${matchNum}`,
+          player1: shuffled[0],
+          player2: shuffled[1],
           gameType
         });
       }
     }
     
     setMatches(newMatches);
-  }, [tournamentParticipants, gameType]);
+  }, [tournamentParticipants, gameType, customMatchCount]);
 
   const generateRoundRobinMatches = useCallback(() => {
     const newMatches: Match[] = [];
     let matchId = 1;
     
+    // Generate all possible pairings
+    const allPairings = [];
     for (let i = 0; i < tournamentParticipants.length; i++) {
       for (let j = i + 1; j < tournamentParticipants.length; j++) {
-        newMatches.push({
-          id: `match_${matchId}`,
+        allPairings.push({
           player1: tournamentParticipants[i],
-          player2: tournamentParticipants[j],
-          gameType
+          player2: tournamentParticipants[j]
         });
-        matchId++;
       }
     }
     
+    // Balance match distribution to avoid consecutive matches
+    const balancedMatches = balanceMatchDistribution(allPairings);
+    
+    balancedMatches.forEach(pairing => {
+      newMatches.push({
+        id: `match_${matchId}`,
+        player1: pairing.player1,
+        player2: pairing.player2,
+        gameType
+      });
+      matchId++;
+    });
+    
     setMatches(newMatches);
   }, [tournamentParticipants, gameType]);
+
+  // Function to balance match distribution and avoid consecutive matches
+  const balanceMatchDistribution = (pairings: any[]) => {
+    const balanced = [];
+    const remaining = [...pairings];
+    const playerLastMatch = new Map();
+    
+    while (remaining.length > 0) {
+      let bestMatch = null;
+      let bestScore = -1;
+      let bestIndex = -1;
+      
+      // Find the pairing that minimizes consecutive matches
+      for (let i = 0; i < remaining.length; i++) {
+        const pairing = remaining[i];
+        const player1LastMatch = playerLastMatch.get(pairing.player1.id) || -2;
+        const player2LastMatch = playerLastMatch.get(pairing.player2.id) || -2;
+        const currentMatch = balanced.length;
+        
+        // Calculate gap score (higher is better)
+        const gap1 = currentMatch - player1LastMatch;
+        const gap2 = currentMatch - player2LastMatch;
+        const score = Math.min(gap1, gap2);
+        
+        if (score > bestScore) {
+          bestScore = score;
+          bestMatch = pairing;
+          bestIndex = i;
+        }
+      }
+      
+      if (bestMatch) {
+        balanced.push(bestMatch);
+        playerLastMatch.set(bestMatch.player1.id, balanced.length - 1);
+        playerLastMatch.set(bestMatch.player2.id, balanced.length - 1);
+        remaining.splice(bestIndex, 1);
+      } else {
+        // Fallback: just take the first remaining match
+        const fallbackMatch = remaining.shift();
+        balanced.push(fallbackMatch);
+        playerLastMatch.set(fallbackMatch.player1.id, balanced.length - 1);
+        playerLastMatch.set(fallbackMatch.player2.id, balanced.length - 1);
+      }
+    }
+    
+    return balanced;
+  };
 
   const generateMatches = () => {
     setIsGenerating(true);
@@ -77,9 +142,9 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
       } else if (matchType === 'round-robin') {
         generateRoundRobinMatches();
       } else {
-        // Manual - just create empty matches for manual assignment
+        // Manual - create empty matches based on custom count
         const emptyMatches: Match[] = [];
-        for (let i = 0; i < Math.floor(tournamentParticipants.length / 2); i++) {
+        for (let i = 0; i < customMatchCount; i++) {
           emptyMatches.push({
             id: `match_${i + 1}`,
             player1: null,
@@ -163,26 +228,21 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
 
     setMatches(prev => prev.map(match => {
       if (match.id === matchId) {
-        // Remove dragged player from any other position
-        const updatedMatches = prev.map(m => ({
-          ...m,
-          player1: m.player1?.id === draggedPlayer.id ? null : m.player1,
-          player2: m.player2?.id === draggedPlayer.id ? null : m.player2
-        }));
-
-        // Find the match to update
-        const targetMatch = updatedMatches.find(m => m.id === matchId);
-        if (targetMatch) {
-          return {
-            ...targetMatch,
-            [position]: draggedPlayer
-          };
-        }
+        return {
+          ...match,
+          [position]: draggedPlayer
+        };
       }
       return match;
     }));
 
     setDraggedPlayer(null);
+  };
+
+  const updateMatchGameType = (matchId: string, newGameType: 'trump' | 'cardplus') => {
+    setMatches(prev => prev.map(match => 
+      match.id === matchId ? { ...match, gameType: newGameType } : match
+    ));
   };
 
   const getPlayerBadges = (player: any) => {
@@ -196,7 +256,8 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
     return badges;
   };
 
-  const unassignedPlayers = tournamentParticipants.filter(player => 
+  // For manual mode, show all players as draggable (since they can be used multiple times)
+  const availablePlayers = matchType === 'manual' ? tournamentParticipants : tournamentParticipants.filter(player => 
     !matches.some(match => 
       match.player1?.id === player.id || match.player2?.id === player.id
     )
@@ -225,7 +286,7 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
             <CardTitle>組み合わせ設定</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">対戦方式</label>
                 <Select value={matchType} onValueChange={(value: any) => setMatchType(value)}>
@@ -256,7 +317,7 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium">ゲームタイプ</label>
+                <label className="text-sm font-medium">デフォルトゲームタイプ</label>
                 <Select value={gameType} onValueChange={(value: any) => setGameType(value)}>
                   <SelectTrigger>
                     <SelectValue />
@@ -277,6 +338,24 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
                   </SelectContent>
                 </Select>
               </div>
+
+              {(matchType === 'random' || matchType === 'manual') && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">試合数</label>
+                  <div className="flex items-center gap-2">
+                    <Hash className="h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="number"
+                      min="1"
+                      max="20"
+                      value={customMatchCount}
+                      onChange={(e) => setCustomMatchCount(parseInt(e.target.value) || 1)}
+                      className="w-20"
+                    />
+                    <span className="text-sm text-muted-foreground">試合</span>
+                  </div>
+                </div>
+              )}
             </div>
 
             <Button onClick={generateMatches} disabled={isGenerating || tournamentParticipants.length < 2}>
@@ -299,7 +378,7 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
                   onDragStart={(e) => handleDragStart(e, player)}
                   className={`p-3 bg-muted rounded-lg border ${
                     matchType === 'manual' ? 'cursor-move hover:bg-muted/80' : ''
-                  } ${unassignedPlayers.includes(player) ? 'border-warning' : 'border-muted'}`}
+                  } border-muted`}
                 >
                   <p className="font-medium text-sm">{player.nickname}</p>
                   <p className="text-xs text-muted-foreground">{player.current_rating}pt</p>
@@ -350,19 +429,31 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
                   <div key={match.id} className="p-4 bg-muted/50 rounded-lg border">
                     <div className="flex items-center justify-between mb-2">
                       <span className="font-medium">試合 {match.id.split('_')[1]}</span>
-                      <Badge variant="outline">
-                        {match.gameType === 'trump' ? (
-                          <>
-                            <Spade className="h-3 w-3 mr-1" />
-                            トランプ
-                          </>
-                        ) : (
-                          <>
-                            <Plus className="h-3 w-3 mr-1" />
-                            カード+
-                          </>
-                        )}
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        <Settings className="h-3 w-3 text-muted-foreground" />
+                        <Select 
+                          value={match.gameType} 
+                          onValueChange={(value: 'trump' | 'cardplus') => updateMatchGameType(match.id, value)}
+                        >
+                          <SelectTrigger className="w-32 h-8">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="trump">
+                              <div className="flex items-center gap-2">
+                                <Spade className="h-3 w-3" />
+                                トランプ
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="cardplus">
+                              <div className="flex items-center gap-2">
+                                <Plus className="h-3 w-3" />
+                                カード+
+                              </div>
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div
@@ -411,20 +502,25 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
           </Card>
         )}
 
-        {/* Unassigned Players (for manual mode) */}
-        {matchType === 'manual' && unassignedPlayers.length > 0 && (
-          <Card className="border-fantasy-frame shadow-soft border-warning">
+        {/* Available Players (for manual mode) */}
+        {matchType === 'manual' && (
+          <Card className="border-fantasy-frame shadow-soft border-info">
             <CardHeader>
-              <CardTitle className="text-warning">未割り当てプレイヤー</CardTitle>
+              <CardTitle className="text-info">
+                プレイヤー選択エリア 
+                <span className="text-sm font-normal text-muted-foreground ml-2">
+                  (同じプレイヤーを複数試合に割り当て可能)
+                </span>
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                {unassignedPlayers.map((player) => (
+                {availablePlayers.map((player) => (
                   <div
-                    key={player.id}
+                    key={`manual-${player.id}`}
                     draggable
                     onDragStart={(e) => handleDragStart(e, player)}
-                    className="p-3 bg-warning/10 rounded-lg border border-warning cursor-move hover:bg-warning/20"
+                    className="p-3 bg-info/10 rounded-lg border border-info cursor-move hover:bg-info/20"
                   >
                     <p className="font-medium text-sm">{player.nickname}</p>
                     <p className="text-xs text-muted-foreground">{player.current_rating}pt</p>
