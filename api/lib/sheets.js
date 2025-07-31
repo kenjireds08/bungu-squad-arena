@@ -1983,8 +1983,20 @@ class SheetsService {
         throw new Error('Match result not found');
       }
       
+      const resultRow = rows[resultRowIndex];
       const actualRowNumber = resultRowIndex + 2; // +2 because array is 0-indexed and we skip header
       const newStatus = approved ? 'approved' : 'rejected';
+      
+      let ratingUpdateResult = null;
+      
+      if (approved) {
+        // Update player ratings based on match result
+        const playerId = resultRow[2];
+        const opponentId = resultRow[3];
+        const result = resultRow[4]; // 'win' or 'lose'
+        
+        ratingUpdateResult = await this.updatePlayersRating(playerId, opponentId, result);
+      }
       
       // Update status
       await this.sheets.spreadsheets.values.update({
@@ -1994,20 +2006,247 @@ class SheetsService {
         requestBody: { values: [[newStatus]] }
       });
       
-      if (approved) {
-        // TODO: Update player ratings based on match result
-        // This would involve implementing the rating calculation logic
-      }
-      
       return {
         success: true,
         resultId,
         status: newStatus,
-        message: approved ? '試合結果を承認しました' : '試合結果を却下しました'
+        message: approved ? '試合結果を承認しました' : '試合結果を却下しました',
+        ratingUpdate: ratingUpdateResult
       };
     } catch (error) {
       console.error('Error approving match result:', error);
       throw new Error('Failed to approve match result');
+    }
+  }
+
+  async updatePlayersRating(playerId, opponentId, result) {
+    const RatingCalculator = require('./rating');
+    const calculator = new RatingCalculator();
+    
+    try {
+      // Get both players' current ratings
+      const players = await this.getPlayers();
+      const player = players.find(p => p.id === playerId);
+      const opponent = players.find(p => p.id === opponentId);
+      
+      if (!player || !opponent) {
+        throw new Error('Player not found');
+      }
+      
+      // Determine winner and loser
+      const isPlayerWinner = result === 'win';
+      const winnerRating = isPlayerWinner ? player.current_rating : opponent.current_rating;
+      const loserRating = isPlayerWinner ? opponent.current_rating : player.current_rating;
+      
+      // Calculate new ratings
+      const ratingChanges = calculator.calculateBothPlayersRating(winnerRating, loserRating);
+      
+      // Prepare rating updates
+      const playerNewRating = isPlayerWinner ? ratingChanges.winner.newRating : ratingChanges.loser.newRating;
+      const opponentNewRating = isPlayerWinner ? ratingChanges.loser.newRating : ratingChanges.winner.newRating;
+      
+      // Update both players' ratings
+      await this.updatePlayerRatingAndStats(playerId, playerNewRating, result === 'win');
+      await this.updatePlayerRatingAndStats(opponentId, opponentNewRating, result === 'lose');
+      
+      // Record rating history
+      await this.recordRatingHistory({
+        playerId,
+        opponentId,
+        playerOldRating: player.current_rating,
+        playerNewRating,
+        opponentOldRating: opponent.current_rating,
+        opponentNewRating,
+        result,
+        timestamp: new Date().toISOString()
+      });
+      
+      return {
+        player: {
+          id: playerId,
+          name: player.nickname,
+          oldRating: player.current_rating,
+          newRating: playerNewRating,
+          ratingChange: playerNewRating - player.current_rating
+        },
+        opponent: {
+          id: opponentId,
+          name: opponent.nickname,
+          oldRating: opponent.current_rating,
+          newRating: opponentNewRating,
+          ratingChange: opponentNewRating - opponent.current_rating
+        }
+      };
+    } catch (error) {
+      console.error('Error updating players rating:', error);
+      throw new Error('Failed to update players rating');
+    }
+  }
+
+  async updatePlayerRatingAndStats(playerId, newRating, isWin) {
+    await this.authenticate();
+    
+    try {
+      // Get players data
+      const response = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'Players!A2:Z1000'
+      });
+      
+      const rows = response.data.values || [];
+      const playerRowIndex = rows.findIndex(row => row[0] === playerId);
+      
+      if (playerRowIndex === -1) {
+        throw new Error('Player not found');
+      }
+      
+      const actualRowNumber = playerRowIndex + 2;
+      const playerRow = rows[playerRowIndex];
+      
+      // Current stats
+      const currentWins = parseInt(playerRow[4]) || 0;
+      const currentLosses = parseInt(playerRow[5]) || 0;
+      const totalWins = parseInt(playerRow[6]) || 0;
+      const totalLosses = parseInt(playerRow[7]) || 0;
+      
+      // New stats
+      const newAnnualWins = isWin ? currentWins + 1 : currentWins;
+      const newAnnualLosses = isWin ? currentLosses : currentLosses + 1;
+      const newTotalWins = isWin ? totalWins + 1 : totalWins;
+      const newTotalLosses = isWin ? totalLosses : totalLosses + 1;
+      
+      // Update multiple fields
+      const updates = [
+        {
+          range: `Players!D${actualRowNumber}`, // current_rating
+          values: [[newRating]]
+        },
+        {
+          range: `Players!E${actualRowNumber}`, // annual_wins
+          values: [[newAnnualWins]]
+        },
+        {
+          range: `Players!F${actualRowNumber}`, // annual_losses
+          values: [[newAnnualLosses]]
+        },
+        {
+          range: `Players!G${actualRowNumber}`, // total_wins
+          values: [[newTotalWins]]
+        },
+        {
+          range: `Players!H${actualRowNumber}`, // total_losses
+          values: [[newTotalLosses]]
+        },
+        {
+          range: `Players!Q${actualRowNumber}`, // last_activity_date
+          values: [[new Date().toLocaleDateString('sv-SE')]]
+        }
+      ];
+      
+      // Execute all updates
+      await Promise.all(updates.map(update => 
+        this.sheets.spreadsheets.values.update({
+          spreadsheetId: this.spreadsheetId,
+          range: update.range,
+          valueInputOption: 'USER_ENTERED',
+          requestBody: { values: update.values }
+        })
+      ));
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Error updating player rating and stats:', error);
+      throw new Error('Failed to update player rating and stats');
+    }
+  }
+
+  async recordRatingHistory(historyData) {
+    await this.authenticate();
+    
+    try {
+      // Ensure RatingHistory sheet exists
+      await this.createRatingHistorySheet();
+      
+      // Record the rating change
+      await this.sheets.spreadsheets.values.append({
+        spreadsheetId: this.spreadsheetId,
+        range: 'RatingHistory!A:H',
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+          values: [[
+            `history_${Date.now()}`,
+            historyData.playerId,
+            historyData.opponentId,
+            historyData.playerOldRating,
+            historyData.playerNewRating,
+            historyData.opponentOldRating,
+            historyData.opponentNewRating,
+            historyData.result,
+            historyData.timestamp
+          ]]
+        }
+      });
+    } catch (error) {
+      console.error('Error recording rating history:', error);
+      // Don't throw error here - rating history is not critical
+    }
+  }
+
+  async createRatingHistorySheet() {
+    await this.authenticate();
+    
+    try {
+      // Check if RatingHistory sheet exists
+      const spreadsheet = await this.sheets.spreadsheets.get({
+        spreadsheetId: this.spreadsheetId
+      });
+      
+      const sheetExists = spreadsheet.data.sheets.some(sheet => 
+        sheet.properties.title === 'RatingHistory'
+      );
+      
+      if (!sheetExists) {
+        // Create RatingHistory sheet
+        await this.sheets.spreadsheets.batchUpdate({
+          spreadsheetId: this.spreadsheetId,
+          requestBody: {
+            requests: [{
+              addSheet: {
+                properties: {
+                  title: 'RatingHistory',
+                  gridProperties: {
+                    rowCount: 1000,
+                    columnCount: 9
+                  }
+                }
+              }
+            }]
+          }
+        });
+        
+        // Add headers
+        await this.sheets.spreadsheets.values.update({
+          spreadsheetId: this.spreadsheetId,
+          range: 'RatingHistory!A1:I1',
+          valueInputOption: 'USER_ENTERED',
+          requestBody: {
+            values: [[
+              'history_id',
+              'player_id',
+              'opponent_id',
+              'player_old_rating',
+              'player_new_rating',
+              'opponent_old_rating',
+              'opponent_new_rating',
+              'result',
+              'timestamp'
+            ]]
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error creating RatingHistory sheet:', error);
+      throw new Error('Failed to create RatingHistory sheet');
     }
   }
 
