@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import TournamentWaitingPage from "./pages/TournamentWaitingPage";
 import { TournamentEntry } from "./components/TournamentEntry";
 
 // Add query client configuration for better error handling
@@ -35,6 +36,7 @@ const App = () => {
               <Route path="/tournament-entry/:tournamentId" element={<TournamentEntry />} />
               <Route path="/tour" element={<TournamentEntry />} />
               <Route path="/tournament/:date" element={<TournamentEntry />} />
+              <Route path="/tournament-waiting" element={<TournamentWaitingPage />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
