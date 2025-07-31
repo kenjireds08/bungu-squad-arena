@@ -161,7 +161,7 @@ export const AdminPlayers = ({ onBack }: AdminPlayersProps) => {
                 onClick={async () => {
                   if (confirm('全プレイヤーの大会エントリー状態をリセットしますか？')) {
                     try {
-                      const response = await fetch('/api/admin/reset-tournament-active', {
+                      const response = await fetch('/api/admin?action=reset-tournament-active', {
                         method: 'POST'
                       });
                       
