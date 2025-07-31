@@ -316,7 +316,7 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Button variant="fantasy" size="lg" className="h-16" onClick={() => setCurrentAdminPage('tournaments')}>
+          <Button variant="fantasy" size="lg" className="h-16" onClick={() => setCurrentAdminPage('create-tournament')}>
             <Plus className="h-5 w-5 mr-2" />
             新しい大会を作成
           </Button>
