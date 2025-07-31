@@ -29,7 +29,7 @@ class SheetsService {
   async autoResetOldTournamentParticipation() {
     try {
       // Check if there are any active tournament players from previous days
-      const today = new Date().toISOString().split('T')[0];
+      const today = new Date().toLocaleDateString('sv-SE'); // Use local date YYYY-MM-DD
       
       // Get current tournament data to check if there are any tournaments today
       const tournamentsResponse = await this.sheets.spreadsheets.values.get({
@@ -324,7 +324,7 @@ class SheetsService {
     await this.authenticate();
     
     try {
-      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+      const today = new Date().toLocaleDateString('sv-SE'); // Use local date YYYY-MM-DD
       const timestamp = new Date().toISOString();
       const totalParticipants = activePlayers.length;
       
