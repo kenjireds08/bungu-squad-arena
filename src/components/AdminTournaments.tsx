@@ -436,7 +436,7 @@ export const AdminTournaments = ({ onBack, initialView = 'list' }: AdminTourname
                     </Button>
                     <Button variant="outline" size="sm" onClick={() => handleShowManagement(tournament)}>
                       <Settings className="h-3 w-3" />
-                      大会管理
+                      大会運営
                     </Button>
                     <Button variant="outline" size="sm" onClick={() => handleShowQR(tournament)}>
                       <QrCode className="h-3 w-3" />

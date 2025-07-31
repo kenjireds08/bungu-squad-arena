@@ -53,6 +53,7 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
   const [currentAdminPage, setCurrentAdminPage] = useState('dashboard');
   const [adminData, setAdminData] = useState<AdminData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedTournamentId, setSelectedTournamentId] = useState<string | null>(null);
   const { data: rankings, isLoading: rankingsLoading } = useRankings();
   const { data: tournaments, isLoading: tournamentsLoading } = useTournaments();
 
@@ -142,7 +143,7 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
   ];
 
   if (currentAdminPage === 'tournaments') {
-    return <AdminTournaments onBack={() => setCurrentAdminPage('dashboard')} />;
+    return <AdminTournaments onBack={() => setCurrentAdminPage('dashboard')} selectedTournamentId={selectedTournamentId} />;
   }
 
   if (currentAdminPage === 'create-tournament') {
@@ -303,7 +304,15 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
             新しい大会を作成
           </Button>
           
-          <Button variant="tournament" size="lg" className="h-16" onClick={() => setCurrentAdminPage('tournaments')}>
+          <Button variant="tournament" size="lg" className="h-16" onClick={() => {
+            // 今日の大会を取得
+            const today = new Date().toLocaleDateString('sv-SE');
+            const todaysTournament = tournaments?.find(t => t.date === today);
+            if (todaysTournament) {
+              setSelectedTournamentId(todaysTournament.id);
+            }
+            setCurrentAdminPage('tournaments');
+          }}>
             <TrendingUp className="h-5 w-5 mr-2" />
             試合経過を確認
           </Button>
