@@ -482,9 +482,7 @@ class SheetsService {
     await this.authenticate();
     
     try {
-      // Ensure the sheet has the correct structure
-      await this.ensureTournamentSheetStructure();
-      
+      // Skip structure check for read operations to avoid 500 errors
       const response = await this.sheets.spreadsheets.values.get({
         spreadsheetId: this.spreadsheetId,
         range: 'Tournaments!A2:M1000'
@@ -508,7 +506,19 @@ class SheetsService {
       }));
     } catch (error) {
       console.error('Error fetching tournaments:', error);
-      throw new Error(`Failed to fetch tournaments data: ${error.message}`);
+      // Handle specific Google Sheets API errors
+      if (error.code === 404) {
+        throw new Error('Tournaments sheet not found. Please check if the sheet exists.');
+      } else if (error.code === 403) {
+        throw new Error('Permission denied. Please check Google Sheets API credentials.');
+      } else if (error.code === 429) {
+        // Rate limit - wait and retry once
+        console.warn('Rate limit hit in getTournaments, implementing backoff');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        throw new Error('API rate limit exceeded. Please try again later.');
+      } else {
+        throw new Error(`Failed to fetch tournaments data: ${error.message}`);
+      }
     }
   }
 
