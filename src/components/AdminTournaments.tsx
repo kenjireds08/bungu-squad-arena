@@ -19,10 +19,11 @@ import { getCategorizedTournaments, getTournamentStatus } from '@/utils/tourname
 interface AdminTournamentsProps {
   onBack: () => void;
   initialView?: 'list' | 'create';
+  selectedTournamentId?: string | null;
 }
 
 
-export const AdminTournaments = ({ onBack, initialView = 'list' }: AdminTournamentsProps) => {
+export const AdminTournaments = ({ onBack, initialView = 'list', selectedTournamentId }: AdminTournamentsProps) => {
   const [currentView, setCurrentView] = useState<'list' | 'create' | 'management' | 'participants'>(initialView);
   const [selectedTournament, setSelectedTournament] = useState<any>(null);
   const [showQRCode, setShowQRCode] = useState(false);
@@ -53,6 +54,17 @@ export const AdminTournaments = ({ onBack, initialView = 'list' }: AdminTourname
       setActiveParticipants(activeCount);
     }
   }, [rankings]);
+
+  // Handle selectedTournamentId - automatically navigate to tournament management
+  useEffect(() => {
+    if (selectedTournamentId && tournamentsData) {
+      const targetTournament = tournamentsData.find(t => t.id === selectedTournamentId);
+      if (targetTournament) {
+        setManagementTournament(targetTournament);
+        setCurrentView('management');
+      }
+    }
+  }, [selectedTournamentId, tournamentsData]);
 
   const handleCreateTournament = async () => {
     // Validate required fields
