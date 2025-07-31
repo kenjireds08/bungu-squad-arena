@@ -37,23 +37,83 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
     const newMatches: Match[] = [];
     const participants = [...tournamentParticipants];
     
-    for (let matchNum = 1; matchNum <= customMatchCount; matchNum++) {
-      // Shuffle participants for each match to ensure randomness
-      const shuffled = [...participants].sort(() => Math.random() - 0.5);
-      
-      // Select two players for this match
-      if (shuffled.length >= 2) {
-        newMatches.push({
-          id: `match_${matchNum}`,
-          player1: shuffled[0],
-          player2: shuffled[1],
-          gameType
-        });
-      }
-    }
+    // Generate balanced random matches with fair distribution
+    const balancedRandomMatches = generateBalancedRandomMatches(participants, customMatchCount);
+    
+    balancedRandomMatches.forEach((pairing, index) => {
+      newMatches.push({
+        id: `match_${index + 1}`,
+        player1: pairing.player1,
+        player2: pairing.player2,
+        gameType
+      });
+    });
     
     setMatches(newMatches);
   }, [tournamentParticipants, gameType, customMatchCount]);
+
+  // Function to generate balanced random matches with fair player distribution
+  const generateBalancedRandomMatches = (participants: any[], matchCount: number) => {
+    if (participants.length < 2) return [];
+    
+    const matches = [];
+    const playerMatchCount = new Map();
+    const playerLastMatch = new Map();
+    
+    // Initialize player match counts
+    participants.forEach(player => {
+      playerMatchCount.set(player.id, 0);
+      playerLastMatch.set(player.id, -2);
+    });
+    
+    for (let matchIndex = 0; matchIndex < matchCount; matchIndex++) {
+      let bestPairing = null;
+      let bestScore = -1;
+      
+      // Try all possible pairings
+      for (let i = 0; i < participants.length; i++) {
+        for (let j = i + 1; j < participants.length; j++) {
+          const player1 = participants[i];
+          const player2 = participants[j];
+          
+          const player1Count = playerMatchCount.get(player1.id);
+          const player2Count = playerMatchCount.get(player2.id);
+          const player1LastMatch = playerLastMatch.get(player1.id);
+          const player2LastMatch = playerLastMatch.get(player2.id);
+          
+          // Calculate fairness score (lower match counts are better)
+          const countScore = -(player1Count + player2Count);
+          
+          // Calculate gap score (higher gaps from last match are better)
+          const gap1 = matchIndex - player1LastMatch;
+          const gap2 = matchIndex - player2LastMatch;
+          const gapScore = Math.min(gap1, gap2);
+          
+          // Combined score (prioritize fairness, then gaps)
+          const totalScore = countScore * 100 + gapScore;
+          
+          if (totalScore > bestScore) {
+            bestScore = totalScore;
+            bestPairing = { player1, player2 };
+          }
+        }
+      }
+      
+      if (bestPairing) {
+        matches.push(bestPairing);
+        
+        // Update counts and last match indices
+        const player1Id = bestPairing.player1.id;
+        const player2Id = bestPairing.player2.id;
+        playerMatchCount.set(player1Id, playerMatchCount.get(player1Id) + 1);
+        playerMatchCount.set(player2Id, playerMatchCount.get(player2Id) + 1);
+        playerLastMatch.set(player1Id, matchIndex);
+        playerLastMatch.set(player2Id, matchIndex);
+      }
+    }
+    
+    return matches;
+  };
 
   const generateRoundRobinMatches = useCallback(() => {
     const newMatches: Match[] = [];
