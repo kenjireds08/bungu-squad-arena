@@ -203,28 +203,15 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId }: QRScanner
           
           // Navigate to the waiting room after 5 seconds
           setTimeout(() => {
-            // Extract tournament ID from URL
-            const tournamentMatch = data.match(/\/tournament\/([^\/]+)/);
-            if (tournamentMatch && tournamentMatch[1]) {
-              window.location.href = `/tournament/${tournamentMatch[1]}`;
-            } else {
-              // Fallback - close scanner
-              onEntryComplete?.();
-              onClose();
-            }
+            // Navigate to tournament waiting page
+            window.location.href = '/tournament-waiting';
           }, 5000);
           
         } catch (error) {
           console.error('Failed to update tournament active status:', error);
-          // Even if API fails, still navigate to tournament
+          // Even if API fails, still navigate to tournament waiting
           setTimeout(() => {
-            const tournamentMatch = data.match(/\/tournament\/([^\/]+)/);
-            if (tournamentMatch && tournamentMatch[1]) {
-              window.location.href = `/tournament/${tournamentMatch[1]}`;
-            } else {
-              onEntryComplete?.();
-              onClose();
-            }
+            window.location.href = '/tournament-waiting';
           }, 5000);
         }
       } else {
