@@ -16,14 +16,16 @@ import {
 } from 'lucide-react';
 import { useTournaments, useRankings } from '@/hooks/useApi';
 import { getCategorizedTournaments } from '@/utils/tournamentData';
+import { PlayerRanking } from './PlayerRanking';
 
 interface TournamentWaitingProps {
   onClose: () => void;
-  onViewRanking: () => void;
+  onViewRanking?: () => void;
 }
 
 export const TournamentWaiting = ({ onClose, onViewRanking }: TournamentWaitingProps) => {
   const [showRatingDialog, setShowRatingDialog] = useState(false);
+  const [showRanking, setShowRanking] = useState(false);
   const { data: tournaments, isLoading: tournamentsLoading } = useTournaments();
   const { data: players, isLoading: playersLoading } = useRankings();
   
@@ -58,6 +60,15 @@ export const TournamentWaiting = ({ onClose, onViewRanking }: TournamentWaitingP
       console.log("対戦詳細を表示");
     }
   };
+
+  // Handle ranking view
+  if (showRanking) {
+    return (
+      <PlayerRanking 
+        onClose={() => setShowRanking(false)} 
+      />
+    );
+  }
 
   // Show loading state while data is being fetched
   if (tournamentsLoading || playersLoading) {
@@ -161,7 +172,7 @@ export const TournamentWaiting = ({ onClose, onViewRanking }: TournamentWaitingP
           {/* ランキング確認ボタン */}
           <Button 
             variant="outline"
-            onClick={onViewRanking}
+            onClick={() => setShowRanking(true)}
             className="w-full"
             size="lg"
           >
