@@ -58,9 +58,27 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
   const today = new Date().toISOString().split('T')[0];
   const { active, upcoming } = getCategorizedTournaments(tournaments || []);
   
+  console.log('=== Tournament Debug Info ===');
+  console.log('Today:', today);
+  console.log('Active tournaments:', active);
+  console.log('Upcoming tournaments:', upcoming);
+  
   // Find today's tournament first (from both active and upcoming)
   const todaysTournament = [...active, ...upcoming].find(t => t.date === today);
-  const nextTournament = todaysTournament || getTournamentForMainDashboard(tournaments || []);
+  
+  // Get next tournament with better logic: only show upcoming tournaments, not past ones
+  let nextTournament = todaysTournament;
+  if (!nextTournament) {
+    // Get only upcoming tournaments (future dates)
+    const futureTournaments = upcoming.filter(t => t.date >= today);
+    if (futureTournaments.length > 0) {
+      // Sort by date and get the nearest one
+      nextTournament = futureTournaments.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
+    }
+  }
+  
+  console.log('Todays tournament:', todaysTournament);
+  console.log('Next tournament:', nextTournament);
 
   // Initialize notifications with tournament data
   useEffect(() => {

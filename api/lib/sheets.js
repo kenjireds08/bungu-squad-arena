@@ -26,6 +26,34 @@ class SheetsService {
     }
   }
 
+  async autoResetOldTournamentParticipation() {
+    try {
+      // Check if there are any active tournament players from previous days
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Get current tournament data to check if there are any tournaments today
+      const tournamentsResponse = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'Tournaments!A2:Z1000'
+      });
+      
+      const tournamentRows = tournamentsResponse.data.values || [];
+      const todaysTournament = tournamentRows.find(row => {
+        const tournamentDate = row[2]; // Assuming date is in column C
+        return tournamentDate === today;
+      });
+      
+      // If no tournament today, reset all tournament_active to FALSE
+      if (!todaysTournament) {
+        console.log('No tournament today, resetting all tournament_active flags');
+        await this.resetAllTournamentActive();
+      }
+    } catch (error) {
+      console.warn('Failed to auto-reset old tournament participation:', error.message);
+      // Don't throw error, just log warning to prevent breaking getPlayers
+    }
+  }
+
   async getPlayers() {
     await this.authenticate();
     
@@ -36,6 +64,10 @@ class SheetsService {
       });
 
       const rows = response.data.values || [];
+      
+      // Auto-reset old tournament participation on each getPlayers call
+      await this.autoResetOldTournamentParticipation();
+      
       return rows.map((row, index) => ({
         id: row[0] || `player_${index + 1}`,
         nickname: row[1] || '',

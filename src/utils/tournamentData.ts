@@ -16,11 +16,9 @@ export interface Tournament {
 export const getTournamentStatus = (date: string, time?: string) => {
   const now = new Date();
   const today = now.toISOString().split('T')[0];
-  const currentTime = now.getHours() * 60 + now.getMinutes(); // Current time in minutes
   const tournamentDate = new Date(date).toISOString().split('T')[0];
   
   if (tournamentDate === today) {
-    // If tournament is today, always show as active regardless of time
     return '開催中';
   } else if (tournamentDate > today) {
     return '募集中';
