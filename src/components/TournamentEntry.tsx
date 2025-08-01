@@ -70,11 +70,11 @@ export const TournamentEntry = () => {
         setUserTournamentActive(userIsActive);
         
         const mockTournament: Tournament = {
-          id: tournamentId || '1',
-          name: '第8回BUNGU SQUAD大会',
+          id: tournamentId || 'tournament_1753934765383',
+          name: '第三回BUNGU SQUAD大会',
           date: today,
-          time: '19:00',
-          location: '○○コミュニティセンター',
+          time: '15:00',
+          location: '△△コミュニティセンター',
           participants: participantCount,
           status: '開催中'
         };
