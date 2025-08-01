@@ -447,7 +447,7 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
                         <div className="space-y-2 flex-1">
                           <div className="flex items-center gap-3">
                             <span className="text-sm font-medium text-muted-foreground">
-                              試合 {match.match_number}
+                              {match.match_number.replace(/^match_/, '')}試合目
                             </span>
                             <Badge className={getStatusColor(match.status)}>
                               {getStatusText(match.status)}
