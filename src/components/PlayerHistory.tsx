@@ -136,7 +136,7 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
             tournamentsData
               .filter((tournament: any) => {
                 // Check if user has matches in this tournament
-                return validMatches.some((match: any) => match.tournament_id === tournament.id);
+                return matchesWithRating.some((match: any) => match.tournament_id === tournament.id);
               })
               .map(async (tournament: any) => {
                 // Get actual participants for this tournament
