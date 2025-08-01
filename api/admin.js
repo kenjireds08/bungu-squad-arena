@@ -15,6 +15,8 @@ module.exports = async function handler(req, res) {
         return await handleResetTournamentActive(req, res);
       case 'emergency-fix-match':
         return await handleEmergencyFixMatch(req, res);
+      case 'fix-match-data':
+        return await handleFixMatchData(req, res);
       default:
         return res.status(400).json({ error: 'Invalid action parameter' });
     }
@@ -133,6 +135,37 @@ async function handleEmergencyFixMatch(req, res) {
     
   } catch (error) {
     console.error('Emergency match fix failed:', error);
+    return res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
+  }
+}
+
+async function handleFixMatchData(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  try {
+    const sheetsService = new SheetsService();
+    
+    // Use adminDirectMatchResult to fix the match with correct data
+    const fixedResult = await sheetsService.adminDirectMatchResult({
+      matchId: 'tournament_1753934765383_match_1',
+      winnerId: 'player_1753942268346_444ujdo4u', // クリリン
+      loserId: 'player_1753943387023_8ndu3qxfh', // 天津飯
+      timestamp: '2025-08-01T02:38:26.431Z'
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Match data fixed using adminDirectMatchResult',
+      result: fixedResult
+    });
+    
+  } catch (error) {
+    console.error('Fix match data failed:', error);
     return res.status(500).json({ 
       success: false,
       error: error.message 

@@ -162,11 +162,11 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
     }
 
     // Check if this is the next match in sequence
-    const matchNumber = parseInt(match.match_number);
+    const matchNumber = parseInt(match.match_number.replace(/^match_/, ''));
     
     // Find all completed matches
     const completedMatches = matches.filter(m => m.status === 'approved');
-    const completedMatchNumbers = completedMatches.map(m => parseInt(m.match_number));
+    const completedMatchNumbers = completedMatches.map(m => parseInt(m.match_number.replace(/^match_/, '')));
     
     // For match 1, it can always start
     if (matchNumber === 1) {
