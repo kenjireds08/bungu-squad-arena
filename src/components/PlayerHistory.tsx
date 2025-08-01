@@ -126,18 +126,24 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
 
       // 3. Load tournament participation history
       try {
-        // Simple implementation: get tournaments user participated in
+        console.log('=== Loading tournament participation history ===');
         const tournamentsResponse = await fetch('/api/tournaments');
         if (tournamentsResponse.ok) {
           const tournamentsData = await tournamentsResponse.json();
+          console.log('All tournaments:', tournamentsData);
+          console.log('User matches:', matchesWithRating);
           
           // Find tournaments where the user has matches
+          const tournamentsWithMatches = tournamentsData.filter((tournament: any) => {
+            const hasMatches = matchesWithRating.some((match: any) => match.tournament_id === tournament.id);
+            console.log(`Tournament ${tournament.id} (${tournament.tournament_name}): has matches = ${hasMatches}`);
+            return hasMatches;
+          });
+          
+          console.log('Tournaments with user matches:', tournamentsWithMatches);
+          
           const userTournaments = await Promise.all(
-            tournamentsData
-              .filter((tournament: any) => {
-                // Check if user has matches in this tournament
-                return matchesWithRating.some((match: any) => match.tournament_id === tournament.id);
-              })
+            tournamentsWithMatches
               .map(async (tournament: any) => {
                 // Get actual participants for this tournament
                 let actualParticipants = 0;
@@ -160,16 +166,17 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
                 return {
                   archive_id: tournament.id,
                   tournament_date: tournament.date,
-                  tournament_name: tournament.name,
+                  tournament_name: tournament.tournament_name || tournament.name || 'BUNGU SQUAD大会',
                   total_participants_that_day: actualParticipants,
                   entry_timestamp: tournament.date
                 };
               })
           );
           
+          console.log('Final user tournaments:', userTournaments);
           setTournamentArchive(userTournaments);
-          console.log('Tournament participation:', userTournaments);
         } else {
+          console.log('Failed to fetch tournaments');
           setTournamentArchive([]);
         }
       } catch (error) {
