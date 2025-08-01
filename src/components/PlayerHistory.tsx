@@ -58,13 +58,15 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
 
   const loadPlayerHistory = async () => {
     console.log('=== Starting loadPlayerHistory with fixed API ===');
+    console.log('Current User ID:', currentUserId);
     setIsLoading(true);
     
     try {
       // 1. Load matches (now using correct TournamentMatches sheet)
       try {
-        console.log('Fetching matches from fixed API...');
-        const matchResponse = await fetch(`/api/matches?playerId=${currentUserId}`, {
+        const apiUrl = `/api/matches?playerId=${currentUserId}`;
+        console.log('Fetching matches from:', apiUrl);
+        const matchResponse = await fetch(apiUrl, {
           cache: 'no-store',
           headers: { 'Cache-Control': 'no-cache' }
         });
