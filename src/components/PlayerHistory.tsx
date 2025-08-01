@@ -41,14 +41,16 @@ interface TournamentArchive {
 
 
 export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) => {
+  console.log('=== PlayerHistory component mounted, currentUserId:', currentUserId);
   const [matches, setMatches] = useState<Match[]>([]);
   const [tournamentArchive, setTournamentArchive] = useState<TournamentArchive[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [players, setPlayers] = useState<any[]>([]);
 
   useEffect(() => {
-    console.log('=== useEffect triggered, currentUserId:', currentUserId);
+    console.log('=== PlayerHistory useEffect triggered, currentUserId:', currentUserId);
     if (currentUserId) {
+      console.log('=== Starting loadPlayerHistory for userId:', currentUserId);
       loadPlayerHistory();
     } else {
       console.log('=== No currentUserId, setting loading false ===');
@@ -57,6 +59,7 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
   }, [currentUserId]);
 
   const loadPlayerHistory = async () => {
+    console.log('=== loadPlayerHistory started for user:', currentUserId);
     setIsLoading(true);
     
     try {
