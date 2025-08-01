@@ -509,9 +509,6 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
                             <span className="text-sm font-medium text-success">
                               勝者: {match.winner_id === match.player1_id ? match.player1_name : match.player2_name}
                             </span>
-                            <span className="text-xs text-muted-foreground ml-2">
-                              ({match.winner_id === match.player1_id ? match.player2_name : match.player1_name} 敗北)
-                            </span>
                           </div>
                         )}
                       </div>
