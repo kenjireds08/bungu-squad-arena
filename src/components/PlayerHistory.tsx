@@ -68,7 +68,16 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
           
           // Basic validation and filtering
           const validMatches = Array.isArray(matchData) ? matchData.filter((match: any) => {
-            return match && match.id && match.player1_id && match.player2_id;
+            // Filter out invalid/test data
+            return match && 
+                   match.id && 
+                   match.player1_id && 
+                   match.player2_id &&
+                   match.match_status === 'approved' && // Only show completed matches
+                   match.winner_id && // Must have a winner
+                   match.match_start_time && // Must have timestamp
+                   !match.match_start_time.includes('7月31日') && // Exclude fake July 31 data
+                   new Date(match.match_start_time) > new Date('2025-07-31'); // Only show data after July 31
           }) : [];
           
           // Load rating changes for each match
@@ -115,8 +124,34 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
         setPlayers([]);
       }
 
-      // 3. Skip tournament archive for stability
-      setTournamentArchive([]);
+      // 3. Load tournament participation history
+      try {
+        // Simple implementation: get tournaments user participated in
+        const tournamentsResponse = await fetch('/api/tournaments');
+        if (tournamentsResponse.ok) {
+          const tournamentsData = await tournamentsResponse.json();
+          
+          // Find tournaments where the user has matches
+          const userTournaments = tournamentsData.filter((tournament: any) => {
+            // Check if user has matches in this tournament
+            return validMatches.some((match: any) => match.tournament_id === tournament.id);
+          }).map((tournament: any) => ({
+            archive_id: tournament.id,
+            tournament_date: tournament.date,
+            tournament_name: tournament.name,
+            total_participants_that_day: tournament.current_participants || 0,
+            entry_timestamp: tournament.date
+          }));
+          
+          setTournamentArchive(userTournaments);
+          console.log('Tournament participation:', userTournaments);
+        } else {
+          setTournamentArchive([]);
+        }
+      } catch (error) {
+        console.error('Tournament archive loading error:', error);
+        setTournamentArchive([]);
+      }
 
     } catch (error) {
       console.error('LoadPlayerHistory error:', error);
@@ -252,7 +287,9 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
               >
                 <div className="flex items-start justify-between mb-2">
                   <div className="space-y-1">
-                    <h3 className="font-semibold text-foreground">BUNGU SQUAD大会</h3>
+                    <h3 className="font-semibold text-foreground">
+                      {entry.tournament_name || 'BUNGU SQUAD大会'}
+                    </h3>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Calendar className="h-3 w-3" />
                       {formatDate(entry.tournament_date)}
@@ -263,16 +300,23 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
                   </Badge>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="grid grid-cols-3 gap-4 text-sm">
                   <div className="text-center">
                     <div className="font-semibold text-foreground">{entry.total_participants_that_day}名</div>
                     <div className="text-muted-foreground">参加者</div>
                   </div>
                   <div className="text-center">
                     <div className="font-semibold text-foreground">
-                      {formatDateTime(entry.entry_timestamp)}
+                      {matches.filter(m => m.tournament_id === entry.archive_id).length}試合
                     </div>
-                    <div className="text-muted-foreground">エントリー時刻</div>
+                    <div className="text-muted-foreground">対戦数</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-semibold text-foreground">
+                      {matches.filter(m => m.tournament_id === entry.archive_id && m.winner_id === currentUserId).length}勝
+                      {matches.filter(m => m.tournament_id === entry.archive_id && m.winner_id !== currentUserId).length}敗
+                    </div>
+                    <div className="text-muted-foreground">成績</div>
                   </div>
                 </div>
               </div>
