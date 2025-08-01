@@ -891,40 +891,88 @@ class SheetsService {
     await this.authenticate();
     
     try {
-      const response = await this.sheets.spreadsheets.values.get({
-        spreadsheetId: this.spreadsheetId,
-        range: 'TournamentMatches!A2:N1000'
-      });
+      let response, matches = [];
+      
+      // Try TournamentMatches first
+      try {
+        response = await this.sheets.spreadsheets.values.get({
+          spreadsheetId: this.spreadsheetId,
+          range: 'TournamentMatches!A2:N1000'
+        });
 
-      const rows = response.data.values || [];
-      const matches = rows
-        .filter(row => row[1] === tournamentId) // Filter by tournament_id
-        .map((row) => ({
-          match_id: row[0] || '',
-          tournament_id: row[1] || '',
-          match_number: row[2] || '',
-          player1_id: row[3] || '',
-          player1_name: row[4] || '',
-          player2_id: row[5] || '',
-          player2_name: row[6] || '',
-          game_type: row[7] || 'trump',
-          status: row[8] || 'scheduled',
-          winner_id: row[9] || '',
-          result_details: row[10] || '',
-          created_at: row[11] || '',
-          completed_at: row[12] || '',
-          approved_at: row[13] || ''
-        }));
+        const rows = response.data.values || [];
+        matches = rows
+          .filter(row => row[1] === tournamentId) // Filter by tournament_id
+          .map((row) => ({
+            match_id: row[0] || '',
+            tournament_id: row[1] || '',
+            match_number: row[2] || '',
+            player1_id: row[3] || '',
+            player1_name: row[4] || '',
+            player2_id: row[5] || '',
+            player2_name: row[6] || '',
+            game_type: row[7] || 'trump',
+            status: row[8] || 'scheduled',
+            winner_id: row[9] || '',
+            result_details: row[10] || '',
+            created_at: row[11] || '',
+            completed_at: row[12] || '',
+            approved_at: row[13] || ''
+          }));
+      } catch (tournamentError) {
+        console.log('TournamentMatches not found, trying Matches sheet');
+      }
+      
+      // If no matches found in TournamentMatches, try Matches sheet
+      if (matches.length === 0) {
+        try {
+          response = await this.sheets.spreadsheets.values.get({
+            spreadsheetId: this.spreadsheetId,
+            range: 'Matches!A:K'
+          });
 
-      // Skip player name resolution to avoid recursive API calls and 500 errors
-      // Return matches as stored in the sheet
+          const rows = response.data.values || [];
+          if (rows.length > 1) {
+            matches = rows
+              .slice(1) // Skip header
+              .filter(row => row[1] === tournamentId) // Filter by tournament_id
+              .map((row) => ({
+                match_id: row[0] || '',
+                tournament_id: row[1] || '',
+                match_number: row[2] || '',
+                player1_id: row[3] || '',
+                player1_name: row[4] || '',
+                player2_id: row[5] || '',
+                player2_name: row[6] || '',
+                game_type: row[7] || 'trump',
+                status: row[8] || 'scheduled',
+                winner_id: row[9] || '',
+                created_at: row[10] || ''
+              }));
+          }
+        } catch (matchError) {
+          console.error('Error fetching from Matches sheet:', matchError);
+        }
+      }
+
+      // Get players for name resolution
+      const players = await this.getPlayers();
+      const playerMap = new Map(players.map(p => [p.id, p.nickname]));
+
+      // Resolve player names if they are missing or show as IDs
+      matches = matches.map(match => ({
+        ...match,
+        player1_name: playerMap.get(match.player1_id) || match.player1_name || match.player1_id,
+        player2_name: playerMap.get(match.player2_id) || match.player2_name || match.player2_id,
+      }));
+
       return matches;
     } catch (error) {
       console.error('Error fetching tournament matches:', error);
       
       // Handle specific Google Sheets API errors
       if (error.code === 404) {
-        throw new Error('TournamentMatches sheet not found. Please check if the sheet exists.');
+        throw new Error('Match sheets not found. Please check if the sheets exist.');
       } else if (error.code === 403) {
         throw new Error('Permission denied. Please check Google Sheets API credentials.');
       } else if (error.code === 429) {
@@ -2264,49 +2312,88 @@ class SheetsService {
     await this.authenticate();
     
     try {
-      // Get current matches to find the row
-      const response = await this.sheets.spreadsheets.values.get({
-        spreadsheetId: this.spreadsheetId,
-        range: 'TournamentMatches!A2:Z1000'
-      });
+      // Try TournamentMatches first, then fallback to Matches sheet
+      let response, sheetName, statusColumn, winnerColumn, timestampColumn;
       
-      const rows = response.data.values || [];
-      const matchRowIndex = rows.findIndex(row => row[0] === matchId);
-      
-      if (matchRowIndex === -1) {
-        throw new Error('Match not found');
+      try {
+        response = await this.sheets.spreadsheets.values.get({
+          spreadsheetId: this.spreadsheetId,
+          range: 'TournamentMatches!A2:Z1000'
+        });
+        
+        const rows = response.data.values || [];
+        const matchRowIndex = rows.findIndex(row => row[0] === matchId);
+        
+        if (matchRowIndex !== -1) {
+          sheetName = 'TournamentMatches';
+          statusColumn = 'F';
+          winnerColumn = 'G';
+          timestampColumn = 'I';
+        } else {
+          throw new Error('Match not found in TournamentMatches');
+        }
+      } catch (tournamentError) {
+        // Fallback to Matches sheet
+        response = await this.sheets.spreadsheets.values.get({
+          spreadsheetId: this.spreadsheetId,
+          range: 'Matches!A:K'
+        });
+        
+        const rows = response.data.values || [];
+        const matchRowIndex = rows.findIndex((row, index) => 
+          index > 0 && row[0] === matchId
+        );
+        
+        if (matchRowIndex === -1) {
+          throw new Error('Match not found in either TournamentMatches or Matches sheet');
+        }
+        
+        sheetName = 'Matches';
+        statusColumn = 'I'; // Status column in Matches sheet
+        winnerColumn = 'J'; // Winner column in Matches sheet  
+        timestampColumn = 'K'; // Timestamp column in Matches sheet
       }
       
-      const actualRowNumber = matchRowIndex + 2;
+      const rows = response.data.values || [];
+      const matchRowIndex = rows.findIndex((row, index) => {
+        if (sheetName === 'TournamentMatches') {
+          return row[0] === matchId;
+        } else {
+          return index > 0 && row[0] === matchId;
+        }
+      });
       
-      // Update status (column F)
+      const actualRowNumber = sheetName === 'TournamentMatches' ? matchRowIndex + 2 : matchRowIndex + 1;
+      
+      // Update status
       await this.sheets.spreadsheets.values.update({
         spreadsheetId: this.spreadsheetId,
-        range: `TournamentMatches!F${actualRowNumber}`,
+        range: `${sheetName}!${statusColumn}${actualRowNumber}`,
         valueInputOption: 'USER_ENTERED',
         requestBody: { values: [[status]] }
       });
       
-      // Update winner if provided (column G)
+      // Update winner if provided
       if (winnerId) {
         await this.sheets.spreadsheets.values.update({
           spreadsheetId: this.spreadsheetId,
-          range: `TournamentMatches!G${actualRowNumber}`,
+          range: `${sheetName}!${winnerColumn}${actualRowNumber}`,
           valueInputOption: 'USER_ENTERED',
           requestBody: { values: [[winnerId]] }
         });
       }
       
-      // Update completed timestamp (column I)
-      if (status === 'completed') {
+      // Update completed timestamp
+      if (status === 'completed' || status === 'approved') {
         await this.sheets.spreadsheets.values.update({
           spreadsheetId: this.spreadsheetId,
-          range: `TournamentMatches!I${actualRowNumber}`,
+          range: `${sheetName}!${timestampColumn}${actualRowNumber}`,
           valueInputOption: 'USER_ENTERED',
           requestBody: { values: [[new Date().toISOString()]] }
         });
       }
       
+      console.log(`Updated match ${matchId} status to '${status}' in ${sheetName} sheet`);
       return { success: true };
     } catch (error) {
       console.error('Error updating match status:', error);
