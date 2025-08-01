@@ -412,12 +412,12 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-primary">
                 <Users className="h-5 w-5" />
-                あなたの試合
+                次はあなたの試合です
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-primary/10 rounded-lg border border-primary/20">
-                <div className="space-y-3 flex-1">
+              <div className="p-4 bg-primary/10 rounded-lg border border-primary/20">
+                <div className="space-y-3">
                   <p className="text-lg font-bold">
                     <span className={currentUserMatch.player1_id === currentUserId ? "text-primary" : ""}>
                       {currentUserMatch.player1_name}
@@ -427,29 +427,27 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
                       {currentUserMatch.player2_name}
                     </span>
                   </p>
-                </div>
-                <div className="flex flex-col items-end gap-2 ml-4">
-                  {/* ルール（上） */}
-                  <div className="flex items-center gap-1">
-                    {getGameTypeIcon(currentUserMatch.game_type)}
-                    <span className="text-sm font-medium">
-                      {getGameTypeName(currentUserMatch.game_type)}
-                    </span>
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-1">
+                        {getGameTypeIcon(currentUserMatch.game_type)}
+                        <span className="text-sm font-medium">
+                          {getGameTypeName(currentUserMatch.game_type)}
+                        </span>
+                      </div>
+                      {getStatusBadge(currentUserMatch.status)}
+                    </div>
                   </div>
-                  {/* ステータス（下） */}
-                  <div className="flex flex-col items-end gap-2">
-                    {getStatusBadge(currentUserMatch.status)}
-                    {canStartMatch(currentUserMatch) && (
-                      <Button 
-                        variant="heroic" 
-                        size="sm" 
-                        onClick={() => handleStartMatch(currentUserMatch)}
-                        className="animate-bounce-gentle"
-                      >
-                        <Play className="h-4 w-4 mr-2" />
-                        試合開始
-                      </Button>
-                    )}
+                  
+                  <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                    <div className="flex items-center gap-2 text-amber-800">
+                      <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
+                      <span className="font-medium">席にお着きください</span>
+                    </div>
+                    <p className="text-sm text-amber-700 mt-1">
+                      管理者が試合開始の合図をするまでお待ちください
+                    </p>
                   </div>
                 </div>
               </div>
@@ -539,10 +537,10 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
           <CardContent>
             <ol className="list-decimal list-inside space-y-2 text-sm">
               <li>自分の試合の順番が来るまでお待ちください</li>
-              <li>「試合開始」ボタンが表示されたら席につきゲームを開始</li>
-              <li>試合中は時間が表示されます</li>
-              <li>ゲーム終了後、勝敗結果を入力してください</li>
-              <li>管理者の承認をお待ちください</li>
+              <li>「次はあなたの試合です」が表示されたら席についてください</li>
+              <li>管理者が「試合開始」の合図をするまでお待ちください</li>
+              <li>ゲーム終了後、管理者が勝敗を入力します</li>
+              <li>ランキングがすぐに更新されます</li>
             </ol>
           </CardContent>
         </Card>

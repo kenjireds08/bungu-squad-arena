@@ -26,8 +26,16 @@ module.exports = async function handler(req, res) {
   }
 };
 
-// プレイヤーが試合結果を報告
+// プレイヤーが試合結果を報告、または管理者が試合を開始
 async function handleSubmitMatchResult(req, res, sheetsService) {
+  const { action } = req.body;
+  
+  // 管理者による試合開始
+  if (action === 'start') {
+    return await handleStartMatch(req, res, sheetsService);
+  }
+  
+  // 通常の結果報告処理
   const { matchId, playerId, result, opponentId } = req.body;
 
   if (!matchId || !playerId || !result || !opponentId) {
@@ -85,6 +93,28 @@ async function handleApproveMatchResult(req, res, sheetsService) {
   } catch (error) {
     console.error('Error approving match result:', error);
     return res.status(500).json({ error: 'Failed to approve match result' });
+  }
+}
+
+// 管理者による試合開始
+async function handleStartMatch(req, res, sheetsService) {
+  const { matchId } = req.body;
+
+  if (!matchId) {
+    return res.status(400).json({ error: 'Missing matchId' });
+  }
+
+  try {
+    // 試合ステータスを 'scheduled' から 'in_progress' に変更
+    await sheetsService.updateMatchStatus(matchId, 'in_progress');
+
+    return res.status(200).json({
+      success: true,
+      message: '試合が開始されました'
+    });
+  } catch (error) {
+    console.error('Error starting match:', error);
+    return res.status(500).json({ error: 'Failed to start match' });
   }
 }
 

@@ -190,3 +190,15 @@ export const useAdminDirectInput = () => {
     },
   });
 };
+
+export const useStartMatch = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (matchId: string) => api.startMatch(matchId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['matches'] });
+      queryClient.invalidateQueries({ queryKey: ['tournaments'] });
+    },
+  });
+};

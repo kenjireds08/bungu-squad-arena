@@ -175,4 +175,10 @@ export const api = {
       method: 'PATCH',
       body: JSON.stringify(matchData),
     }),
+
+  startMatch: (matchId: string): Promise<{ success: boolean; message: string }> =>
+    apiCall('/matchResults', {
+      method: 'POST',
+      body: JSON.stringify({ matchId, action: 'start' }),
+    }),
 };

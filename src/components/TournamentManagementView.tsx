@@ -9,7 +9,7 @@ import {
   AlertCircle, RefreshCw, Trophy, Clock, Play, CheckCircle, Bell, 
   Edit2, Timer, Shuffle, Settings
 } from 'lucide-react';
-import { useRankings, useAdminDirectInput } from '@/hooks/useApi';
+import { useRankings, useAdminDirectInput, useStartMatch } from '@/hooks/useApi';
 import { toast } from '@/components/ui/use-toast';
 import { TournamentMatchmaking } from './TournamentMatchmaking';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -52,6 +52,7 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
   const [directInputMatch, setDirectInputMatch] = useState<Match | null>(null);
   const { data: players } = useRankings();
   const adminDirectInputMutation = useAdminDirectInput();
+  const startMatchMutation = useStartMatch();
   
   const activePlayers = players?.filter(p => p.tournament_active) || [];
 
@@ -96,6 +97,13 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
   const inProgressMatches = matches.filter(m => m.status === 'in_progress');
   const pendingMatches = matches.filter(m => m.status === 'completed');
   const completedMatches = matches.filter(m => m.status === 'approved');
+  
+  // 次に開始できる試合（順番に並んでいる最初のscheduled）
+  const nextMatch = scheduledMatches.length > 0 ? scheduledMatches.sort((a, b) => {
+    const aNum = parseInt(a.match_number.replace(/^match_/, '')) || 0;
+    const bNum = parseInt(b.match_number.replace(/^match_/, '')) || 0;
+    return aNum - bNum;
+  })[0] : null;
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -163,6 +171,27 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
     const match = matches.find(m => m.match_id === matchId);
     if (match) {
       setDirectInputMatch(match);
+    }
+  };
+
+  // 試合開始ハンドラー
+  const handleStartMatch = async (matchId: string) => {
+    try {
+      await startMatchMutation.mutateAsync(matchId);
+      
+      toast({
+        title: "成功",
+        description: "試合が開始されました！",
+      });
+      
+      fetchMatches();
+    } catch (error) {
+      console.error('Start match failed:', error);
+      toast({
+        title: "エラー",
+        description: "試合開始に失敗しました。",
+        variant: "destructive",
+      });
     }
   };
 
@@ -527,6 +556,44 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
                 </div>
               </CardContent>
             </Card>
+
+            {/* Next Match to Start */}
+            {nextMatch && (
+              <Card className="border-fantasy-frame shadow-soft bg-primary/5">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2">
+                    <Timer className="h-5 w-5 text-primary" />
+                    次の試合
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="p-4 bg-primary/10 border border-primary/20 rounded-lg">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="space-y-1">
+                        <h3 className="font-semibold text-foreground text-lg">
+                          {nextMatch.player1_name} vs {nextMatch.player2_name}
+                        </h3>
+                        <div className="text-sm text-muted-foreground">
+                          {nextMatch.match_number.replace(/^match_/, '')}試合目 • {nextMatch.game_type === 'trump' ? 'トランプルール' : 'カードプラスルール'}
+                        </div>
+                      </div>
+                      <Button
+                        onClick={() => handleStartMatch(nextMatch.match_id)}
+                        size="lg"
+                        className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-6"
+                        disabled={startMatchMutation.isPending}
+                      >
+                        <Play className="h-4 w-4 mr-2" />
+                        {startMatchMutation.isPending ? '開始中...' : '試合開始'}
+                      </Button>
+                    </div>
+                    <div className="text-xs text-muted-foreground bg-background/50 p-2 rounded">
+                      💡 プレイヤーが席に着いたら「試合開始」ボタンを押してください
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* In Progress Matches */}
             <Card className="border-fantasy-frame shadow-soft">
