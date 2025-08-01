@@ -64,8 +64,8 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
         );
         setCurrentUserMatch(userMatch || null);
         
-        // Calculate tournament progress
-        const completedMatches = matchesData.filter((m: Match) => m.status === 'completed').length;
+        // Calculate tournament progress  
+        const completedMatches = matchesData.filter((m: Match) => m.status === 'approved' || m.status === 'completed').length;
         const totalMatches = matchesData.length;
         const nextAvailableMatches = matchesData.filter((m: Match) => m.status === 'scheduled');
         
@@ -96,8 +96,8 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
         );
         setCurrentUserMatch(userMatch || null);
         
-        // Calculate tournament progress
-        const completedMatches = matchesData.filter((m: Match) => m.status === 'completed').length;
+        // Calculate tournament progress  
+        const completedMatches = matchesData.filter((m: Match) => m.status === 'approved' || m.status === 'completed').length;
         const totalMatches = matchesData.length;
         const nextAvailableMatches = matchesData.filter((m: Match) => m.status === 'scheduled');
         
@@ -287,7 +287,7 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
                 <div className="flex items-center gap-4">
                   <div className="text-center">
                     <div className="text-2xl font-bold text-success">
-                      {matches.filter(m => m.status === 'approved').length}
+                      {matches.filter(m => m.status === 'approved' || m.status === 'completed').length}
                     </div>
                     <div className="text-sm text-muted-foreground">完了試合</div>
                   </div>
@@ -301,7 +301,7 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
                 </div>
                 <div className="text-right">
                   <div className="text-lg font-bold text-primary">
-                    {Math.round((matches.filter(m => m.status === 'approved').length / tournamentProgress.total) * 100)}%
+                    {Math.round((matches.filter(m => m.status === 'approved' || m.status === 'completed').length / tournamentProgress.total) * 100)}%
                   </div>
                   <div className="text-sm text-muted-foreground">進行率</div>
                 </div>
@@ -312,7 +312,7 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
                 <div 
                   className="bg-primary h-2 rounded-full transition-all duration-500"
                   style={{ 
-                    width: `${(matches.filter(m => m.status === 'approved').length / tournamentProgress.total) * 100}%` 
+                    width: `${(matches.filter(m => m.status === 'approved' || m.status === 'completed').length / tournamentProgress.total) * 100}%` 
                   }}
                 ></div>
               </div>
@@ -352,7 +352,23 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
 
                 {/* Next Up */}
                 {(() => {
-                  const nextMatch = matches.find(m => m.status === 'scheduled' && canStartMatch(m));
+                  // Find the next scheduled match in sequence (not necessarily user's match)
+                  const scheduledMatches = matches.filter(m => m.status === 'scheduled');
+                  const nextMatch = scheduledMatches.find(m => {
+                    const matchNumber = parseInt(m.match_number.replace(/^match_/, ''));
+                    const completedMatches = matches.filter(match => match.status === 'approved' || match.status === 'completed');
+                    const completedMatchNumbers = completedMatches.map(match => parseInt(match.match_number.replace(/^match_/, '')));
+                    
+                    // For match 1, it can always start
+                    if (matchNumber === 1) return true;
+                    
+                    // For subsequent matches, check if all previous matches are completed
+                    for (let i = 1; i < matchNumber; i++) {
+                      if (!completedMatchNumbers.includes(i)) return false;
+                    }
+                    return true;
+                  });
+                  
                   if (nextMatch) {
                     return (
                       <div className="p-3 bg-primary/10 border border-primary/20 rounded-lg">

@@ -2245,8 +2245,8 @@ class SheetsService {
       // Update player ratings immediately
       const ratingUpdateResult = await this.updatePlayersRating(winnerId, loserId, 'win');
       
-      // Update match status to completed
-      await this.updateMatchStatus(matchId, 'completed', winnerId);
+      // Update match status to approved (admin direct input is immediately approved)
+      await this.updateMatchStatus(matchId, 'approved', winnerId);
       
       return {
         success: true,
