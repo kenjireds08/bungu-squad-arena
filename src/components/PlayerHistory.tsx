@@ -47,67 +47,107 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
   const [players, setPlayers] = useState<any[]>([]);
 
   useEffect(() => {
-    if (currentUserId) {
-      loadPlayerHistory();
-    }
+    let cancelled = false;
+    
+    const runLoad = async () => {
+      if (!cancelled && currentUserId) {
+        await loadPlayerHistory();
+      }
+    };
+    
+    runLoad();
+    
+    return () => {
+      cancelled = true;
+    };
   }, [currentUserId]);
 
   const loadPlayerHistory = async () => {
+    console.log('Starting loadPlayerHistory for:', currentUserId);
+    setIsLoading(true);
+    
     try {
-      setIsLoading(true);
-      
-      // Load match history for current player
-      try {
-        console.log('Loading matches for player:', currentUserId);
-        const matchResponse = await fetch(`/api/matches?playerId=${currentUserId}`);
-        console.log('Match response status:', matchResponse.status);
-        if (matchResponse.ok) {
-          const matchData = await matchResponse.json();
-          console.log('Match data loaded:', matchData);
-          
-          // Filter out invalid match data
-          const validMatches = matchData.filter((match: Match) => {
-            return match.id && 
-                   match.player1_id && 
-                   match.player2_id && 
-                   match.winner_id &&
-                   match.winner_id !== 'win' && 
-                   match.winner_id !== 'lose' &&
-                   match.game_rule !== 'approved';
+      // タイムアウト付きのfetch関数
+      const fetchWithTimeout = async (url: string, timeout = 10000) => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeout);
+        
+        try {
+          const response = await fetch(url, { 
+            signal: controller.signal,
+            cache: 'no-store',
+            headers: {
+              'Cache-Control': 'no-cache'
+            }
           });
-          
-          console.log('Valid matches after filtering:', validMatches);
-          setMatches(validMatches);
-        } else {
-          console.error('Match API failed:', matchResponse.status, await matchResponse.text());
+          clearTimeout(timeoutId);
+          return response;
+        } catch (error) {
+          clearTimeout(timeoutId);
+          throw error;
         }
+      };
+
+      // 1. Load match history
+      try {
+        console.log('Fetching matches...');
+        const matchResponse = await fetchWithTimeout(`/api/matches?playerId=${currentUserId}`);
+        
+        if (!matchResponse.ok) {
+          throw new Error(`HTTP ${matchResponse.status}`);
+        }
+        
+        const responseText = await matchResponse.text();
+        console.log('Raw match response:', responseText.substring(0, 200));
+        
+        const matchData = responseText ? JSON.parse(responseText) : [];
+        
+        // Filter valid matches
+        const validMatches = Array.isArray(matchData) ? matchData.filter((match: any) => {
+          return match.id && 
+                 match.player1_id && 
+                 match.player2_id && 
+                 match.winner_id &&
+                 match.winner_id !== 'win' && 
+                 match.winner_id !== 'lose' &&
+                 match.game_rule !== 'approved';
+        }) : [];
+        
+        console.log('Valid matches found:', validMatches.length);
+        setMatches(validMatches);
+        
       } catch (error) {
-        console.error('Error loading matches:', error);
+        console.error('Match loading failed:', error);
+        setMatches([]); // フォールバック
       }
 
-      // Skip tournament archive for now to prevent infinite loading
-      console.log('Skipping tournament archive loading temporarily');
+      // 2. Skip tournament archive (temporary)
       setTournamentArchive([]);
 
-      // Load player data for opponent names
+      // 3. Load players data
       try {
-        console.log('Loading players data');
-        const playersResponse = await fetch('/api/players');
-        console.log('Players response status:', playersResponse.status);
-        if (playersResponse.ok) {
-          const playersData = await playersResponse.json();
-          console.log('Players data loaded:', playersData);
-          setPlayers(playersData);
-        } else {
-          console.error('Players API failed:', playersResponse.status, await playersResponse.text());
+        console.log('Fetching players...');
+        const playersResponse = await fetchWithTimeout('/api/players');
+        
+        if (!playersResponse.ok) {
+          throw new Error(`HTTP ${playersResponse.status}`);
         }
+        
+        const playersText = await playersResponse.text();
+        const playersData = playersText ? JSON.parse(playersText) : [];
+        
+        console.log('Players loaded:', Array.isArray(playersData) ? playersData.length : 'not array');
+        setPlayers(Array.isArray(playersData) ? playersData : []);
+        
       } catch (error) {
-        console.error('Error loading players:', error);
+        console.error('Players loading failed:', error);
+        setPlayers([]); // フォールバック
       }
 
     } catch (error) {
-      console.error('Failed to load player history:', error);
+      console.error('LoadPlayerHistory failed:', error);
     } finally {
+      console.log('Setting loading to false');
       setIsLoading(false);
     }
   };
