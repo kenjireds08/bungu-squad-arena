@@ -552,9 +552,18 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
                             試合{match.match_number} • {match.game_type === 'trump' ? 'トランプルール' : 'カードプラスルール'}
                           </div>
                         </div>
-                        <Badge className={getStatusColor(match.status)}>
-                          {getStatusText(match.status)}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge className={getStatusColor(match.status)}>
+                            {getStatusText(match.status)}
+                          </Badge>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setDirectInputMatch(match)}
+                          >
+                            詳細
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   ))
