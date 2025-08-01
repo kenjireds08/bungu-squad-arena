@@ -42,7 +42,42 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
   // Manual refresh function
   const handleManualRefresh = async () => {
     setIsRefreshing(true);
-    await fetchMatches();
+    // Force refresh by adding timestamp to avoid cache
+    const timestamp = new Date().getTime();
+    try {
+      const response = await fetch(`/api/matches?tournamentId=${tournamentId}&t=${timestamp}`, {
+        cache: 'no-cache',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      });
+      if (response.ok) {
+        const matchesData = await response.json();
+        setMatches(matchesData);
+        
+        // Find current user's match that's ready to start or in progress
+        const userMatch = matchesData.find((match: Match) => 
+          (match.player1_id === currentUserId || match.player2_id === currentUserId) &&
+          (match.status === 'scheduled' || match.status === 'in_progress')
+        );
+        setCurrentUserMatch(userMatch || null);
+        
+        // Calculate tournament progress
+        const completedMatches = matchesData.filter((m: Match) => m.status === 'completed').length;
+        const totalMatches = matchesData.length;
+        const nextAvailableMatches = matchesData.filter((m: Match) => m.status === 'scheduled');
+        
+        setTournamentProgress({
+          completed: completedMatches,
+          total: totalMatches,
+          nextAvailable: nextAvailableMatches
+        });
+      }
+    } catch (error) {
+      console.error('Error refreshing matches:', error);
+    }
     setIsRefreshing(false);
   };
 
@@ -293,9 +328,11 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
                         <span className="font-medium text-blue-800">現在対戦中</span>
                       </div>
                       <div className="text-sm text-blue-600 mt-1">
-                        {matches.filter(m => m.status === 'in_progress').map(m => 
-                          `${m.match_number.replace('match_', '')}試合目`
-                        ).join(', ')}
+                        {matches.filter(m => m.status === 'in_progress').map(m => {
+                          // 強制的にmatch_プレフィックスを削除
+                          const matchNum = m.match_number.replace(/^match_/, '');
+                          return `${matchNum}試合目`;
+                        }).join(', ')}
                       </div>
                     </div>
                   )}
@@ -326,7 +363,7 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
                               <span className="font-medium text-primary">次の試合</span>
                             </div>
                             <div className="text-sm text-muted-foreground mt-1">
-                              {nextMatch.match_number.replace('match_', '')}試合目: {nextMatch.player1_name} vs {nextMatch.player2_name}
+                              {nextMatch.match_number.replace(/^match_/, '')}試合目: {nextMatch.player1_name} vs {nextMatch.player2_name}
                             </div>
                           </div>
                           {isUserInMatch(nextMatch) && (
@@ -438,7 +475,7 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
                       <div className="space-y-3 flex-1">
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-medium text-muted-foreground">
-                            {match.match_number.replace('match_', '')}試合目
+                            {match.match_number.replace(/^match_/, '')}試合目
                           </span>
                         </div>
                         <p className="font-medium">
