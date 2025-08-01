@@ -1308,56 +1308,6 @@ class SheetsService {
   }
 
 
-  async submitMatchResult(resultData) {
-    await this.authenticate();
-    
-    try {
-      const { match_id, reporter_id, result, notes, reported_at } = resultData;
-      
-      // First, get the match details from TournamentMatches
-      const matchesResponse = await this.sheets.spreadsheets.values.get({
-        spreadsheetId: this.spreadsheetId,
-        range: 'TournamentMatches!A:W'
-      });
-
-      const matchRows = matchesResponse.data.values || [];
-      const matchRowIndex = matchRows.findIndex(row => row[0] === match_id);
-      
-      if (matchRowIndex === -1) {
-        throw new Error('Match not found');
-      }
-
-      const matchRow = matchRows[matchRowIndex];
-      const player1_id = matchRow[2];
-      const player2_id = matchRow[3];
-      
-      // Determine winner and loser based on reporter and result
-      let winner_id, loser_id;
-      if (result === 'win') {
-        winner_id = reporter_id;
-        loser_id = reporter_id === player1_id ? player2_id : player1_id;
-      } else {
-        loser_id = reporter_id;
-        winner_id = reporter_id === player1_id ? player2_id : player1_id;
-      }
-
-      // Update the match with result information
-      const updateRange = `TournamentMatches!H${matchRowIndex + 1}:M${matchRowIndex + 1}`;
-      await this.sheets.spreadsheets.values.update({
-        spreadsheetId: this.spreadsheetId,
-        range: updateRange,
-        valueInputOption: 'USER_ENTERED',
-        requestBody: {
-          values: [[
-            winner_id,     // H: winner_id
-            loser_id,      // I: loser_id
-            reported_at,   // J: match_start_time (using reported time as proxy)
-            reported_at,   // K: match_end_time
-            reporter_id,   // L: reported_by
-            reported_at    // M: reported_at
-          ]]
-        }
-      });
 
       // Update match status to 'pending_approval'
       await this.sheets.spreadsheets.values.update({
@@ -1911,7 +1861,6 @@ class SheetsService {
       throw new Error(`Failed to delete match: ${error.message}`);
     }
   }
-}
 
   // Match Results Management
   async submitMatchResult(resultData) {
