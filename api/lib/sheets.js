@@ -40,9 +40,15 @@ class SheetsService {
       const tournamentRows = tournamentsResponse.data.values || [];
       
       // Check if we have any active players first
-      const activePlayers = await this.getActiveTournamentPlayers();
-      if (activePlayers.length === 0) {
-        console.log('No active tournament players, skipping reset');
+      let activePlayers = [];
+      try {
+        activePlayers = await this.getActiveTournamentPlayers();
+        if (activePlayers.length === 0) {
+          console.log('No active tournament players, skipping reset');
+          return;
+        }
+      } catch (activePlayersError) {
+        console.warn('Failed to get active players, skipping reset:', activePlayersError.message);
         return;
       }
       
@@ -82,7 +88,13 @@ class SheetsService {
       const rows = response.data.values || [];
       
       // Auto-reset tournament participation flags for new day
-      await this.autoResetOldTournamentParticipation();
+      // Temporarily disabled to prevent login issues
+      // try {
+      //   await this.autoResetOldTournamentParticipation();
+      // } catch (resetError) {
+      //   console.warn('Auto-reset failed, continuing with getPlayers:', resetError.message);
+      //   // Continue with getPlayers even if reset fails
+      // }
       
       return rows.map((row, index) => ({
         id: row[0] || `player_${index + 1}`,
