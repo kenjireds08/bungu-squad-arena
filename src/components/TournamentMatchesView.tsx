@@ -364,13 +364,7 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between p-4 bg-primary/10 rounded-lg border border-primary/20">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    {getGameTypeIcon(currentUserMatch.game_type)}
-                    <span className="font-medium">
-                      {getGameTypeName(currentUserMatch.game_type)}ルール
-                    </span>
-                  </div>
+                <div className="space-y-3 flex-1">
                   <p className="text-lg font-bold">
                     <span className={currentUserMatch.player1_id === currentUserId ? "text-primary" : ""}>
                       {currentUserMatch.player1_name}
@@ -381,10 +375,18 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
                     </span>
                   </p>
                 </div>
-                <div className="text-right space-y-2">
-                  {getStatusBadge(currentUserMatch.status)}
-                  {canStartMatch(currentUserMatch) && (
-                    <div>
+                <div className="flex flex-col items-end gap-2 ml-4">
+                  {/* ルール（上） */}
+                  <div className="flex items-center gap-1">
+                    {getGameTypeIcon(currentUserMatch.game_type)}
+                    <span className="text-sm font-medium">
+                      {getGameTypeName(currentUserMatch.game_type)}
+                    </span>
+                  </div>
+                  {/* ステータス（下） */}
+                  <div className="flex flex-col items-end gap-2">
+                    {getStatusBadge(currentUserMatch.status)}
+                    {canStartMatch(currentUserMatch) && (
                       <Button 
                         variant="heroic" 
                         size="sm" 
@@ -394,8 +396,8 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
                         <Play className="h-4 w-4 mr-2" />
                         試合開始
                       </Button>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -433,14 +435,10 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
                     className={`p-4 rounded-lg border transition-colors ${matchStatusColor} ${userMatchHighlight}`}
                   >
                     <div className="flex items-center justify-between">
-                      <div className="space-y-2">
+                      <div className="space-y-3 flex-1">
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-medium text-muted-foreground">
-                            match_{match.match_number}試合目
-                          </span>
-                          {getGameTypeIcon(match.game_type)}
-                          <span className="text-xs text-muted-foreground">
-                            {getGameTypeName(match.game_type)}
+                            {match.match_number}試合目
                           </span>
                         </div>
                         <p className="font-medium">
@@ -464,7 +462,15 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
                           </div>
                         )}
                       </div>
-                      <div className="text-right">
+                      <div className="flex flex-col items-end gap-2 ml-4">
+                        {/* ルール（上） */}
+                        <div className="flex items-center gap-1">
+                          {getGameTypeIcon(match.game_type)}
+                          <span className="text-xs text-muted-foreground">
+                            {getGameTypeName(match.game_type)}
+                          </span>
+                        </div>
+                        {/* ステータス（下） */}
                         {getStatusBadge(match.status)}
                       </div>
                     </div>
