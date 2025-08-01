@@ -60,10 +60,44 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
     setIsLoading(true);
     
     try {
-      // 簡素化版：履歴画面は正常に動作するが、データ表示は後で修正
-      setMatches([]);
-      setPlayers([]);
+      // 1. Load matches with error handling
+      try {
+        const matchResponse = await fetch(`/api/matches?playerId=${currentUserId}`);
+        if (matchResponse.ok) {
+          const matchData = await matchResponse.json();
+          
+          // Basic validation and filtering
+          const validMatches = Array.isArray(matchData) ? matchData.filter((match: any) => {
+            return match && match.id && match.player1_id && match.player2_id;
+          }) : [];
+          
+          setMatches(validMatches);
+          console.log(`Loaded ${validMatches.length} matches for ${currentUserId}`);
+        } else {
+          setMatches([]);
+        }
+      } catch (error) {
+        console.error('Match loading error:', error);
+        setMatches([]);
+      }
+
+      // 2. Load players with error handling
+      try {
+        const playersResponse = await fetch('/api/players');
+        if (playersResponse.ok) {
+          const playersData = await playersResponse.json();
+          setPlayers(Array.isArray(playersData) ? playersData : []);
+        } else {
+          setPlayers([]);
+        }
+      } catch (error) {
+        console.error('Players loading error:', error);
+        setPlayers([]);
+      }
+
+      // 3. Skip tournament archive for stability
       setTournamentArchive([]);
+
     } catch (error) {
       console.error('LoadPlayerHistory error:', error);
     } finally {

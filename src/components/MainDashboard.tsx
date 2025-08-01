@@ -218,7 +218,7 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
   }
 
   if (currentPage === 'history') {
-    return <PlayerHistory onClose={() => setCurrentPage('dashboard')} />;
+    return <PlayerHistory onClose={() => setCurrentPage('dashboard')} currentUserId={CURRENT_USER_ID} />;
   }
 
   if (currentPage === 'profile') {
