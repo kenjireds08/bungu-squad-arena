@@ -344,7 +344,7 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
                   <p className="text-lg font-medium text-foreground mb-2">{currentUser?.nickname || 'プレイヤー'}</p>
                 </div>
                 <h2 className="text-2xl font-bold text-foreground">
-                  {getRankIcon(currentUser?.rank || 0)} 現在 {currentUser?.rank || '-'}位
+                  {currentUser?.rankDisplay || `${getRankIcon(currentUser?.rank || 0)} 現在 ${currentUser?.rank || '-'}位`}
                 </h2>
                 <div className="flex items-center justify-center">
                   <span className="text-xl font-semibold text-primary">

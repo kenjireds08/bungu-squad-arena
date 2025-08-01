@@ -121,12 +121,29 @@ class SheetsService {
   async getRankings() {
     try {
       const players = await this.getPlayers();
-      return players
-        .sort((a, b) => b.current_rating - a.current_rating)
-        .map((player, index) => ({
+      const sortedPlayers = players.sort((a, b) => b.current_rating - a.current_rating);
+      
+      // Calculate ranks with ties
+      let currentRank = 1;
+      return sortedPlayers.map((player, index) => {
+        // If this player has the same rating as the previous player, keep the same rank
+        if (index > 0 && sortedPlayers[index - 1].current_rating === player.current_rating) {
+          // Same rank as previous player
+        } else {
+          // New rank = current position + 1
+          currentRank = index + 1;
+        }
+        
+        // Check if there are multiple players with the same rating
+        const sameRatingCount = sortedPlayers.filter(p => p.current_rating === player.current_rating).length;
+        const isTied = sameRatingCount > 1;
+        
+        return {
           ...player,
-          rank: index + 1
-        }));
+          rank: currentRank,
+          rankDisplay: isTied ? `${currentRank}位タイ` : `${currentRank}位`
+        };
+      });
     } catch (error) {
       console.error('Error getting rankings:', error);
       // Re-throw the error from getPlayers with proper context

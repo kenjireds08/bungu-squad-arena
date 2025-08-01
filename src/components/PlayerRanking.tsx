@@ -125,7 +125,7 @@ export const PlayerRanking = ({ onClose }: PlayerRankingProps) => {
                   {/* Rank and Player Info */}
                   <div className="flex items-center gap-3">
                     <div className="text-xl font-bold w-12 text-center">
-                      {getRankIcon(player.rank || index + 1)}
+                      {player.rankDisplay || getRankIcon(player.rank || index + 1)}
                     </div>
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
