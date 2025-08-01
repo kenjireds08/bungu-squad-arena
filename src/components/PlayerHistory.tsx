@@ -47,109 +47,49 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
   const [players, setPlayers] = useState<any[]>([]);
 
   useEffect(() => {
-    let cancelled = false;
-    
-    const runLoad = async () => {
-      if (!cancelled && currentUserId) {
-        await loadPlayerHistory();
-      }
-    };
-    
-    runLoad();
-    
-    return () => {
-      cancelled = true;
-    };
+    console.log('=== useEffect triggered, currentUserId:', currentUserId);
+    if (currentUserId) {
+      loadPlayerHistory();
+    } else {
+      console.log('=== No currentUserId, setting loading false ===');
+      setIsLoading(false);
+    }
   }, [currentUserId]);
 
   const loadPlayerHistory = async () => {
-    console.log('Starting loadPlayerHistory for:', currentUserId);
+    console.log('=== SIMPLE MODE: Starting loadPlayerHistory ===');
     setIsLoading(true);
     
-    try {
-      // タイムアウト付きのfetch関数
-      const fetchWithTimeout = async (url: string, timeout = 10000) => {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), timeout);
-        
-        try {
-          const response = await fetch(url, { 
-            signal: controller.signal,
-            cache: 'no-store',
-            headers: {
-              'Cache-Control': 'no-cache'
-            }
-          });
-          clearTimeout(timeoutId);
-          return response;
-        } catch (error) {
-          clearTimeout(timeoutId);
-          throw error;
-        }
-      };
-
-      // 1. Load match history
-      try {
-        console.log('Fetching matches...');
-        const matchResponse = await fetchWithTimeout(`/api/matches?playerId=${currentUserId}`);
-        
-        if (!matchResponse.ok) {
-          throw new Error(`HTTP ${matchResponse.status}`);
-        }
-        
-        const responseText = await matchResponse.text();
-        console.log('Raw match response:', responseText.substring(0, 200));
-        
-        const matchData = responseText ? JSON.parse(responseText) : [];
-        
-        // Filter valid matches
-        const validMatches = Array.isArray(matchData) ? matchData.filter((match: any) => {
-          return match.id && 
-                 match.player1_id && 
-                 match.player2_id && 
-                 match.winner_id &&
-                 match.winner_id !== 'win' && 
-                 match.winner_id !== 'lose' &&
-                 match.game_rule !== 'approved';
-        }) : [];
-        
-        console.log('Valid matches found:', validMatches.length);
-        setMatches(validMatches);
-        
-      } catch (error) {
-        console.error('Match loading failed:', error);
-        setMatches([]); // フォールバック
-      }
-
-      // 2. Skip tournament archive (temporary)
-      setTournamentArchive([]);
-
-      // 3. Load players data
-      try {
-        console.log('Fetching players...');
-        const playersResponse = await fetchWithTimeout('/api/players');
-        
-        if (!playersResponse.ok) {
-          throw new Error(`HTTP ${playersResponse.status}`);
-        }
-        
-        const playersText = await playersResponse.text();
-        const playersData = playersText ? JSON.parse(playersText) : [];
-        
-        console.log('Players loaded:', Array.isArray(playersData) ? playersData.length : 'not array');
-        setPlayers(Array.isArray(playersData) ? playersData : []);
-        
-      } catch (error) {
-        console.error('Players loading failed:', error);
-        setPlayers([]); // フォールバック
-      }
-
-    } catch (error) {
-      console.error('LoadPlayerHistory failed:', error);
-    } finally {
-      console.log('Setting loading to false');
+    // 強制的に2秒後にローディング終了（テスト用）
+    setTimeout(() => {
+      console.log('=== FORCE ENDING LOADING ===');
       setIsLoading(false);
-    }
+      setMatches([
+        {
+          id: 'test_match_1',
+          tournament_id: 'test_tournament',
+          player1_id: currentUserId || 'player_001',
+          player2_id: 'player_002',
+          winner_id: currentUserId || 'player_001',
+          game_rule: 'trump',
+          match_start_time: '2025-08-01 20:00:00',
+          match_end_time: '2025-08-01 20:30:00',
+          player1_rating_before: 1200,
+          player2_rating_before: 1250,
+          player1_rating_after: 1230,
+          player2_rating_after: 1220,
+          player1_rating_change: 30,
+          player2_rating_change: -30,
+          table_number: '卓1',
+          notes: 'テスト試合'
+        }
+      ]);
+      setPlayers([
+        { id: 'player_001', nickname: 'あなた' },
+        { id: 'player_002', nickname: 'テスト相手' }
+      ]);
+      setTournamentArchive([]);
+    }, 2000);
   };
 
   const getOpponentName = (match: Match) => {
