@@ -31,6 +31,7 @@ interface Match {
 export const TournamentResultsView = ({ onClose, tournament }: TournamentResultsViewProps) => {
   const [matches, setMatches] = useState<Match[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [actualParticipants, setActualParticipants] = useState(0);
 
   useEffect(() => {
     const fetchMatches = async () => {
@@ -64,6 +65,14 @@ export const TournamentResultsView = ({ onClose, tournament }: TournamentResults
           );
           
           setMatches(matchesWithRating);
+          
+          // Calculate actual participants from matches
+          const playerSet = new Set();
+          matchesWithRating.forEach(match => {
+            if (match.player1_id) playerSet.add(match.player1_id);
+            if (match.player2_id) playerSet.add(match.player2_id);
+          });
+          setActualParticipants(playerSet.size);
         }
       } catch (error) {
         console.error('Failed to fetch tournament results:', error);
@@ -150,7 +159,7 @@ export const TournamentResultsView = ({ onClose, tournament }: TournamentResults
               </div>
               <div className="flex items-center gap-2">
                 <Users className="h-4 w-4 text-muted-foreground" />
-                <span>参加者: {tournament.participants}名</span>
+                <span>参加者: {actualParticipants || tournament.current_participants || 0}名</span>
               </div>
             </div>
           </CardContent>
@@ -268,7 +277,7 @@ export const TournamentResultsView = ({ onClose, tournament }: TournamentResults
                   <div className="text-sm text-muted-foreground">カードプラス</div>
                 </div>
                 <div className="p-3 bg-success/10 rounded-lg">
-                  <div className="text-2xl font-bold text-success">{tournament.participants}</div>
+                  <div className="text-2xl font-bold text-success">{actualParticipants || tournament.current_participants || 0}</div>
                   <div className="text-sm text-muted-foreground">参加者数</div>
                 </div>
               </div>
