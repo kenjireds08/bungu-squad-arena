@@ -15,18 +15,18 @@ interface Match {
   player1_id: string;
   player2_id: string;
   winner_id: string;
-  loser_id: string;
+  loser_id?: string;
   game_rule: string;
   match_start_time: string;
-  match_end_time: string;
-  player1_rating_before: number;
-  player2_rating_before: number;
-  player1_rating_after: number;
-  player2_rating_after: number;
-  player1_rating_change: number;
-  player2_rating_change: number;
-  table_number: string;
-  notes: string;
+  match_end_time?: string;
+  player1_rating_before?: number;
+  player2_rating_before?: number;
+  player1_rating_after?: number;
+  player2_rating_after?: number;
+  player1_rating_change?: number;
+  player2_rating_change?: number;
+  table_number?: string;
+  notes?: string;
 }
 
 interface TournamentArchive {
@@ -64,7 +64,20 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
         if (matchResponse.ok) {
           const matchData = await matchResponse.json();
           console.log('Match data loaded:', matchData);
-          setMatches(matchData);
+          
+          // Filter out invalid match data
+          const validMatches = matchData.filter((match: Match) => {
+            return match.id && 
+                   match.player1_id && 
+                   match.player2_id && 
+                   match.winner_id &&
+                   match.winner_id !== 'win' && 
+                   match.winner_id !== 'lose' &&
+                   match.game_rule !== 'approved';
+          });
+          
+          console.log('Valid matches after filtering:', validMatches);
+          setMatches(validMatches);
         } else {
           console.error('Match API failed:', matchResponse.status, await matchResponse.text());
         }
@@ -106,7 +119,9 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
   };
 
   const getOpponentRating = (match: Match) => {
-    return match.player1_id === currentUserId ? match.player2_rating_before : match.player1_rating_before;
+    return match.player1_id === currentUserId ? 
+      (match.player2_rating_before || 1200) : 
+      (match.player1_rating_before || 1200);
   };
 
   const getPlayerResult = (match: Match) => {
@@ -116,7 +131,10 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
   };
 
   const getPlayerRatingChange = (match: Match) => {
-    return match.player1_id === currentUserId ? match.player1_rating_change : match.player2_rating_change;
+    const change = match.player1_id === currentUserId ? 
+      (match.player1_rating_change || 0) : 
+      (match.player2_rating_change || 0);
+    return change;
   };
 
   const getGameTypeName = (gameRule: string) => {
