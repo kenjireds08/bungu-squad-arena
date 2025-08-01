@@ -1,59 +1,19 @@
-const SheetsService = require('./lib/sheets');
-
+// 超ミニマル関数 - 外部依存を一切排除
 module.exports = async function handler(req, res) {
-  if (req.method === 'OPTIONS') {
-    return res.status(200).json({ message: 'OK' });
-  }
-
+  console.log("test handler hit", Date.now());
+  console.log("Request method:", req.method);
+  console.log("Request URL:", req.url);
+  
   try {
-    // Environment check
-    const envCheck = {
-      hasServiceAccount: !!process.env.GOOGLE_SERVICE_ACCOUNT_KEY,
-      hasSheetId: !!process.env.GOOGLE_SHEETS_ID,
-      sheetId: process.env.GOOGLE_SHEETS_ID,
-      serviceAccountLength: process.env.GOOGLE_SERVICE_ACCOUNT_KEY?.length,
-      serviceAccountStart: process.env.GOOGLE_SERVICE_ACCOUNT_KEY?.substring(0, 50)
-    };
-
-    console.log('Environment check:', envCheck);
-
-    if (!process.env.GOOGLE_SERVICE_ACCOUNT_KEY || !process.env.GOOGLE_SHEETS_ID) {
-      return res.status(500).json({ 
-        error: 'Missing environment variables',
-        envCheck 
-      });
-    }
-
-    // Test Google Sheets connection
-    const sheetsService = new SheetsService();
-    await sheetsService.authenticate();
-
-    // Try a simple read operation
-    const response = await sheetsService.sheets.spreadsheets.values.get({
-      spreadsheetId: sheetsService.spreadsheetId,
-      range: 'Players!A1:A1'
+    res.status(200).json({ 
+      ok: true, 
+      timestamp: Date.now(),
+      message: "Minimal test function is working",
+      nodeVersion: process.version,
+      method: req.method
     });
-
-    return res.status(200).json({
-      success: true,
-      message: 'API connection successful',
-      envCheck,
-      testResult: {
-        hasData: !!response.data.values,
-        dataLength: response.data.values?.length || 0
-      }
-    });
-
   } catch (error) {
-    console.error('Test API Error:', error);
-    return res.status(500).json({ 
-      error: error.message,
-      envCheck: {
-        hasServiceAccount: !!process.env.GOOGLE_SERVICE_ACCOUNT_KEY,
-        hasSheetId: !!process.env.GOOGLE_SHEETS_ID,
-        sheetId: process.env.GOOGLE_SHEETS_ID,
-        serviceAccountLength: process.env.GOOGLE_SERVICE_ACCOUNT_KEY?.length
-      }
-    });
+    console.error("Even minimal function failed:", error);
+    res.status(500).json({ error: error.message });
   }
 };
