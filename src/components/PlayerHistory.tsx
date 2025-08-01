@@ -72,28 +72,9 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
         console.error('Error loading matches:', error);
       }
 
-      // Load tournament archive for current player  
-      try {
-        console.log('Loading tournament archive');
-        const archiveResponse = await fetch('/api/tournaments?action=get-daily-archive');
-        console.log('Archive response status:', archiveResponse.status);
-        if (archiveResponse.ok) {
-          const archiveData = await archiveResponse.json();
-          console.log('Archive data loaded:', archiveData);
-          const playerArchive = archiveData.filter((entry: TournamentArchive) => 
-            entry.player_id === currentUserId
-          );
-          setTournamentArchive(playerArchive);
-        } else {
-          console.error('Archive API failed:', archiveResponse.status, await archiveResponse.text());
-          // Continue without tournament archive data
-          setTournamentArchive([]);
-        }
-      } catch (error) {
-        console.error('Error loading tournament archive:', error);
-        // Continue without tournament archive data
-        setTournamentArchive([]);
-      }
+      // Skip tournament archive for now to prevent infinite loading
+      console.log('Skipping tournament archive loading temporarily');
+      setTournamentArchive([]);
 
       // Load player data for opponent names
       try {

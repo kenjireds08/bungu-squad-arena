@@ -133,6 +133,8 @@ export const PlayerRanking = ({ onClose }: PlayerRankingProps) => {
                           {player.nickname}
                         </span>
                         <div className="flex gap-1 items-center">
+                          {/* Debug output */}
+                          {console.log(`Player ${player.nickname} badges:`, player.champion_badges)}
                           {player.champion_badges?.split(',').filter(Boolean).map((badge, badgeIndex) => (
                             <span 
                               key={badgeIndex} 
