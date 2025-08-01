@@ -406,8 +406,8 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
             </CardContent>
           </Card>
         )}
-        {/* Current User's Match */}
-        {currentUserMatch && (
+        {/* Current User's Match - Only show when it's their turn */}
+        {currentUserMatch && canStartMatch(currentUserMatch) && (
           <Card className="border-primary shadow-golden animate-fade-in">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-primary">
