@@ -132,16 +132,40 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
           const tournamentsData = await tournamentsResponse.json();
           
           // Find tournaments where the user has matches
-          const userTournaments = tournamentsData.filter((tournament: any) => {
-            // Check if user has matches in this tournament
-            return validMatches.some((match: any) => match.tournament_id === tournament.id);
-          }).map((tournament: any) => ({
-            archive_id: tournament.id,
-            tournament_date: tournament.date,
-            tournament_name: tournament.name,
-            total_participants_that_day: tournament.current_participants || 0,
-            entry_timestamp: tournament.date
-          }));
+          const userTournaments = await Promise.all(
+            tournamentsData
+              .filter((tournament: any) => {
+                // Check if user has matches in this tournament
+                return validMatches.some((match: any) => match.tournament_id === tournament.id);
+              })
+              .map(async (tournament: any) => {
+                // Get actual participants for this tournament
+                let actualParticipants = 0;
+                try {
+                  const participantsResponse = await fetch(`/api/matches?tournamentId=${tournament.id}`);
+                  if (participantsResponse.ok) {
+                    const tournamentMatches = await participantsResponse.json();
+                    // Count unique players from all matches in this tournament
+                    const playerSet = new Set();
+                    tournamentMatches.forEach((match: any) => {
+                      if (match.player1_id) playerSet.add(match.player1_id);
+                      if (match.player2_id) playerSet.add(match.player2_id);
+                    });
+                    actualParticipants = playerSet.size;
+                  }
+                } catch (error) {
+                  console.error('Error counting participants:', error);
+                }
+                
+                return {
+                  archive_id: tournament.id,
+                  tournament_date: tournament.date,
+                  tournament_name: tournament.name,
+                  total_participants_that_day: actualParticipants,
+                  entry_timestamp: tournament.date
+                };
+              })
+          );
           
           setTournamentArchive(userTournaments);
           console.log('Tournament participation:', userTournaments);
