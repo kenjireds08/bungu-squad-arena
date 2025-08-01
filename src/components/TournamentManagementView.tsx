@@ -549,7 +549,7 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
                             {match.player1_name} vs {match.player2_name}
                           </h3>
                           <div className="text-sm text-muted-foreground">
-                            試合{match.match_number} • {match.game_type === 'trump' ? 'トランプルール' : 'カードプラスルール'}
+                            {match.match_number.replace(/^match_/, '')}試合目 • {match.game_type === 'trump' ? 'トランプルール' : 'カードプラスルール'}
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
@@ -606,7 +606,7 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
                               {match.player1_name} vs {match.player2_name}
                             </h3>
                             <div className="text-sm text-muted-foreground">
-                              試合{match.match_number} • {match.game_type === 'trump' ? 'トランプルール' : 'カードプラスルール'}
+                              {match.match_number.replace(/^match_/, '')}試合目 • {match.game_type === 'trump' ? 'トランプルール' : 'カードプラスルール'}
                             </div>
                           </div>
                           <div className="text-right space-y-1">
@@ -676,7 +676,7 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
                               {match.player1_name} vs {match.player2_name}
                             </h3>
                             <div className="text-sm text-muted-foreground">
-                              試合{match.match_number} • {match.game_type === 'trump' ? 'トランプルール' : 'カードプラスルール'}
+                              {match.match_number.replace(/^match_/, '')}試合目 • {match.game_type === 'trump' ? 'トランプルール' : 'カードプラスルール'}
                             </div>
                           </div>
                           <div className="text-right space-y-1">
@@ -718,7 +718,7 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
       <Dialog open={!!editingMatch} onOpenChange={() => setEditingMatch(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>試合編集 - 試合 {editingMatch?.match_number}</DialogTitle>
+            <DialogTitle>試合編集 - {editingMatch?.match_number.replace(/^match_/, '')}試合目</DialogTitle>
           </DialogHeader>
           {editingMatch && (
             <div className="space-y-4">
@@ -829,75 +829,99 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
       <Dialog open={!!directInputMatch} onOpenChange={() => setDirectInputMatch(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>管理者代理入力 - 試合 {directInputMatch?.match_number}</DialogTitle>
+            <DialogTitle>管理者代理入力 - {directInputMatch?.match_number.replace(/^match_/, '')}試合目</DialogTitle>
           </DialogHeader>
           {directInputMatch && (
-            <div className="space-y-4">
-              <div className="p-4 bg-muted/50 rounded-lg">
-                <div className="text-center space-y-2">
-                  <div className="text-lg font-semibold">
+            <div className="space-y-6">
+              {/* Match Info Header */}
+              <div className="text-center p-6 bg-gradient-to-r from-primary/10 to-accent/10 rounded-xl border border-primary/20">
+                <div className="space-y-2">
+                  <h3 className="text-xl font-bold text-primary">
                     {directInputMatch.player1_name} vs {directInputMatch.player2_name}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    試合{directInputMatch.match_number} • {directInputMatch.game_type === 'trump' ? 'トランプルール' : 'カードプラスルール'}
+                  </h3>
+                  <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                    <span className="px-2 py-1 bg-primary/10 rounded-full">
+                      {directInputMatch.match_number.replace(/^match_/, '')}試合目
+                    </span>
+                    <span>•</span>
+                    <span className="px-2 py-1 bg-accent/10 rounded-full">
+                      {directInputMatch.game_type === 'trump' ? 'トランプルール' : 'カードプラスルール'}
+                    </span>
                   </div>
                 </div>
               </div>
               
-              <div className="text-center space-y-4">
+              {/* Instructions */}
+              <div className="text-center">
                 <p className="text-sm text-muted-foreground">
                   勝者を選択してください。選択と同時に試合結果が確定され、レーティングが更新されます。
                 </p>
+              </div>
                 
-                <div className="grid grid-cols-2 gap-4">
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    className="h-20 flex-col space-y-2 hover:bg-success/10 hover:border-success"
-                    onClick={() => {
-                      handleAdminDirectInput(directInputMatch, directInputMatch.player1_id);
-                      setDirectInputMatch(null);
-                    }}
-                    disabled={adminDirectInputMutation.isPending}
-                  >
-                    <Trophy className="h-6 w-6" />
-                    <span className="font-semibold">{directInputMatch.player1_name}</span>
-                    <span className="text-xs text-muted-foreground">勝利</span>
-                  </Button>
-                  
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    className="h-20 flex-col space-y-2 hover:bg-success/10 hover:border-success"
-                    onClick={() => {
-                      handleAdminDirectInput(directInputMatch, directInputMatch.player2_id);
-                      setDirectInputMatch(null);
-                    }}
-                    disabled={adminDirectInputMutation.isPending}
-                  >
-                    <Trophy className="h-6 w-6" />
-                    <span className="font-semibold">{directInputMatch.player2_name}</span>
-                    <span className="text-xs text-muted-foreground">勝利</span>
-                  </Button>
-                </div>
-                
-                {adminDirectInputMutation.isPending && (
-                  <div className="text-sm text-muted-foreground">
-                    試合結果を処理中...
+              {/* Winner Selection Buttons */}
+              <div className="grid grid-cols-1 gap-4">
+                <Button
+                  size="lg"
+                  className="h-16 bg-gradient-to-r from-success/10 to-success/20 hover:from-success/20 hover:to-success/30 border-2 border-success/30 hover:border-success transition-all duration-200"
+                  onClick={() => {
+                    handleAdminDirectInput(directInputMatch, directInputMatch.player1_id);
+                    setDirectInputMatch(null);
+                  }}
+                  disabled={adminDirectInputMutation.isPending}
+                >
+                  <div className="flex items-center justify-center gap-4">
+                    <Trophy className="h-6 w-6 text-success" />
+                    <div className="text-center">
+                      <div className="font-bold text-lg text-success">{directInputMatch.player1_name}</div>
+                      <div className="text-xs text-success/70">勝利として記録</div>
+                    </div>
+                    <Trophy className="h-6 w-6 text-success" />
                   </div>
-                )}
+                </Button>
+                  
+                <Button
+                  size="lg"
+                  className="h-16 bg-gradient-to-r from-success/10 to-success/20 hover:from-success/20 hover:to-success/30 border-2 border-success/30 hover:border-success transition-all duration-200"
+                  onClick={() => {
+                    handleAdminDirectInput(directInputMatch, directInputMatch.player2_id);
+                    setDirectInputMatch(null);
+                  }}
+                  disabled={adminDirectInputMutation.isPending}
+                >
+                  <div className="flex items-center justify-center gap-4">
+                    <Trophy className="h-6 w-6 text-success" />
+                    <div className="text-center">
+                      <div className="font-bold text-lg text-success">{directInputMatch.player2_name}</div>
+                      <div className="text-xs text-success/70">勝利として記録</div>
+                    </div>
+                    <Trophy className="h-6 w-6 text-success" />
+                  </div>
+                </Button>
+              </div>
+                
+              {/* Processing Status */}
+              {adminDirectInputMutation.isPending && (
+                <div className="text-center p-4 bg-info/10 rounded-lg border border-info/20">
+                  <div className="flex items-center justify-center gap-2 text-info">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-info"></div>
+                    <span className="text-sm font-medium">試合結果を処理中...</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Cancel Button */}
+              <div className="flex justify-center pt-4">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setDirectInputMatch(null)}
+                  disabled={adminDirectInputMutation.isPending}
+                  className="min-w-24"
+                >
+                  キャンセル
+                </Button>
               </div>
             </div>
           )}
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setDirectInputMatch(null)}
-              disabled={adminDirectInputMutation.isPending}
-            >
-              キャンセル
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
