@@ -2252,6 +2252,53 @@ class SheetsService {
     try {
       const { matchId, winnerId, loserId, timestamp } = resultData;
       
+      // Get player names for proper updates
+      const players = await this.getPlayers();
+      const playerMap = new Map(players.map(p => [p.id, p.nickname]));
+      const winnerName = playerMap.get(winnerId) || winnerId;
+      const loserName = playerMap.get(loserId) || loserId;
+      
+      // First update the TournamentMatches sheet with correct player names
+      try {
+        const response = await this.sheets.spreadsheets.values.get({
+          spreadsheetId: this.spreadsheetId,
+          range: 'TournamentMatches!A2:N1000'
+        });
+        
+        const rows = response.data.values || [];
+        const matchRowIndex = rows.findIndex(row => row[0] === matchId);
+        
+        if (matchRowIndex !== -1) {
+          const actualRowNumber = matchRowIndex + 2;
+          
+          // Determine which player is player1 and which is player2
+          const player1Id = rows[matchRowIndex][3];
+          const player2Id = rows[matchRowIndex][5];
+          
+          if (player1Id !== winnerId && player1Id !== loserId) {
+            // Update player1 info if it's incorrect
+            await this.sheets.spreadsheets.values.update({
+              spreadsheetId: this.spreadsheetId,
+              range: `TournamentMatches!D${actualRowNumber}:E${actualRowNumber}`,
+              valueInputOption: 'USER_ENTERED',
+              requestBody: { values: [[winnerId, winnerName]] }
+            });
+          }
+          
+          if (player2Id !== winnerId && player2Id !== loserId) {
+            // Update player2 info if it's incorrect
+            await this.sheets.spreadsheets.values.update({
+              spreadsheetId: this.spreadsheetId,
+              range: `TournamentMatches!F${actualRowNumber}:G${actualRowNumber}`,
+              valueInputOption: 'USER_ENTERED',
+              requestBody: { values: [[loserId, loserName]] }
+            });
+          }
+        }
+      } catch (updateError) {
+        console.warn('Could not update player names in TournamentMatches:', updateError);
+      }
+      
       // Create result records for both players (already approved)
       const winnerResultId = `admin_${Date.now()}_${winnerId}`;
       const loserResultId = `admin_${Date.now()}_${loserId}`;
@@ -2326,9 +2373,9 @@ class SheetsService {
         
         if (matchRowIndex !== -1) {
           sheetName = 'TournamentMatches';
-          statusColumn = 'F';
-          winnerColumn = 'G';
-          timestampColumn = 'I';
+          statusColumn = 'I';  // match_status is actually in column I
+          winnerColumn = 'J';  // winner_id is actually in column J
+          timestampColumn = 'L'; // assuming completed_at is in column L
         } else {
           throw new Error('Match not found in TournamentMatches');
         }
