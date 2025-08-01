@@ -1309,41 +1309,6 @@ class SheetsService {
 
 
 
-      // Update match status to 'pending_approval'
-      await this.sheets.spreadsheets.values.update({
-        spreadsheetId: this.spreadsheetId,
-        range: `TournamentMatches!F${matchRowIndex + 1}`,
-        valueInputOption: 'USER_ENTERED',
-        requestBody: {
-          values: [['pending_approval']]
-        }
-      });
-
-      // Add notes if provided
-      if (notes) {
-        await this.sheets.spreadsheets.values.update({
-          spreadsheetId: this.spreadsheetId,
-          range: `TournamentMatches!V${matchRowIndex + 1}`,
-          valueInputOption: 'USER_ENTERED',
-          requestBody: {
-            values: [[notes]]
-          }
-        });
-      }
-
-      console.log(`Match result submitted for match ${match_id} by ${reporter_id}`);
-      return { 
-        success: true, 
-        match_id,
-        status: 'pending_approval',
-        winner_id,
-        loser_id
-      };
-    } catch (error) {
-      console.error('Error submitting match result:', error);
-      throw new Error(`Failed to submit match result: ${error.message}`);
-    }
-  }
 
   async getPendingMatchResults() {
     await this.authenticate();
