@@ -38,15 +38,6 @@ export const TournamentWaiting = ({ onClose, onViewRanking }: TournamentWaitingP
   const { active, upcoming } = getCategorizedTournaments(tournaments || []);
   const todaysTournament = [...active, ...upcoming].find(t => t.date === today);
   
-  // Debug logging
-  console.log('TournamentWaiting Debug:', {
-    today,
-    tournaments: tournaments?.length || 0,
-    active: active?.length || 0,
-    upcoming: upcoming?.length || 0,
-    todaysTournament,
-    tournamentName: todaysTournament?.name || todaysTournament?.tournament_name
-  });
   
   // Get tournament participants
   const tournamentParticipants = players?.filter(player => player.tournament_active === true) || [];
