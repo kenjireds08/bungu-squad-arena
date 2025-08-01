@@ -209,11 +209,11 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
           <Card 
             className="border-fantasy-frame shadow-soft animate-fade-in cursor-pointer hover:shadow-glow transition-all duration-300" 
             style={{ animationDelay: '200ms' }}
-            onClick={() => setCurrentAdminPage('approvals')}
+            onClick={() => setCurrentAdminPage('tournaments')}
           >
             <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-warning">{adminData.pendingApprovals}</div>
-              <div className="text-sm text-muted-foreground">承認待ち</div>
+              <div className="text-2xl font-bold text-primary">⚡</div>
+              <div className="text-sm text-muted-foreground">試合開始</div>
             </CardContent>
           </Card>
 

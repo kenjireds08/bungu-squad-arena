@@ -532,16 +532,21 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
         {/* Instructions */}
         <Card className="border-info shadow-soft">
           <CardHeader>
-            <CardTitle className="text-info">進行の流れ</CardTitle>
+            <CardTitle className="text-info">当日の流れ</CardTitle>
           </CardHeader>
           <CardContent>
             <ol className="list-decimal list-inside space-y-2 text-sm">
               <li>自分の試合の順番が来るまでお待ちください</li>
               <li>「次はあなたの試合です」が表示されたら席についてください</li>
-              <li>管理者が「試合開始」の合図をするまでお待ちください</li>
+              <li>管理者が「試合開始」の合図をします</li>
               <li>ゲーム終了後、管理者が勝敗を入力します</li>
               <li>ランキングがすぐに更新されます</li>
             </ol>
+            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-xs text-blue-700">
+                💡 プレイヤーの皆様は結果入力の必要がありません。管理者が全て操作いたします。
+              </p>
+            </div>
           </CardContent>
         </Card>
       </main>

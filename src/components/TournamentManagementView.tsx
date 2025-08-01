@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { 
   ArrowLeft, Edit, Trash2, Plus, Save, Users, Spade, Plus as PlusIcon, 
-  AlertCircle, RefreshCw, Trophy, Clock, Play, CheckCircle, Bell, 
+  AlertCircle, RefreshCw, Trophy, Clock, Play, CheckCircle, 
   Edit2, Timer, Shuffle, Settings
 } from 'lucide-react';
 import { useRankings, useAdminDirectInput, useStartMatch } from '@/hooks/useApi';
@@ -95,7 +95,6 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
   // Match statistics
   const scheduledMatches = matches.filter(m => m.status === 'scheduled');
   const inProgressMatches = matches.filter(m => m.status === 'in_progress');
-  const pendingMatches = matches.filter(m => m.status === 'completed');
   const completedMatches = matches.filter(m => m.status === 'approved');
   
   // 次に開始できる試合（順番に並んでいる最初のscheduled）
@@ -195,13 +194,6 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
     }
   };
 
-  // 催促通知（将来実装予定）
-  const handleSendReminder = (matchId: string) => {
-    toast({
-      title: "催促通知を送信しました",
-      description: "プレイヤーに試合結果の報告を促す通知を送信しました。",
-    });
-  };
 
   const canDeleteMatch = (match: Match) => {
     return match.status === 'scheduled';
@@ -378,7 +370,7 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-3 gap-4">
                   <div className="text-center p-4 bg-muted/50 rounded-lg">
                     <div className="text-2xl font-bold">{scheduledMatches.length}</div>
                     <div className="text-sm text-muted-foreground">待機中</div>
@@ -386,10 +378,6 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
                   <div className="text-center p-4 bg-info/20 rounded-lg">
                     <div className="text-2xl font-bold text-info">{inProgressMatches.length}</div>
                     <div className="text-sm text-muted-foreground">対戦中</div>
-                  </div>
-                  <div className="text-center p-4 bg-warning/20 rounded-lg">
-                    <div className="text-2xl font-bold text-warning">{pendingMatches.length}</div>
-                    <div className="text-sm text-muted-foreground">報告待ち</div>
                   </div>
                   <div className="text-center p-4 bg-success/20 rounded-lg">
                     <div className="text-2xl font-bold text-success">{completedMatches.length}</div>
@@ -643,79 +631,6 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
               </CardContent>
             </Card>
 
-            {/* Pending Matches */}
-            <Card className="border-fantasy-frame shadow-soft">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2">
-                  <AlertCircle className="h-5 w-5 text-warning" />
-                  報告待ち ({pendingMatches.length}件)
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {pendingMatches.length > 0 ? (
-                  pendingMatches.map((match) => {
-                    const createdAt = new Date(match.created_at);
-                    const elapsedMinutes = Math.floor((currentTime.getTime() - createdAt.getTime()) / (1000 * 60));
-                    const isOvertime = elapsedMinutes > 15;
-                    
-                    return (
-                      <div
-                        key={match.match_id}
-                        className={`p-4 rounded-lg border ${
-                          isOvertime 
-                            ? 'bg-destructive/10 border-destructive/20' 
-                            : 'bg-warning/10 border-warning/20'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="space-y-1">
-                            <h3 className="font-semibold text-foreground">
-                              {match.player1_name} vs {match.player2_name}
-                            </h3>
-                            <div className="text-sm text-muted-foreground">
-                              {match.match_number.replace(/^match_/, '')}試合目 • {match.game_type === 'trump' ? 'トランプルール' : 'カードプラスルール'}
-                            </div>
-                          </div>
-                          <div className="text-right space-y-1">
-                            <Badge className={isOvertime ? 'bg-destructive text-destructive-foreground' : 'bg-warning text-warning-foreground'}>
-                              {isOvertime ? '長時間経過' : '報告待ち'}
-                            </Badge>
-                            <div className={`text-sm font-mono ${isOvertime ? 'text-destructive' : 'text-warning'}`}>
-                              <Clock className="h-3 w-3 inline mr-1" />
-                              {Math.max(0, elapsedMinutes)}分経過
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <div className="flex gap-2">
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => handleSendReminder(match.match_id)}
-                          >
-                            <Bell className="h-3 w-3 mr-1" />
-                            催促通知
-                          </Button>
-                          <Button 
-                            variant="tournament" 
-                            size="sm"
-                            onClick={() => handleDirectInput(match.match_id)}
-                          >
-                            <Edit2 className="h-3 w-3 mr-1" />
-                            代理入力
-                          </Button>
-                        </div>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <AlertCircle className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                    <p>報告待ちの試合はありません</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
 
             {/* Completed Matches */}
             <Card className="border-fantasy-frame shadow-soft">

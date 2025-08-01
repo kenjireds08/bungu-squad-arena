@@ -441,7 +441,7 @@ export const AdminTournaments = ({ onBack, initialView = 'list', selectedTournam
                       </div>
                     </div>
                   </div>
-                  <div className="flex gap-2 mt-3">
+                  <div className="flex flex-wrap gap-2 mt-3">
                     <Button variant="outline" size="sm" onClick={() => handleShowMatchmaking(tournament)}>
                       <Shuffle className="h-3 w-3" />
                       組み合わせ
@@ -501,7 +501,7 @@ export const AdminTournaments = ({ onBack, initialView = 'list', selectedTournam
                     </div>
                   </div>
                 </div>
-                <div className="flex gap-2 mt-3">
+                <div className="flex flex-wrap gap-2 mt-3">
                   <Button variant="outline" size="sm" onClick={() => handleEditTournament(tournament)}>編集</Button>
                   <Button variant="outline" size="sm" onClick={() => handleDeleteTournament(tournament.id, tournament.name)}>削除</Button>
                   <Button variant="outline" size="sm" onClick={() => handleShowQR(tournament)}>
