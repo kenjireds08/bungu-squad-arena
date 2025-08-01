@@ -42,6 +42,7 @@ interface TournamentArchive {
 
 export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) => {
   console.log('=== PlayerHistory component mounted, currentUserId:', currentUserId);
+  alert(`PlayerHistory loaded with userID: ${currentUserId}`);
   const [matches, setMatches] = useState<Match[]>([]);
   const [tournamentArchive, setTournamentArchive] = useState<TournamentArchive[]>([]);
   const [isLoading, setIsLoading] = useState(true);
