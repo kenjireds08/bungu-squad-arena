@@ -38,14 +38,30 @@ class SheetsService {
       });
       
       const tournamentRows = tournamentsResponse.data.values || [];
-      const todaysTournament = tournamentRows.find(row => {
-        const tournamentDate = row[2]; // Assuming date is in column C
-        return tournamentDate === today;
-      });
       
-      // If no tournament today, reset all tournament_active to FALSE
-      if (!todaysTournament) {
-        console.log('No tournament today, resetting all tournament_active flags');
+      // Check if we have any active players first
+      const activePlayers = await this.getActiveTournamentPlayers();
+      if (activePlayers.length === 0) {
+        console.log('No active tournament players, skipping reset');
+        return;
+      }
+      
+      // Find the most recent tournament with active players
+      const lastActiveTournament = tournamentRows
+        .filter(row => row[2]) // Has date
+        .sort((a, b) => new Date(b[2]).getTime() - new Date(a[2]).getTime()) // Sort by date descending
+        .find(row => {
+          // Check if any active player participated in this tournament
+          return true; // For now, assume the last tournament is where they participated
+        });
+      
+      if (lastActiveTournament && lastActiveTournament[2] !== today) {
+        // The last tournament was not today, so reset all tournament_active flags
+        console.log(`Last tournament was on ${lastActiveTournament[2]}, today is ${today}. Resetting all tournament_active flags`);
+        await this.resetAllTournamentActive();
+      } else if (!lastActiveTournament) {
+        // No tournament found but players are active, reset them
+        console.log('No tournament found but players are active, resetting all tournament_active flags');
         await this.resetAllTournamentActive();
       }
     } catch (error) {
@@ -65,8 +81,8 @@ class SheetsService {
 
       const rows = response.data.values || [];
       
-      // Skip auto-reset to avoid 500 errors - only run when needed
-      // await this.autoResetOldTournamentParticipation();
+      // Auto-reset tournament participation flags for new day
+      await this.autoResetOldTournamentParticipation();
       
       return rows.map((row, index) => ({
         id: row[0] || `player_${index + 1}`,
@@ -138,10 +154,22 @@ class SheetsService {
         const sameRatingCount = sortedPlayers.filter(p => p.current_rating === player.current_rating).length;
         const isTied = sameRatingCount > 1;
         
+        // Generate badges string from experience flags
+        let badges = player.champion_badges || '';
+        
+        // Add game rule badges
+        if (player.trump_rule_experienced) {
+          badges += badges ? ', ♠️' : '♠️';
+        }
+        if (player.cardplus_rule_experienced) {
+          badges += badges ? ', ➕' : '➕';
+        }
+        
         return {
           ...player,
           rank: currentRank,
-          rankDisplay: isTied ? `${currentRank}位タイ` : `${currentRank}位`
+          rankDisplay: isTied ? `${currentRank}位タイ` : `${currentRank}位`,
+          champion_badges: badges
         };
       });
     } catch (error) {
@@ -408,6 +436,9 @@ class SheetsService {
     await this.authenticate();
     
     try {
+      // Ensure the sheet exists before trying to read from it
+      await this.createTournamentDailyArchiveSheet();
+      
       const response = await this.sheets.spreadsheets.values.get({
         spreadsheetId: this.spreadsheetId,
         range: 'TournamentDailyArchive!A2:G1000'
@@ -2337,6 +2368,21 @@ class SheetsService {
         }
       });
       
+      // Get match details to know the game type
+      const matchResponse = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'TournamentMatches!A2:N1000'
+      });
+      const matchRows = matchResponse.data.values || [];
+      const matchRow = matchRows.find(row => row[0] === matchId);
+      const gameType = matchRow ? matchRow[6] : null; // game_type is in column G
+      
+      // Update game rule experience for both players
+      if (gameType) {
+        await this.updatePlayerGameExperience(winnerId, gameType);
+        await this.updatePlayerGameExperience(loserId, gameType);
+      }
+      
       // Update player ratings immediately
       const ratingUpdateResult = await this.updatePlayersRating(winnerId, loserId, 'win');
       
@@ -2578,6 +2624,80 @@ class SheetsService {
     } catch (error) {
       console.error('Error getting rating history for match:', error);
       throw new Error('Failed to get rating history');
+    }
+  }
+
+  async updatePlayerGameExperience(playerId, gameType) {
+    await this.authenticate();
+    
+    try {
+      // Get all players to find the target player
+      const response = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'Players!A2:Z1000'
+      });
+      
+      const rows = response.data.values || [];
+      const playerRowIndex = rows.findIndex(row => row[0] === playerId);
+      
+      if (playerRowIndex === -1) {
+        console.warn(`Player ${playerId} not found for game experience update`);
+        return;
+      }
+      
+      const actualRowNumber = playerRowIndex + 2;
+      const currentDate = new Date().toISOString().split('T')[0];
+      
+      if (gameType === 'trump') {
+        // Check if already experienced
+        const isExperienced = rows[playerRowIndex][9] === 'TRUE';
+        if (!isExperienced) {
+          // Update trump_rule_experienced (column J) and first_trump_game_date (column K)
+          await this.sheets.spreadsheets.values.batchUpdate({
+            spreadsheetId: this.spreadsheetId,
+            requestBody: {
+              valueInputOption: 'USER_ENTERED',
+              data: [
+                {
+                  range: `Players!J${actualRowNumber}`,
+                  values: [['TRUE']]
+                },
+                {
+                  range: `Players!K${actualRowNumber}`,
+                  values: [[currentDate]]
+                }
+              ]
+            }
+          });
+          console.log(`Updated trump experience for player ${playerId}`);
+        }
+      } else if (gameType === 'cardplus') {
+        // Check if already experienced
+        const isExperienced = rows[playerRowIndex][11] === 'TRUE';
+        if (!isExperienced) {
+          // Update cardplus_rule_experienced (column L) and first_cardplus_game_date (column M)
+          await this.sheets.spreadsheets.values.batchUpdate({
+            spreadsheetId: this.spreadsheetId,
+            requestBody: {
+              valueInputOption: 'USER_ENTERED',
+              data: [
+                {
+                  range: `Players!L${actualRowNumber}`,
+                  values: [['TRUE']]
+                },
+                {
+                  range: `Players!M${actualRowNumber}`,
+                  values: [[currentDate]]
+                }
+              ]
+            }
+          });
+          console.log(`Updated cardplus experience for player ${playerId}`);
+        }
+      }
+    } catch (error) {
+      console.error('Error updating player game experience:', error);
+      // Don't throw error to prevent blocking the match result process
     }
   }
 }
