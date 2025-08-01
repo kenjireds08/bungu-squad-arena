@@ -861,8 +861,9 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
               {/* Winner Selection Buttons */}
               <div className="grid grid-cols-1 gap-4">
                 <Button
+                  variant="outline"
                   size="lg"
-                  className="h-16 bg-gradient-to-r from-success/10 to-success/20 hover:from-success/20 hover:to-success/30 border-2 border-success/30 hover:border-success transition-all duration-200"
+                  className="h-16 bg-white hover:bg-green-50 border-2 border-gray-200 hover:border-green-400 transition-all duration-200 shadow-sm hover:shadow-md"
                   onClick={() => {
                     handleAdminDirectInput(directInputMatch, directInputMatch.player1_id);
                     setDirectInputMatch(null);
@@ -870,18 +871,19 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
                   disabled={adminDirectInputMutation.isPending}
                 >
                   <div className="flex items-center justify-center gap-4">
-                    <Trophy className="h-6 w-6 text-success" />
+                    <Trophy className="h-6 w-6 text-green-600" />
                     <div className="text-center">
-                      <div className="font-bold text-lg text-success">{directInputMatch.player1_name}</div>
-                      <div className="text-xs text-success/70">勝利として記録</div>
+                      <div className="font-bold text-lg text-gray-800">{directInputMatch.player1_name}</div>
+                      <div className="text-xs text-gray-500">勝利として記録</div>
                     </div>
-                    <Trophy className="h-6 w-6 text-success" />
+                    <Trophy className="h-6 w-6 text-green-600" />
                   </div>
                 </Button>
                   
                 <Button
+                  variant="outline"
                   size="lg"
-                  className="h-16 bg-gradient-to-r from-success/10 to-success/20 hover:from-success/20 hover:to-success/30 border-2 border-success/30 hover:border-success transition-all duration-200"
+                  className="h-16 bg-white hover:bg-green-50 border-2 border-gray-200 hover:border-green-400 transition-all duration-200 shadow-sm hover:shadow-md"
                   onClick={() => {
                     handleAdminDirectInput(directInputMatch, directInputMatch.player2_id);
                     setDirectInputMatch(null);
@@ -889,12 +891,12 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
                   disabled={adminDirectInputMutation.isPending}
                 >
                   <div className="flex items-center justify-center gap-4">
-                    <Trophy className="h-6 w-6 text-success" />
+                    <Trophy className="h-6 w-6 text-green-600" />
                     <div className="text-center">
-                      <div className="font-bold text-lg text-success">{directInputMatch.player2_name}</div>
-                      <div className="text-xs text-success/70">勝利として記録</div>
+                      <div className="font-bold text-lg text-gray-800">{directInputMatch.player2_name}</div>
+                      <div className="text-xs text-gray-500">勝利として記録</div>
                     </div>
-                    <Trophy className="h-6 w-6 text-success" />
+                    <Trophy className="h-6 w-6 text-green-600" />
                   </div>
                 </Button>
               </div>
