@@ -53,18 +53,33 @@ export const PWAInstallPrompt = ({ onClose }: PWAInstallPromptProps) => {
 
   const AndroidInstructions = () => (
     <div className="space-y-3 text-sm">
-      <p className="font-medium">Androidでホーム画面に追加する方法：</p>
+      <p className="font-medium">Androidでアプリとしてインストールする方法：</p>
       {deferredPrompt ? (
-        <Button onClick={handleInstall} className="w-full">
-          <Download className="h-4 w-4 mr-2" />
-          アプリをインストール
-        </Button>
+        <div className="space-y-2">
+          <Button onClick={handleInstall} className="w-full">
+            <Download className="h-4 w-4 mr-2" />
+            アプリをインストール
+          </Button>
+          <p className="text-xs text-muted-foreground text-center">
+            このボタンを押すと、アプリとして正しくインストールされます
+          </p>
+        </div>
       ) : (
-        <ol className="list-decimal list-inside space-y-2 text-muted-foreground">
-          <li>ブラウザのメニュー（⋮）をタップ</li>
-          <li>「ホーム画面に追加」を選択</li>
-          <li>「追加」をタップして完了</li>
-        </ol>
+        <div className="space-y-3">
+          <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+            <p className="text-amber-800 font-medium text-xs mb-2">⚠️ 重要</p>
+            <p className="text-amber-700 text-xs">
+              Chromeのメニューから「ホーム画面に追加」すると、ショートカットになってしまいます。
+              正しいアプリとしてインストールするには以下をお試しください：
+            </p>
+          </div>
+          <ol className="list-decimal list-inside space-y-2 text-muted-foreground">
+            <li>ページを再読み込みしてください</li>
+            <li>「アプリをインストール」ボタンが表示されるまで待つ</li>
+            <li>ボタンが表示されない場合は、Chromeのメニュー（⋮）から「アプリをインストール」を探す</li>
+            <li>「ホーム画面に追加」ではなく「アプリをインストール」を選択</li>
+          </ol>
+        </div>
       )}
     </div>
   );

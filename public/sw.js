@@ -8,7 +8,9 @@ const STATIC_CACHE = 'bungu-squad-static-v2-2';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
-  '/src/assets/main-character.png'
+  '/main-character.png',
+  '/icon-192x192.png',
+  '/icon-512x512.png'
 ];
 
 // Enhanced message handling for PWA camera permissions

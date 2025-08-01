@@ -5,21 +5,28 @@
   "theme_color": "#DAA520",
   "background_color": "#F5F1E8",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "orientation": "portrait",
   "scope": "/",
-  "start_url": "/",
+  "start_url": "/?utm_source=pwa",
   "icons": [
     {
-      "src": "/src/assets/main-character.png",
+      "src": "/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/src/assets/main-character.png",
+      "src": "/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    },
+    {
+      "src": "/main-character.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
     }
   ],
   "categories": ["games", "sports", "utilities"],
@@ -39,7 +46,7 @@
       "url": "/?action=qr-scan",
       "icons": [
         {
-          "src": "/src/assets/main-character.png",
+          "src": "/icon-192x192.png",
           "sizes": "192x192"
         }
       ]
