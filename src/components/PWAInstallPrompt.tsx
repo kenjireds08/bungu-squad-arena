@@ -77,7 +77,7 @@ export const PWAInstallPrompt = ({ onClose }: PWAInstallPromptProps) => {
             <li>ページを再読み込みしてください</li>
             <li>「アプリをインストール」ボタンが表示されるまで待つ</li>
             <li>ボタンが表示されない場合は、Chromeのメニュー（⋮）から「アプリをインストール」を探す</li>
-            <li>「ホーム画面に追加」ではなく「アプリをインストール」を選択</li>
+            <li>「ホーム画面に追加」を押した場合は、メニューに「BUNGU SQUADを起動」が表示されるので、それを再度タップ</li>
           </ol>
         </div>
       )}
