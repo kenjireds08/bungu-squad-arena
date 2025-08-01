@@ -43,6 +43,11 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
   const CURRENT_USER_ID = currentUserId || "player_001";
   const [currentPage, setCurrentPage] = useState<string>('dashboard');
   const [previousPage, setPreviousPage] = useState<string>('dashboard');
+  
+  // Debug currentPage changes
+  useEffect(() => {
+    console.log('=== MainDashboard currentPage changed to:', currentPage);
+  }, [currentPage]);
   const [showPWAPrompt, setShowPWAPrompt] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [showTournamentDetails, setShowTournamentDetails] = useState(false);
@@ -218,6 +223,7 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
   }
 
   if (currentPage === 'history') {
+    console.log('=== MainDashboard rendering PlayerHistory, CURRENT_USER_ID:', CURRENT_USER_ID);
     return <PlayerHistory onClose={() => setCurrentPage('dashboard')} currentUserId={CURRENT_USER_ID} />;
   }
 
@@ -505,7 +511,11 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
           <Button 
             variant="outline" 
             size="lg" 
-            onClick={() => { setPreviousPage('dashboard'); setCurrentPage('history'); }}
+            onClick={() => { 
+              console.log('=== History button clicked');
+              setPreviousPage('dashboard'); 
+              setCurrentPage('history'); 
+            }}
             className="h-16 flex-col border-accent/20 bg-accent/5 hover:bg-accent/10 text-accent hover:text-accent"
           >
             <History className="h-5 w-5 mb-1" />
