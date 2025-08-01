@@ -1273,26 +1273,33 @@ class SheetsService {
       });
 
       const rows = response.data.values || [];
-      let matches = rows.map(row => ({
-        id: row[0] || '',                    // match_id
-        tournament_id: row[1] || '',         // tournament_id  
-        match_number: row[2] || '',          // match_number
-        player1_id: row[3] || '',            // player1_id
-        player1_name: row[4] || '',          // player1_name
-        player2_id: row[5] || '',            // player2_id
-        player2_name: row[6] || '',          // player2_name
-        game_rule: row[7] || '',             // game_type
-        match_status: row[8] || '',          // status
-        winner_id: row[9] || '',             // winner_id
-        result_details: row[10] || '',       // result_details
-        match_start_time: row[11] || '',     // created_at
-        match_end_time: row[12] || '',       // completed_at
-        // TournamentMatches シートの構造に合わせて簡素化
-      }));
+      let matches = rows.map(row => {
+        try {
+          return {
+            id: row[0] || '',                    // match_id
+            tournament_id: row[1] || '',         // tournament_id  
+            match_number: row[2] || '',          // match_number
+            player1_id: row[3] || '',            // player1_id
+            player1_name: row[4] || '',          // player1_name
+            player2_id: row[5] || '',            // player2_id
+            player2_name: row[6] || '',          // player2_name
+            game_rule: row[7] || '',             // game_type
+            match_status: row[8] || '',          // status
+            winner_id: row[9] || '',             // winner_id
+            result_details: row[10] || '',       // result_details
+            match_start_time: row[11] || '',     // created_at
+            match_end_time: row[12] || '',       // completed_at
+            approved_at: row[13] || ''           // approved_at
+          };
+        } catch (error) {
+          console.error('Error processing match row:', error, row);
+          return null;
+        }
+      }).filter(match => match !== null);
 
       if (playerId) {
         matches = matches.filter(match => 
-          match.player1_id === playerId || match.player2_id === playerId
+          match && (match.player1_id === playerId || match.player2_id === playerId)
         );
       }
 
