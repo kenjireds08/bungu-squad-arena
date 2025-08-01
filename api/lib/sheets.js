@@ -106,10 +106,10 @@ class SheetsService {
         total_wins: parseInt(row[6]) || 0,
         total_losses: parseInt(row[7]) || 0,
         champion_badges: row[8] || '',
-        trump_rule_experienced: row[9] === 'TRUE',
-        first_trump_game_date: row[10] || '',
-        cardplus_rule_experienced: row[11] === 'TRUE',
-        first_cardplus_game_date: row[12] || '',
+        trump_rule_experienced: row[9] === 'TRUE',  // J列 (index 9)
+        first_trump_game_date: row[10] || '',       // K列 (index 10)  
+        cardplus_rule_experienced: row[11] === 'TRUE', // L列 (index 11)
+        first_cardplus_game_date: row[12] || '',    // M列 (index 12)
         registration_date: row[13] || '',
         profile_image_url: row[14] || '',
         is_active: row[15] === 'true',
