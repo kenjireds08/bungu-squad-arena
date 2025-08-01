@@ -83,48 +83,61 @@ async function handleEmergencyFixMatch(req, res) {
     const sheetsService = new SheetsService();
     await sheetsService.authenticate();
     
-    // Fix the corrupted match_1 data directly in Matches sheet
-    const response = await sheetsService.sheets.spreadsheets.values.get({
-      spreadsheetId: sheetsService.spreadsheetId,
-      range: 'Matches!A:K'
-    });
+    // Fix the corrupted match_1 data directly in TournamentMatches sheet first
+    let response;
+    try {
+      response = await sheetsService.sheets.spreadsheets.values.get({
+        spreadsheetId: sheetsService.spreadsheetId,
+        range: 'TournamentMatches!A2:N1000'
+      });
+    } catch (error) {
+      // Fallback to Matches sheet
+      response = await sheetsService.sheets.spreadsheets.values.get({
+        spreadsheetId: sheetsService.spreadsheetId,
+        range: 'Matches!A1:K1000'
+      });
+    }
 
     const rows = response.data.values || [];
     if (rows.length <= 1) {
       throw new Error('No matches found');
     }
 
-    // Find the corrupted match row
+    // Find the corrupted match row for match_2
     const matchRowIndex = rows.findIndex((row, index) => 
-      index > 0 && row[0] === 'tournament_1753934765383_match_1'
+      index > 0 && row[0] && row[0].includes('match_2')
     );
 
     if (matchRowIndex !== -1) {
       const actualRowNumber = matchRowIndex + 1;
+      const sheetName = response.config?.url?.includes('TournamentMatches') ? 'TournamentMatches' : 'Matches';
       
-      // Fix the corrupted data - ensure correct data structure
+      // Fix the corrupted data - ensure correct data structure for match_2
       await sheetsService.sheets.spreadsheets.values.update({
         spreadsheetId: sheetsService.spreadsheetId,
-        range: `Matches!A${actualRowNumber}:K${actualRowNumber}`,
+        range: `${sheetName}!A${actualRowNumber}:N${actualRowNumber}`,
         valueInputOption: 'USER_ENTERED',
         requestBody: {
           values: [[
-            'tournament_1753934765383_match_1', // match_id
+            'tournament_1753934765383_match_2', // match_id
             'tournament_1753934765383', // tournament_id  
-            'match_1', // match_number
-            'player_1753942268346_444ujdo4u', // player1_id (クリリン)
-            'クリリン', // player1_name
-            'player_1753943387023_8ndu3qxfh', // player2_id (天津飯) - FIXED
-            '天津飯', // player2_name - FIXED  
-            'cardplus', // game_type
-            'approved', // status - FIXED
-            'player_1753942268346_444ujdo4u', // winner_id (クリリン won)
-            '2025-08-01T02:38:26.431Z' // created_at
+            'match_2', // match_number
+            'player_001', // player1_id (ちーけん)
+            'ちーけん', // player1_name - FIXED
+            'player_1753942362394_9n9nmjhnp', // player2_id (桃白白) - FIXED ID
+            '桃白白', // player2_name - FIXED  
+            'trump', // game_type
+            'in_progress', // status 
+            '', // winner_id
+            '', // result_details
+            '2025-08-01T09:39:00.000Z', // created_at
+            '', // completed_at
+            '' // approved_at
           ]]
         }
       });
 
-      console.log('Match_1 data emergency fixed');
+      console.log('Match_2 data emergency fixed');
     }
 
     return res.status(200).json({
