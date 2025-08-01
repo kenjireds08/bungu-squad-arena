@@ -71,8 +71,28 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
             return match && match.id && match.player1_id && match.player2_id;
           }) : [];
           
-          setMatches(validMatches);
-          console.log(`Loaded ${validMatches.length} matches for ${currentUserId}`);
+          // Load rating changes for each match
+          const matchesWithRating = await Promise.all(
+            validMatches.map(async (match: any) => {
+              try {
+                const ratingResponse = await fetch(`/api/rating-history?matchId=${match.id}`);
+                if (ratingResponse.ok) {
+                  const ratingData = await ratingResponse.json();
+                  return {
+                    ...match,
+                    player1_rating_change: ratingData.winner_rating_change,
+                    player2_rating_change: ratingData.loser_rating_change
+                  };
+                }
+              } catch (error) {
+                console.error('Rating fetch error for match:', match.id);
+              }
+              return match;
+            })
+          );
+          
+          setMatches(matchesWithRating);
+          console.log(`Loaded ${matchesWithRating.length} matches for ${currentUserId}`);
         } else {
           setMatches([]);
         }
@@ -119,15 +139,18 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
 
   const getPlayerResult = (match: Match) => {
     if (match.winner_id === currentUserId) return '勝ち';
-    if (match.loser_id === currentUserId) return '負け';
-    return '引き分け';
+    // If not winner, then loser (no draws in this system)
+    return '負け';
   };
 
   const getPlayerRatingChange = (match: Match) => {
-    const change = match.player1_id === currentUserId ? 
-      (match.player1_rating_change || 0) : 
-      (match.player2_rating_change || 0);
-    return change;
+    // If this player is the winner, get winner rating change
+    if (match.winner_id === currentUserId) {
+      return match.player1_rating_change || 0;
+    } else {
+      // If loser, get loser rating change (should be negative)
+      return match.player2_rating_change || 0;
+    }
   };
 
   const getGameTypeName = (gameRule: string) => {
