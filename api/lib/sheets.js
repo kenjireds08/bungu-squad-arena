@@ -169,11 +169,11 @@ class SheetsService {
         // Generate badges string from experience flags
         let badges = player.champion_badges || '';
         
-        // Add game rule badges
-        if (player.trump_rule_experienced) {
+        // Add game rule badges only if not already present
+        if (player.trump_rule_experienced && !badges.includes('♠️')) {
           badges += badges ? ', ♠️' : '♠️';
         }
-        if (player.cardplus_rule_experienced) {
+        if (player.cardplus_rule_experienced && !badges.includes('➕')) {
           badges += badges ? ', ➕' : '➕';
         }
         
@@ -2391,8 +2391,11 @@ class SheetsService {
       
       // Update game rule experience for both players
       if (gameType) {
+        console.log(`Updating game experience: Winner ${winnerId}, Loser ${loserId}, GameType: ${gameType}`);
         await this.updatePlayerGameExperience(winnerId, gameType);
         await this.updatePlayerGameExperience(loserId, gameType);
+      } else {
+        console.warn(`No game type found for match ${matchId}`);
       }
       
       // Update player ratings immediately
@@ -2642,6 +2645,8 @@ class SheetsService {
   async updatePlayerGameExperience(playerId, gameType) {
     await this.authenticate();
     
+    console.log(`updatePlayerGameExperience called: playerId=${playerId}, gameType=${gameType}`);
+    
     try {
       // Get all players to find the target player
       const response = await this.sheets.spreadsheets.values.get({
@@ -2653,7 +2658,7 @@ class SheetsService {
       const playerRowIndex = rows.findIndex(row => row[0] === playerId);
       
       if (playerRowIndex === -1) {
-        console.warn(`Player ${playerId} not found for game experience update`);
+        console.warn(`Player ${playerId} not found for game experience update. Available players:`, rows.map(row => row[0]).filter(Boolean));
         return;
       }
       
