@@ -57,39 +57,64 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
   }, [currentUserId]);
 
   const loadPlayerHistory = async () => {
-    console.log('=== SIMPLE MODE: Starting loadPlayerHistory ===');
+    console.log('=== Starting loadPlayerHistory with fixed API ===');
     setIsLoading(true);
     
-    // 強制的に2秒後にローディング終了（テスト用）
-    setTimeout(() => {
-      console.log('=== FORCE ENDING LOADING ===');
-      setIsLoading(false);
-      setMatches([
-        {
-          id: 'test_match_1',
-          tournament_id: 'test_tournament',
-          player1_id: currentUserId || 'player_001',
-          player2_id: 'player_002',
-          winner_id: currentUserId || 'player_001',
-          game_rule: 'trump',
-          match_start_time: '2025-08-01 20:00:00',
-          match_end_time: '2025-08-01 20:30:00',
-          player1_rating_before: 1200,
-          player2_rating_before: 1250,
-          player1_rating_after: 1230,
-          player2_rating_after: 1220,
-          player1_rating_change: 30,
-          player2_rating_change: -30,
-          table_number: '卓1',
-          notes: 'テスト試合'
+    try {
+      // 1. Load matches (now using correct TournamentMatches sheet)
+      try {
+        console.log('Fetching matches from fixed API...');
+        const matchResponse = await fetch(`/api/matches?playerId=${currentUserId}`, {
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache' }
+        });
+        
+        if (matchResponse.ok) {
+          const matchData = await matchResponse.json();
+          console.log('Fixed API match data:', matchData);
+          
+          // Filter valid matches
+          const validMatches = Array.isArray(matchData) ? matchData.filter((match: any) => {
+            return match.id && match.player1_id && match.player2_id;
+          }) : [];
+          
+          setMatches(validMatches);
+        } else {
+          console.error('Match API failed:', matchResponse.status);
+          setMatches([]);
         }
-      ]);
-      setPlayers([
-        { id: 'player_001', nickname: 'あなた' },
-        { id: 'player_002', nickname: 'テスト相手' }
-      ]);
+      } catch (error) {
+        console.error('Match loading error:', error);
+        setMatches([]);
+      }
+
+      // 2. Load players
+      try {
+        console.log('Fetching players...');
+        const playersResponse = await fetch('/api/players', {
+          cache: 'no-store'
+        });
+        
+        if (playersResponse.ok) {
+          const playersData = await playersResponse.json();
+          setPlayers(Array.isArray(playersData) ? playersData : []);
+        } else {
+          setPlayers([]);
+        }
+      } catch (error) {
+        console.error('Players loading error:', error);
+        setPlayers([]);
+      }
+
+      // 3. Skip tournament archive for now
       setTournamentArchive([]);
-    }, 2000);
+
+    } catch (error) {
+      console.error('LoadPlayerHistory error:', error);
+    } finally {
+      console.log('Setting loading to false');
+      setIsLoading(false);
+    }
   };
 
   const getOpponentName = (match: Match) => {

@@ -1269,35 +1269,25 @@ class SheetsService {
     try {
       const response = await this.sheets.spreadsheets.values.get({
         spreadsheetId: this.spreadsheetId,
-        range: 'MatchResults!A2:AH1000'
+        range: 'TournamentMatches!A2:N1000'
       });
 
       const rows = response.data.values || [];
       let matches = rows.map(row => ({
-        id: row[0],
-        tournament_id: row[1],
-        player1_id: row[2],
-        player2_id: row[3],
-        winner_id: row[4],
-        loser_id: row[5],
-        game_rule: row[6],
-        match_start_time: row[7],
-        match_end_time: row[8],
-        match_status: row[9],
-        reported_by: row[10],
-        reported_at: row[11],
-        approved_by: row[12],
-        approved_at: row[13],
-        player1_rating_before: parseInt(row[14]) || 0,
-        player2_rating_before: parseInt(row[15]) || 0,
-        player1_rating_after: parseInt(row[16]) || 0,
-        player2_rating_after: parseInt(row[17]) || 0,
-        player1_rating_change: parseInt(row[18]) || 0,
-        player2_rating_change: parseInt(row[19]) || 0,
-        is_proxy_input: row[20] === 'true',
-        table_number: row[26],
-        notes: row[31],
-        weather_condition: row[32]
+        id: row[0] || '',                    // match_id
+        tournament_id: row[1] || '',         // tournament_id  
+        match_number: row[2] || '',          // match_number
+        player1_id: row[3] || '',            // player1_id
+        player1_name: row[4] || '',          // player1_name
+        player2_id: row[5] || '',            // player2_id
+        player2_name: row[6] || '',          // player2_name
+        game_rule: row[7] || '',             // game_type
+        match_status: row[8] || '',          // status
+        winner_id: row[9] || '',             // winner_id
+        result_details: row[10] || '',       // result_details
+        match_start_time: row[11] || '',     // created_at
+        match_end_time: row[12] || '',       // completed_at
+        // TournamentMatches シートの構造に合わせて簡素化
       }));
 
       if (playerId) {
@@ -1311,6 +1301,10 @@ class SheetsService {
       console.error('Error fetching match history:', error);
       throw new Error('Failed to fetch match history');
     }
+  }
+
+  async getAllMatches() {
+    return this.getMatchHistory();
   }
 
   calculateEloRating(player1Rating, player2Rating, result, player1Matches = 0) {
