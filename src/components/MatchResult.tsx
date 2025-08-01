@@ -4,8 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
 import { ArrowLeft, Trophy, Users, Clock, CheckCircle, Loader2, MessageSquare } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -35,37 +33,42 @@ export const MatchResult = ({ onBack, currentUserId, matchId }: MatchResultProps
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [selectedResult, setSelectedResult] = useState<'win' | 'loss' | null>(null);
-  const [notes, setNotes] = useState('');
   const { toast } = useToast();
 
-  // Mock match data for demonstration
+  // Load actual match data from API
   useEffect(() => {
     const loadMatch = async () => {
       try {
         setIsLoading(true);
         
-        // TODO: Replace with actual API call
-        // const response = await fetch(`/api/matches/${matchId}`);
-        // const matchData = await response.json();
+        if (!matchId) {
+          throw new Error('Match ID is required');
+        }
         
-        // Mock data for now
-        setTimeout(() => {
-          const mockMatch: Match = {
-            id: matchId || 'match_1',
-            tournament_id: '1',
-            player1_id: 'player_1',
-            player2_id: 'player_2',
-            player1_name: 'プレイヤー1',
-            player2_name: 'プレイヤー2',
-            table_number: 1,
-            match_status: 'in_progress',
-            player1_rating_before: 1650,
-            player2_rating_before: 1580,
-            created_at: new Date().toISOString()
-          };
-          setMatch(mockMatch);
-          setIsLoading(false);
-        }, 1000);
+        const response = await fetch(`/api/matches?matchId=${matchId}`);
+        if (!response.ok) {
+          throw new Error(`API Error: ${response.status}`);
+        }
+        
+        const matchData = await response.json();
+        
+        // Convert API response to match format
+        const match: Match = {
+          id: matchData.match_id,
+          tournament_id: matchData.tournament_id,
+          player1_id: matchData.player1_id,
+          player2_id: matchData.player2_id,
+          player1_name: matchData.player1_name,
+          player2_name: matchData.player2_name,
+          table_number: parseInt(matchData.match_number) || 1,
+          match_status: matchData.status,
+          player1_rating_before: 1500, // TODO: Get from player data
+          player2_rating_before: 1500, // TODO: Get from player data
+          created_at: matchData.created_at || new Date().toISOString()
+        };
+        
+        setMatch(match);
+        setIsLoading(false);
       } catch (error) {
         console.error('Error loading match:', error);
         toast({
@@ -95,16 +98,20 @@ export const MatchResult = ({ onBack, currentUserId, matchId }: MatchResultProps
         match_id: match.id,
         reporter_id: currentUserId,
         result: selectedResult,
-        notes: notes.trim(),
         reported_at: new Date().toISOString()
       };
 
-      const response = await fetch('/api/tournament-system?action=submit-result', {
+      const response = await fetch('/api/matchResults', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(resultData)
+        body: JSON.stringify({
+          matchId: match.id,
+          playerId: currentUserId,
+          result: selectedResult, // 'win' or 'loss'
+          opponentId: match.player1_id === currentUserId ? match.player2_id : match.player1_id
+        })
       });
 
       if (!response.ok) {
@@ -213,7 +220,7 @@ export const MatchResult = ({ onBack, currentUserId, matchId }: MatchResultProps
             <div className="grid grid-cols-3 gap-4 items-center">
               {/* Current Player */}
               <div className="text-center p-4 bg-primary/10 rounded-lg border border-primary/20">
-                <div className="font-bold text-lg">{getCurrentPlayerName()}</div>
+                <div className="font-bold text-lg text-primary">{getCurrentPlayerName()}</div>
                 <div className="text-sm text-muted-foreground">{getCurrentPlayerRating()}pt</div>
                 <Badge className="mt-2 bg-primary">あなた</Badge>
               </div>
@@ -272,20 +279,6 @@ export const MatchResult = ({ onBack, currentUserId, matchId }: MatchResultProps
               </Button>
             </div>
 
-            {/* Notes Section */}
-            <div className="space-y-2">
-              <Label htmlFor="notes">メモ・コメント（任意）</Label>
-              <Textarea
-                id="notes"
-                placeholder="試合の感想、特記事項など..."
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                className="min-h-[100px]"
-              />
-              <p className="text-xs text-muted-foreground">
-                試合内容や感想を記録できます（管理者も確認できます）
-              </p>
-            </div>
           </CardContent>
         </Card>
 
@@ -317,14 +310,6 @@ export const MatchResult = ({ onBack, currentUserId, matchId }: MatchResultProps
               </div>
             </div>
             
-            {notes.trim() && (
-              <div className="space-y-2">
-                <Label>メモ</Label>
-                <div className="p-3 bg-muted/20 rounded-md text-sm">
-                  {notes}
-                </div>
-              </div>
-            )}
             
             <Alert>
               <CheckCircle className="h-4 w-4" />

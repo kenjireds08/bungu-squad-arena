@@ -76,11 +76,29 @@ export const AdminDirectInput = ({
         inputBy: '管理者' // TODO: Get actual admin name
       };
 
-      // TODO: API call to submit direct input
-      console.log('Submitting direct input:', result);
+      // API call to submit direct input
+      const winnerId = selectedWinner === player1 ? 'player1_id' : 'player2_id'; // TODO: Get actual player IDs
+      const loserId = selectedWinner === player1 ? 'player2_id' : 'player1_id';
       
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await fetch('/api/matchResults', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          matchId: matchId,
+          winnerId: winnerId,
+          loserId: loserId
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to submit direct input');
+      }
+
+      const apiResult = await response.json();
+      console.log('Direct input submitted successfully:', apiResult);
       
       onComplete?.(result);
       onBack();

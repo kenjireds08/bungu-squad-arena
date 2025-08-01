@@ -45,6 +45,10 @@ async function handleSubmitMatchResult(req, res, sheetsService) {
       status: 'pending_approval'
     });
 
+    // Update match status to 'completed' since result has been reported
+    const winnerId = result === 'win' ? playerId : opponentId;
+    await sheetsService.updateMatchStatus(matchId, 'completed', winnerId);
+
     return res.status(200).json({
       success: true,
       resultId,

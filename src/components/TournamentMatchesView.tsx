@@ -372,7 +372,13 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
                     </span>
                   </div>
                   <p className="text-lg font-bold">
-                    {currentUserMatch.player1_name} vs {currentUserMatch.player2_name}
+                    <span className={currentUserMatch.player1_id === currentUserId ? "text-primary" : ""}>
+                      {currentUserMatch.player1_name}
+                    </span>
+                    <span> vs </span>
+                    <span className={currentUserMatch.player2_id === currentUserId ? "text-primary" : ""}>
+                      {currentUserMatch.player2_name}
+                    </span>
                   </p>
                 </div>
                 <div className="text-right space-y-2">
@@ -438,7 +444,13 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
                           </span>
                         </div>
                         <p className="font-medium">
-                          {match.player1_name} vs {match.player2_name}
+                          <span className={match.player1_id === currentUserId ? "text-primary font-bold" : ""}>
+                            {match.player1_name}
+                          </span>
+                          <span> vs </span>
+                          <span className={match.player2_id === currentUserId ? "text-primary font-bold" : ""}>
+                            {match.player2_name}
+                          </span>
                         </p>
                         {match.status === 'approved' && match.winner_id && (
                           <div className="flex items-center gap-2 mt-2 p-2 bg-success/10 rounded border border-success/20">

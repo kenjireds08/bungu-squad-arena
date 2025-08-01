@@ -11,26 +11,57 @@ interface MatchInProgressProps {
   matchId?: string;
 }
 
-// Mock match data
-const mockMatch = {
-  opponent: "田中さん",
-  table: "卓2",
-  rule: "カードプラスルール",
-  startTime: new Date(Date.now() - 15 * 60 * 1000) // 15 minutes ago
-};
+interface MatchData {
+  match_id: string;
+  tournament_id: string;
+  player1_id: string;
+  player2_id: string;
+  player1_name: string;
+  player2_name: string;
+  game_type: 'trump' | 'cardplus';
+  status: string;
+  match_number: string;
+  created_at: string;
+}
 
 export const MatchInProgress = ({ onClose, onFinishMatch, currentUserId, matchId }: MatchInProgressProps) => {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [showResultScreen, setShowResultScreen] = useState(false);
+  const [matchData, setMatchData] = useState<MatchData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Load match data
+  useEffect(() => {
+    const loadMatchData = async () => {
+      try {
+        if (!matchId) return;
+        
+        const response = await fetch(`/api/matches?matchId=${matchId}`);
+        if (response.ok) {
+          const data = await response.json();
+          setMatchData(data);
+        }
+      } catch (error) {
+        console.error('Error loading match data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadMatchData();
+  }, [matchId]);
 
   useEffect(() => {
+    if (!matchData) return;
+    
+    const startTime = new Date(matchData.created_at);
     const interval = setInterval(() => {
-      const elapsed = Math.floor((Date.now() - mockMatch.startTime.getTime()) / 1000);
+      const elapsed = Math.floor((Date.now() - startTime.getTime()) / 1000);
       setElapsedTime(elapsed);
     }, 1000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [matchData]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -87,9 +118,27 @@ export const MatchInProgress = ({ onClose, onFinishMatch, currentUserId, matchId
 
               <div className="space-y-2">
                 <h2 className="text-2xl font-bold text-foreground">⚔️ 対戦中</h2>
-                <p className="text-lg">あなた vs {mockMatch.opponent}</p>
+                <p className="text-lg">
+                  {matchData ? (
+                    <>
+                      <span className="text-primary font-bold">
+                        {matchData.player1_id === currentUserId ? matchData.player1_name : matchData.player2_name}
+                      </span>
+                      <span> vs </span>
+                      <span>
+                        {matchData.player1_id === currentUserId ? matchData.player2_name : matchData.player1_name}
+                      </span>
+                    </>
+                  ) : (
+                    '読み込み中...'
+                  )}
+                </p>
                 <div className="text-sm text-muted-foreground">
-                  {mockMatch.table} • {mockMatch.rule}
+                  {matchData ? (
+                    `${matchData.match_number}試合目 • ${matchData.game_type === 'trump' ? 'トランプルール' : 'カード+ルール'}`
+                  ) : (
+                    '読み込み中...'
+                  )}
                 </div>
               </div>
             </div>
@@ -110,10 +159,10 @@ export const MatchInProgress = ({ onClose, onFinishMatch, currentUserId, matchId
               </div>
               
               <div className="text-xs text-muted-foreground">
-                開始時刻: {mockMatch.startTime.toLocaleTimeString('ja-JP', { 
+                開始時刻: {matchData ? new Date(matchData.created_at).toLocaleTimeString('ja-JP', { 
                   hour: '2-digit', 
                   minute: '2-digit' 
-                })}
+                }) : '--:--'}
               </div>
             </div>
           </CardContent>
@@ -128,6 +177,7 @@ export const MatchInProgress = ({ onClose, onFinishMatch, currentUserId, matchId
                 size="xl" 
                 onClick={handleFinishMatch}
                 className="w-full max-w-xs mx-auto"
+                disabled={isLoading || !matchData}
               >
                 <Flag className="h-5 w-5" />
                 試合終了・結果報告
