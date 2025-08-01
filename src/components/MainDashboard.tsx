@@ -63,6 +63,9 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
   // Find today's tournament specifically (must match today's date exactly)
   const todaysTournament = [...active, ...upcoming].find(t => t.date === today);
   
+  // Check if today's tournament is completed (ended)
+  const todaysCompletedTournament = completed.find(t => t.date === today);
+  
   // Get next tournament with proper logic
   let nextTournament = todaysTournament;
   if (!nextTournament) {
@@ -419,16 +422,24 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
                     </p>
                   </div>
                 </div>
-                {todaysTournament && (
+                {(todaysTournament || todaysCompletedTournament) && (
                   <Button 
-                    variant="heroic" 
+                    variant={todaysCompletedTournament ? "outline" : "heroic"}
                     size="lg" 
-                    onClick={currentUser?.tournament_active ? 
-                      () => setCurrentPage('tournament-waiting')
-                      : handleTournamentEntry}
-                    className="w-full animate-bounce-gentle"
+                    onClick={todaysCompletedTournament ? 
+                      undefined :
+                      currentUser?.tournament_active ? 
+                        () => setCurrentPage('tournament-waiting')
+                        : handleTournamentEntry}
+                    disabled={!!todaysCompletedTournament}
+                    className={`w-full ${todaysCompletedTournament ? 'cursor-default' : 'animate-bounce-gentle'}`}
                   >
-                    {currentUser?.tournament_active ? (
+                    {todaysCompletedTournament ? (
+                      <>
+                        <Trophy className="h-5 w-5 text-muted-foreground" />
+                        本日の大会は終了しました。
+                      </>
+                    ) : currentUser?.tournament_active ? (
                       <>
                         <Trophy className="h-5 w-5" />
                         エントリー済み - 大会待機中画面へ

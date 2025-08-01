@@ -2504,6 +2504,82 @@ class SheetsService {
       throw new Error('Failed to create MatchResults sheet');
     }
   }
+
+  async getRatingHistoryForMatch(matchId) {
+    await this.authenticate();
+    
+    try {
+      // Get match details to find the players involved
+      const matchesResponse = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'TournamentMatches!A2:N1000'
+      });
+      
+      const matchRows = matchesResponse.data.values || [];
+      const matchRow = matchRows.find(row => row[0] === matchId);
+      
+      if (!matchRow) {
+        throw new Error('Match not found');
+      }
+      
+      const player1Id = matchRow[3];
+      const player2Id = matchRow[5];
+      const winnerId = matchRow[7];
+      
+      // Get rating history for this match
+      const historyResponse = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'RatingHistory!A2:I1000'
+      });
+      
+      const historyRows = historyResponse.data.values || [];
+      
+      // Find rating changes for both players related to this match
+      // We'll look for entries with matching player IDs and approximate timestamp
+      const matchTimestamp = matchRow[12] || matchRow[13]; // completed_at or approved_at
+      
+      let winnerRatingChange = null;
+      let loserRatingChange = null;
+      
+      for (const row of historyRows) {
+        const historyPlayerId = row[1];
+        const historyOpponentId = row[2];
+        const playerOldRating = parseInt(row[3]);
+        const playerNewRating = parseInt(row[4]);
+        const opponentOldRating = parseInt(row[5]);
+        const opponentNewRating = parseInt(row[6]);
+        const result = row[7];
+        const timestamp = row[8];
+        
+        // Check if this history entry matches our match
+        if ((historyPlayerId === player1Id && historyOpponentId === player2Id) ||
+            (historyPlayerId === player2Id && historyOpponentId === player1Id)) {
+          
+          // Determine winner and loser rating changes
+          if (historyPlayerId === winnerId) {
+            // This player is the winner
+            winnerRatingChange = playerNewRating - playerOldRating;
+            loserRatingChange = opponentNewRating - opponentOldRating;
+          } else {
+            // The opponent is the winner
+            winnerRatingChange = opponentNewRating - opponentOldRating;
+            loserRatingChange = playerNewRating - playerOldRating;
+          }
+          break;
+        }
+      }
+      
+      return {
+        match_id: matchId,
+        winner_rating_change: winnerRatingChange,
+        loser_rating_change: loserRatingChange
+      };
+      
+    } catch (error) {
+      console.error('Error getting rating history for match:', error);
+      throw new Error('Failed to get rating history');
+    }
+  }
 }
 
 module.exports = SheetsService;

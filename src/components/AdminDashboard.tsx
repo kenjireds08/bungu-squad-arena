@@ -146,6 +146,10 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
     return <AdminTournaments onBack={() => setCurrentAdminPage('dashboard')} selectedTournamentId={selectedTournamentId} />;
   }
 
+  if (currentAdminPage === 'tournament-progress') {
+    return <AdminTournaments onBack={() => setCurrentAdminPage('dashboard')} selectedTournamentId={selectedTournamentId} initialView="management-progress" />;
+  }
+
   if (currentAdminPage === 'create-tournament') {
     return <AdminTournaments onBack={() => setCurrentAdminPage('dashboard')} initialView="create" />;
   }
@@ -209,7 +213,15 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
           <Card 
             className="border-fantasy-frame shadow-soft animate-fade-in cursor-pointer hover:shadow-glow transition-all duration-300" 
             style={{ animationDelay: '200ms' }}
-            onClick={() => setCurrentAdminPage('tournaments')}
+            onClick={() => {
+              // 今日の大会を取得して直接進行状況タブへ
+              const today = new Date().toLocaleDateString('sv-SE');
+              const todaysTournament = tournaments?.find(t => t.date === today);
+              if (todaysTournament) {
+                setSelectedTournamentId(todaysTournament.id);
+              }
+              setCurrentAdminPage('tournament-progress');
+            }}
           >
             <CardContent className="p-4 text-center">
               <div className="text-2xl font-bold text-primary">⚡</div>

@@ -20,6 +20,7 @@ interface TournamentManagementViewProps {
   onClose: () => void;
   tournamentId: string;
   tournamentName: string;
+  initialTab?: 'overview' | 'matches' | 'progress';
 }
 
 interface Match {
@@ -39,8 +40,8 @@ interface Match {
   approved_at: string;
 }
 
-export const TournamentManagementView = ({ onClose, tournamentId, tournamentName }: TournamentManagementViewProps) => {
-  const [activeTab, setActiveTab] = useState('overview');
+export const TournamentManagementView = ({ onClose, tournamentId, tournamentName, initialTab = 'overview' }: TournamentManagementViewProps) => {
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [matches, setMatches] = useState<Match[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showMatchmaking, setShowMatchmaking] = useState(false);

@@ -57,27 +57,58 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
       setIsLoading(true);
       
       // Load match history for current player
-      const matchResponse = await fetch(`/api/matches?playerId=${currentUserId}`);
-      if (matchResponse.ok) {
-        const matchData = await matchResponse.json();
-        setMatches(matchData);
+      try {
+        console.log('Loading matches for player:', currentUserId);
+        const matchResponse = await fetch(`/api/matches?playerId=${currentUserId}`);
+        console.log('Match response status:', matchResponse.status);
+        if (matchResponse.ok) {
+          const matchData = await matchResponse.json();
+          console.log('Match data loaded:', matchData);
+          setMatches(matchData);
+        } else {
+          console.error('Match API failed:', matchResponse.status, await matchResponse.text());
+        }
+      } catch (error) {
+        console.error('Error loading matches:', error);
       }
 
       // Load tournament archive for current player  
-      const archiveResponse = await fetch('/api/tournaments?action=get-daily-archive');
-      if (archiveResponse.ok) {
-        const archiveData = await archiveResponse.json();
-        const playerArchive = archiveData.filter((entry: TournamentArchive) => 
-          entry.player_id === currentUserId
-        );
-        setTournamentArchive(playerArchive);
+      try {
+        console.log('Loading tournament archive');
+        const archiveResponse = await fetch('/api/tournaments?action=get-daily-archive');
+        console.log('Archive response status:', archiveResponse.status);
+        if (archiveResponse.ok) {
+          const archiveData = await archiveResponse.json();
+          console.log('Archive data loaded:', archiveData);
+          const playerArchive = archiveData.filter((entry: TournamentArchive) => 
+            entry.player_id === currentUserId
+          );
+          setTournamentArchive(playerArchive);
+        } else {
+          console.error('Archive API failed:', archiveResponse.status, await archiveResponse.text());
+          // Continue without tournament archive data
+          setTournamentArchive([]);
+        }
+      } catch (error) {
+        console.error('Error loading tournament archive:', error);
+        // Continue without tournament archive data
+        setTournamentArchive([]);
       }
 
       // Load player data for opponent names
-      const playersResponse = await fetch('/api/players');
-      if (playersResponse.ok) {
-        const playersData = await playersResponse.json();
-        setPlayers(playersData);
+      try {
+        console.log('Loading players data');
+        const playersResponse = await fetch('/api/players');
+        console.log('Players response status:', playersResponse.status);
+        if (playersResponse.ok) {
+          const playersData = await playersResponse.json();
+          console.log('Players data loaded:', playersData);
+          setPlayers(playersData);
+        } else {
+          console.error('Players API failed:', playersResponse.status, await playersResponse.text());
+        }
+      } catch (error) {
+        console.error('Error loading players:', error);
       }
 
     } catch (error) {
@@ -192,24 +223,24 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {getTournamentHistory().length === 0 ? (
+            {tournamentArchive.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <Trophy className="h-12 w-12 mx-auto mb-3 opacity-50" />
                 <p>大会参加履歴がありません</p>
               </div>
             ) : (
-              getTournamentHistory().map((tournament, index) => (
+              tournamentArchive.map((entry, index) => (
               <div
-                key={`${tournament.date}-${index}`}
+                key={`${entry.archive_id}-${index}`}
                 className="p-4 bg-muted/30 rounded-lg border border-fantasy-frame/20 animate-slide-up"
                 style={{ animationDelay: `${index * 100}ms` }}
               >
                 <div className="flex items-start justify-between mb-2">
                   <div className="space-y-1">
-                    <h3 className="font-semibold text-foreground">{tournament.name}</h3>
+                    <h3 className="font-semibold text-foreground">BUNGU SQUAD大会</h3>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Calendar className="h-3 w-3" />
-                      {formatDate(tournament.date)}
+                      {formatDate(entry.tournament_date)}
                     </div>
                   </div>
                   <Badge variant="outline">
@@ -217,27 +248,16 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
                   </Badge>
                 </div>
                 
-                <div className="grid grid-cols-3 gap-4 text-sm">
+                <div className="grid grid-cols-2 gap-4 text-sm">
                   <div className="text-center">
-                    <div className="font-semibold text-foreground">{tournament.participants}名</div>
+                    <div className="font-semibold text-foreground">{entry.total_participants_that_day}名</div>
                     <div className="text-muted-foreground">参加者</div>
                   </div>
                   <div className="text-center">
-                    <div className="font-semibold text-foreground">{tournament.wins}/{tournament.games}</div>
-                    <div className="text-muted-foreground">勝敗</div>
-                  </div>
-                  <div className="text-center">
-                    <div className={`font-semibold flex items-center justify-center gap-1 ${
-                      tournament.ratingChange > 0 ? 'text-success' : 'text-destructive'
-                    }`}>
-                      {tournament.ratingChange > 0 ? (
-                        <TrendingUp className="h-3 w-3" />
-                      ) : (
-                        <TrendingDown className="h-3 w-3" />
-                      )}
-                      {tournament.ratingChange > 0 ? '+' : ''}{tournament.ratingChange}
+                    <div className="font-semibold text-foreground">
+                      {formatDateTime(entry.entry_timestamp)}
                     </div>
-                    <div className="text-muted-foreground">レート変動</div>
+                    <div className="text-muted-foreground">エントリー時刻</div>
                   </div>
                 </div>
               </div>

@@ -12,19 +12,20 @@ import { ArrowLeft, Plus, Calendar, MapPin, QrCode, Users, Settings, Shuffle } f
 import { QRCodeDisplay } from './QRCodeDisplay';
 import { TournamentManagementView } from './TournamentManagementView';
 import { TournamentMatchmaking } from './TournamentMatchmaking';
+import { TournamentResultsView } from './TournamentResultsView';
 import { useRankings, useTournaments, useCreateTournament, useUpdateTournament, useDeleteTournament } from '@/hooks/useApi';
 import { useToast } from '@/components/ui/use-toast';
 import { getCategorizedTournaments, getTournamentStatus } from '@/utils/tournamentData';
 
 interface AdminTournamentsProps {
   onBack: () => void;
-  initialView?: 'list' | 'create';
+  initialView?: 'list' | 'create' | 'management-progress';
   selectedTournamentId?: string | null;
 }
 
 
 export const AdminTournaments = ({ onBack, initialView = 'list', selectedTournamentId }: AdminTournamentsProps) => {
-  const [currentView, setCurrentView] = useState<'list' | 'create' | 'management' | 'participants'>(initialView);
+  const [currentView, setCurrentView] = useState<'list' | 'create' | 'management' | 'participants' | 'management-progress' | 'results'>(initialView);
   const [selectedTournament, setSelectedTournament] = useState<any>(null);
   const [showQRCode, setShowQRCode] = useState(false);
   const [activeParticipants, setActiveParticipants] = useState(0);
@@ -39,6 +40,7 @@ export const AdminTournaments = ({ onBack, initialView = 'list', selectedTournam
   const tournaments = getCategorizedTournaments(tournamentsData || []);
   const [qrTournament, setQrTournament] = useState<any>(null);
   const [managementTournament, setManagementTournament] = useState<any>(null);
+  const [resultsTournament, setResultsTournament] = useState<any>(null);
   const [newTournament, setNewTournament] = useState({
     name: '',
     date: '',
@@ -61,10 +63,21 @@ export const AdminTournaments = ({ onBack, initialView = 'list', selectedTournam
       const targetTournament = tournamentsData.find(t => t.id === selectedTournamentId);
       if (targetTournament) {
         setManagementTournament(targetTournament);
-        setCurrentView('management');
+        // If initialView is 'management-progress', keep that view
+        if (initialView !== 'management-progress') {
+          setCurrentView('management');
+        }
+      } else if (initialView === 'management-progress') {
+        // If tournament not found and we were trying to show progress, show tournament list
+        toast({
+          title: "大会が見つかりません",
+          description: "本日開催予定の大会が見つかりませんでした。",
+          variant: "destructive"
+        });
+        setCurrentView('list');
       }
     }
-  }, [selectedTournamentId, tournamentsData]);
+  }, [selectedTournamentId, tournamentsData, initialView, toast]);
 
   const handleCreateTournament = async () => {
     // Validate required fields
@@ -200,6 +213,11 @@ export const AdminTournaments = ({ onBack, initialView = 'list', selectedTournam
     setCurrentView('create');
   };
 
+  const handleShowResults = (tournament: any) => {
+    setResultsTournament(tournament);
+    setCurrentView('results');
+  };
+
   if (currentView === 'participants' && selectedTournament) {
     return (
       <div className="min-h-screen bg-gradient-parchment">
@@ -258,6 +276,29 @@ export const AdminTournaments = ({ onBack, initialView = 'list', selectedTournam
         onClose={handleBackFromManagement}
         tournamentId={managementTournament.id.toString()}
         tournamentName={managementTournament.name}
+      />
+    );
+  }
+
+  if (currentView === 'management-progress' && managementTournament) {
+    return (
+      <TournamentManagementView
+        onClose={handleBackFromManagement}
+        tournamentId={managementTournament.id.toString()}
+        tournamentName={managementTournament.name}
+        initialTab="progress"
+      />
+    );
+  }
+
+  if (currentView === 'results' && resultsTournament) {
+    return (
+      <TournamentResultsView
+        onClose={() => {
+          setCurrentView('list');
+          setResultsTournament(null);
+        }}
+        tournament={resultsTournament}
       />
     );
   }
@@ -558,7 +599,12 @@ export const AdminTournaments = ({ onBack, initialView = 'list', selectedTournam
                       </TableCell>
                       <TableCell className="text-center whitespace-nowrap">
                         <div className="flex gap-1 justify-center">
-                          <Button variant="ghost" size="sm" className="text-xs px-2">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="text-xs px-2"
+                            onClick={() => handleShowResults(tournament)}
+                          >
                             結果確認
                           </Button>
                           <Button variant="ghost" size="sm" className="text-xs px-2">
