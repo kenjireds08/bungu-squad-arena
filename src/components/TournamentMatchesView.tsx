@@ -294,7 +294,7 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
                       </div>
                       <div className="text-sm text-blue-600 mt-1">
                         {matches.filter(m => m.status === 'in_progress').map(m => 
-                          `${m.match_number}試合目`
+                          `${m.match_number.replace('match_', '')}試合目`
                         ).join(', ')}
                       </div>
                     </div>
@@ -326,7 +326,7 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
                               <span className="font-medium text-primary">次の試合</span>
                             </div>
                             <div className="text-sm text-muted-foreground mt-1">
-                              {nextMatch.match_number}試合目: {nextMatch.player1_name} vs {nextMatch.player2_name}
+                              {nextMatch.match_number.replace('match_', '')}試合目: {nextMatch.player1_name} vs {nextMatch.player2_name}
                             </div>
                           </div>
                           {isUserInMatch(nextMatch) && (
@@ -438,7 +438,7 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
                       <div className="space-y-3 flex-1">
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-medium text-muted-foreground">
-                            {match.match_number}試合目
+                            {match.match_number.replace('match_', '')}試合目
                           </span>
                         </div>
                         <p className="font-medium">

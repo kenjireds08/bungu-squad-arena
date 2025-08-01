@@ -135,7 +135,7 @@ export const MatchInProgress = ({ onClose, onFinishMatch, currentUserId, matchId
                 </p>
                 <div className="text-sm text-muted-foreground">
                   {matchData ? (
-                    `${matchData.match_number}試合目 • ${matchData.game_type === 'trump' ? 'トランプルール' : 'カード+ルール'}`
+                    `${matchData.match_number.replace('match_', '')}試合目 • ${matchData.game_type === 'trump' ? 'トランプルール' : 'カード+ルール'}`
                   ) : (
                     '読み込み中...'
                   )}
