@@ -191,9 +191,10 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
   };
 
   const getOpponentRating = (match: Match) => {
-    return match.player1_id === currentUserId ? 
-      (match.player2_rating_before || 1200) : 
-      (match.player1_rating_before || 1200);
+    // Get actual opponent rating from players data
+    const opponentId = match.player1_id === currentUserId ? match.player2_id : match.player1_id;
+    const opponent = players.find(p => p.id === opponentId);
+    return opponent?.current_rating || 1200;
   };
 
   const getPlayerResult = (match: Match) => {
