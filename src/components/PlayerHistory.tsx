@@ -58,6 +58,7 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
     setIsLoading(true);
     
     try {
+      alert('Step 1: Starting to load matches');
       // 1. Load matches with error handling
       try {
         const matchResponse = await fetch(`/api/matches?playerId=${currentUserId}`);
@@ -99,7 +100,7 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
           );
           
           setMatches(matchesWithRating);
-          console.log(`Loaded ${matchesWithRating.length} matches for ${currentUserId}`);
+          alert(`Step 1 complete: Loaded ${matchesWithRating.length} matches`);
         } else {
           setMatches([]);
         }
@@ -108,12 +109,14 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
         setMatches([]);
       }
 
+      alert('Step 2: Starting to load players');
       // 2. Load players with error handling
       try {
         const playersResponse = await fetch('/api/players');
         if (playersResponse.ok) {
           const playersData = await playersResponse.json();
           setPlayers(Array.isArray(playersData) ? playersData : []);
+          alert(`Step 2 complete: Loaded ${playersData.length} players`);
         } else {
           setPlayers([]);
         }
@@ -122,6 +125,7 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
         setPlayers([]);
       }
 
+      alert('Step 3: Starting to load tournaments');
       // 3. Load tournament participation history
       try {
         const tournamentsResponse = await fetch('/api/tournaments');
