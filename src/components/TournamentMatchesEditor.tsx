@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { ArrowLeft, Edit, Trash2, Plus, Save, Users, Spade, Plus as PlusIcon, AlertCircle, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, Plus, Save, Users, Spade, Plus as PlusIcon, AlertCircle, RefreshCw, XCircle } from 'lucide-react';
 import { useRankings } from '@/hooks/useApi';
 import { toast } from '@/components/ui/use-toast';
 
@@ -26,7 +26,7 @@ interface Match {
   player2_id: string;
   player2_name: string;
   game_type: 'trump' | 'cardplus';
-  status: 'scheduled' | 'in_progress' | 'completed' | 'approved';
+  status: 'scheduled' | 'in_progress' | 'completed' | 'approved' | 'cancelled';
   winner_id: string;
   result_details: string;
   created_at: string;
@@ -41,6 +41,7 @@ export const TournamentMatchesEditor = ({ onClose, tournamentId, tournamentName 
   const [editingMatch, setEditingMatch] = useState<Match | null>(null);
   const [showAddMatch, setShowAddMatch] = useState(false);
   const [deleteMatchId, setDeleteMatchId] = useState<string | null>(null);
+  const [cancelMatchId, setCancelMatchId] = useState<string | null>(null);
   const { data: players } = useRankings();
   
   // Get active players for dropdowns
@@ -145,6 +146,42 @@ export const TournamentMatchesEditor = ({ onClose, tournamentId, tournamentName 
     }
   };
 
+  const handleCancelMatch = async () => {
+    if (!cancelMatchId) return;
+
+    try {
+      setIsSaving(true);
+      
+      const response = await fetch(`/api/matches?matchId=${cancelMatchId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'cancelled'
+        }),
+      });
+
+      if (response.ok) {
+        toast({
+          title: 'キャンセル完了',
+          description: '試合をキャンセルしました',
+        });
+        await fetchMatches();
+        setCancelMatchId(null);
+      } else {
+        throw new Error('Failed to cancel match');
+      }
+    } catch (error) {
+      console.error('Failed to cancel match:', error);
+      toast({
+        title: 'エラー',
+        description: '試合のキャンセルに失敗しました',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleAddMatch = async (newMatch: Partial<Match>) => {
     try {
       setIsSaving(true);
@@ -199,6 +236,8 @@ export const TournamentMatchesEditor = ({ onClose, tournamentId, tournamentName 
         return 'bg-warning text-warning-foreground';
       case 'approved':
         return 'bg-success text-success-foreground';
+      case 'cancelled':
+        return 'bg-destructive/20 text-destructive border border-destructive/30';
       default:
         return 'bg-muted text-muted-foreground';
     }
@@ -214,6 +253,8 @@ export const TournamentMatchesEditor = ({ onClose, tournamentId, tournamentName 
         return '報告待ち';
       case 'approved':
         return '完了';
+      case 'cancelled':
+        return 'キャンセル済';
       default:
         return '不明';
     }
@@ -227,6 +268,11 @@ export const TournamentMatchesEditor = ({ onClose, tournamentId, tournamentName 
   const canDeleteMatch = (match: Match) => {
     // Can only delete matches that haven't started yet
     return match.status === 'scheduled';
+  };
+
+  const canCancelMatch = (match: Match) => {
+    // Can cancel matches that are scheduled or in progress
+    return match.status === 'scheduled' || match.status === 'in_progress';
   };
 
   if (isLoading) {
@@ -326,6 +372,15 @@ export const TournamentMatchesEditor = ({ onClose, tournamentId, tournamentName 
                         <Edit className="h-4 w-4" />
                       </Button>
                     )}
+                    {canCancelMatch(match) && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setCancelMatchId(match.match_id)}
+                      >
+                        <XCircle className="h-4 w-4" />
+                      </Button>
+                    )}
                     {canDeleteMatch(match) && (
                       <Button 
                         variant="outline" 
@@ -355,14 +410,14 @@ export const TournamentMatchesEditor = ({ onClose, tournamentId, tournamentName 
           </Card>
         )}
 
-        {/* Warning for in-progress tournament */}
-        {matches.some(m => m.status !== 'scheduled') && (
-          <Card className="border-warning shadow-soft">
+        {/* Info for match management */}
+        {matches.some(m => m.status !== 'scheduled' && m.status !== 'cancelled') && (
+          <Card className="border-info shadow-soft">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <AlertCircle className="h-5 w-5 text-warning" />
+                <AlertCircle className="h-5 w-5 text-info" />
                 <p className="text-sm">
-                  既に開始された試合は編集・削除できません
+                  開始済みの試合は編集できませんが、キャンセルは可能です
                 </p>
               </div>
             </CardContent>
@@ -462,6 +517,24 @@ export const TournamentMatchesEditor = ({ onClose, tournamentId, tournamentName 
         activePlayers={activePlayers}
         isSaving={isSaving}
       />
+
+      {/* Cancel Confirmation */}
+      <AlertDialog open={!!cancelMatchId} onOpenChange={() => setCancelMatchId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>試合をキャンセルしますか？</AlertDialogTitle>
+            <AlertDialogDescription>
+              この試合をキャンセルします。キャンセルされた試合は再開できません。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>戻る</AlertDialogCancel>
+            <AlertDialogAction onClick={handleCancelMatch}>
+              キャンセル実行
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Delete Confirmation */}
       <AlertDialog open={!!deleteMatchId} onOpenChange={() => setDeleteMatchId(null)}>
