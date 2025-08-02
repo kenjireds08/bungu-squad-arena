@@ -21,6 +21,8 @@ interface Tournament {
 
 export const TournamentEntry = () => {
   const { tournamentId, date } = useParams<{ tournamentId?: string; date?: string }>();
+  const searchParams = new URLSearchParams(window.location.search);
+  const isFromQR = searchParams.has('qr') || searchParams.has('from_qr'); // Check if accessed via QR code
   const navigate = useNavigate();
   const { toast } = useToast();
   const [tournament, setTournament] = useState<Tournament | null>(null);
@@ -150,7 +152,14 @@ export const TournamentEntry = () => {
   }, [tournamentId, toast]);
 
   const handleEntry = async () => {
-    if (!tournament) return;
+    if (!tournament || !isFromQR) {
+      toast({
+        title: "エラー",
+        description: "QRコード経由でのみエントリーできます",
+        variant: "destructive"
+      });
+      return;
+    }
     
     try {
       setIsEntering(true);
@@ -488,8 +497,8 @@ export const TournamentEntry = () => {
                 </div>
               )}
 
-              {/* Entry Button - Only show if not in email verification flow */}
-              {!showEmailForm && !emailSent && (
+              {/* Entry Button - Only show if from QR code and not in email verification flow */}
+              {isFromQR && !showEmailForm && !emailSent && (
                 <Button
                   variant="heroic"
                   size="lg"
@@ -509,6 +518,25 @@ export const TournamentEntry = () => {
                     </>
                   )}
                 </Button>
+              )}
+
+              {/* QR Code Notice - Show if not accessed via QR code */}
+              {!isFromQR && !showEmailForm && !emailSent && (
+                <div className="text-center p-4 bg-info/10 rounded-lg border border-info/20">
+                  <QrCode className="h-8 w-8 text-info mx-auto mb-2" />
+                  <h3 className="font-semibold text-info-foreground mb-1">QRコード経由でのエントリー</h3>
+                  <p className="text-sm text-muted-foreground">
+                    このページはQRコードを読み取った方のエントリー専用です。<br />
+                    ダッシュボードからQRスキャナーをご利用ください。
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => navigate('/')}
+                    className="mt-3"
+                  >
+                    ダッシュボードに戻る
+                  </Button>
+                </div>
               )}
 
               {/* Login/Signup buttons */}

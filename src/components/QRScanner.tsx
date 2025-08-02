@@ -192,35 +192,22 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
         description: "大会エントリーが完了しました",
       });
       
-      // Update tournament active status if user is logged in
-      if (currentUserId) {
-        try {
-          await fetch(`/api/players?id=${currentUserId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ updateTournamentActive: true })
-          });
-          console.log('Tournament active status updated for player:', currentUserId);
-          
-          // Navigate to tournament waiting screen after 5 seconds (for all users)
-          setTimeout(() => {
-            // All users (admin or regular) go to tournament waiting page after entry
-            window.location.href = '/tournament-waiting';
-          }, 5000);
-          
-        } catch (error) {
-          console.error('Failed to update tournament active status:', error);
-          // Even if API fails, still navigate to tournament waiting page
-          setTimeout(() => {
-            window.location.href = '/tournament-waiting';
-          }, 5000);
+      // All users (logged in or not) go to tournament entry page with QR parameter
+      setTimeout(() => {
+        // Extract tournament ID from QR code URL or use fallback
+        let targetUrl = data;
+        if (data.includes('tournament-entry')) {
+          // Add QR parameter to indicate this came from QR scan
+          const separator = data.includes('?') ? '&' : '?';
+          targetUrl = `${data}${separator}from_qr=true`;
+        } else {
+          // Fallback to generic tournament entry with QR parameter
+          targetUrl = `/tournament-entry/current?from_qr=true`;
         }
-      } else {
-        // Not logged in, redirect to entry page after 2 seconds
-        setTimeout(() => {
-          window.location.href = data;
-        }, 2000);
-      }
+        
+        console.log('BUNGU SQUAD: QRコード読み取り後の遷移先:', targetUrl);
+        window.location.href = targetUrl;
+      }, 2000);
       
     } else {
       setScanResult('error');
