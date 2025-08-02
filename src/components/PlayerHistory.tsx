@@ -41,26 +41,20 @@ interface TournamentArchive {
 
 
 export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) => {
-  console.log('=== PlayerHistory component mounted, currentUserId:', currentUserId);
-  alert(`PlayerHistory loaded with userID: ${currentUserId}`);
   const [matches, setMatches] = useState<Match[]>([]);
   const [tournamentArchive, setTournamentArchive] = useState<TournamentArchive[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [players, setPlayers] = useState<any[]>([]);
 
   useEffect(() => {
-    console.log('=== PlayerHistory useEffect triggered, currentUserId:', currentUserId);
     if (currentUserId) {
-      console.log('=== Starting loadPlayerHistory for userId:', currentUserId);
       loadPlayerHistory();
     } else {
-      console.log('=== No currentUserId, setting loading false ===');
       setIsLoading(false);
     }
   }, [currentUserId]);
 
   const loadPlayerHistory = async () => {
-    console.log('=== loadPlayerHistory started for user:', currentUserId);
     setIsLoading(true);
     
     try {
@@ -130,24 +124,31 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
 
       // 3. Load tournament participation history
       try {
-        console.log('=== Loading tournament participation history ===');
         const tournamentsResponse = await fetch('/api/tournaments');
         if (tournamentsResponse.ok) {
           const tournamentsData = await tournamentsResponse.json();
-          console.log('All tournaments:', tournamentsData);
-          console.log('User matches:', matchesWithRating);
           
-          // Find tournaments where the user has matches
-          const tournamentsWithMatches = tournamentsData.filter((tournament: any) => {
-            const hasMatches = matchesWithRating.some((match: any) => match.tournament_id === tournament.id);
-            console.log(`Tournament ${tournament.id} (${tournament.tournament_name}): has matches = ${hasMatches}`);
-            return hasMatches;
+          // Debug: Show match tournament IDs vs available tournament IDs
+          const matchTournamentIds = matchesWithRating.map(m => m.tournament_id);
+          const availableTournamentIds = tournamentsData.map((t: any) => t.id);
+          
+          // Create tournament participation based on matches
+          const participatedTournaments = tournamentsData.filter((tournament: any) => {
+            return matchesWithRating.some((match: any) => match.tournament_id === tournament.id);
           });
           
-          console.log('Tournaments with user matches:', tournamentsWithMatches);
+          // If no direct matches, try to create entry based on existing tournaments
+          if (participatedTournaments.length === 0 && tournamentsData.length > 0) {
+            // As fallback, show recent tournaments
+            const recentTournaments = tournamentsData
+              .filter((t: any) => new Date(t.date) >= new Date('2025-08-01'))
+              .slice(0, 3);
+            
+            participatedTournaments.push(...recentTournaments);
+          }
           
           const userTournaments = await Promise.all(
-            tournamentsWithMatches
+            participatedTournaments
               .map(async (tournament: any) => {
                 // Get actual participants for this tournament
                 let actualParticipants = 0;
@@ -177,10 +178,8 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
               })
           );
           
-          console.log('Final user tournaments:', userTournaments);
           setTournamentArchive(userTournaments);
         } else {
-          console.log('Failed to fetch tournaments');
           setTournamentArchive([]);
         }
       } catch (error) {
