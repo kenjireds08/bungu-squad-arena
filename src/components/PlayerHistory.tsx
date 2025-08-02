@@ -135,10 +135,29 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
           
           // If no tournaments data at all, create dummy entry based on matches
           if (tournamentsData.length === 0 && matchesWithRating.length > 0) {
+            // Debug: Check match data format
+            console.log('Match data sample:', matchesWithRating[0]);
+            
             // Get unique dates from matches
-            const matchDates = [...new Set(matchesWithRating.map((m: any) => 
-              m.match_start_time.split(' ')[0] // Extract date part
-            ))];
+            const matchDates = [...new Set(matchesWithRating.map((m: any) => {
+              // Handle different date formats
+              if (m.match_start_time) {
+                // Try to extract date from various formats
+                const dateMatch = m.match_start_time.match(/(\d{4}-\d{2}-\d{2})|(\d+月\d+日)/);
+                if (dateMatch) {
+                  // Convert Japanese date format to standard format if needed
+                  if (dateMatch[2]) {
+                    // Convert "8月1日" to "2025-08-01"
+                    const [month, day] = dateMatch[2].match(/\d+/g);
+                    return `2025-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                  }
+                  return dateMatch[1];
+                }
+              }
+              return null;
+            }).filter(date => date !== null))];
+            
+            console.log('Extracted dates:', matchDates);
             
             // Create dummy tournament entries for each date
             matchDates.forEach(date => {
@@ -156,20 +175,42 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
               .map(async (tournament: any) => {
                 // Get actual participants for this tournament
                 let actualParticipants = 0;
-                try {
-                  const participantsResponse = await fetch(`/api/matches?tournamentId=${tournament.id}`);
-                  if (participantsResponse.ok) {
-                    const tournamentMatches = await participantsResponse.json();
-                    // Count unique players from all matches in this tournament
-                    const playerSet = new Set();
-                    tournamentMatches.forEach((match: any) => {
-                      if (match.player1_id) playerSet.add(match.player1_id);
-                      if (match.player2_id) playerSet.add(match.player2_id);
-                    });
-                    actualParticipants = playerSet.size;
+                
+                // For dummy tournaments, count players from matches on that date
+                if (tournament.id.startsWith('dummy_')) {
+                  const tournamentDate = tournament.date;
+                  const dateMatches = matchesWithRating.filter((m: any) => {
+                    if (!m.match_start_time) return false;
+                    // Check if date matches (handle both "2025-08-01" and "8月1日" formats)
+                    const matchDateStr = m.match_start_time;
+                    if (matchDateStr.includes(tournamentDate)) return true;
+                    // Check Japanese date format
+                    const [year, month, day] = tournamentDate.split('-');
+                    const jpDate = `${parseInt(month)}月${parseInt(day)}日`;
+                    return matchDateStr.includes(jpDate);
+                  });
+                  const playerSet = new Set();
+                  dateMatches.forEach((match: any) => {
+                    if (match.player1_id) playerSet.add(match.player1_id);
+                    if (match.player2_id) playerSet.add(match.player2_id);
+                  });
+                  actualParticipants = playerSet.size;
+                } else {
+                  // For real tournaments, use the API
+                  try {
+                    const participantsResponse = await fetch(`/api/matches?tournamentId=${tournament.id}`);
+                    if (participantsResponse.ok) {
+                      const tournamentMatches = await participantsResponse.json();
+                      const playerSet = new Set();
+                      tournamentMatches.forEach((match: any) => {
+                        if (match.player1_id) playerSet.add(match.player1_id);
+                        if (match.player2_id) playerSet.add(match.player2_id);
+                      });
+                      actualParticipants = playerSet.size;
+                    }
+                  } catch (error) {
+                    console.error('Error counting participants:', error);
                   }
-                } catch (error) {
-                  console.error('Error counting participants:', error);
                 }
                 
                 return {
