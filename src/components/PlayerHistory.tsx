@@ -162,15 +162,11 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
                 if (ratingResponse.ok) {
                   const ratingData = await ratingResponse.json();
                   
-                  // Debug: Show API response for first match
-                  if (validMatches.indexOf(match) === 0) {
-                    alert(`API Response Debug:
-Match ID: ${match.id}
-Winner ID: ${match.winner_id}
-Player1 ID: ${match.player1_id}
-API winner_rating_change: ${ratingData.winner_rating_change}
-API loser_rating_change: ${ratingData.loser_rating_change}`);
-                  }
+                  
+                  // HOTFIX: API returns inverted values (winner gets negative, loser gets positive)
+                  // So we swap them to get correct display
+                  const actualWinnerChange = ratingData.loser_rating_change;
+                  const actualLoserChange = ratingData.winner_rating_change;
                   
                   // Correctly assign rating changes based on who won
                   let player1_rating_change = 0;
@@ -178,12 +174,12 @@ API loser_rating_change: ${ratingData.loser_rating_change}`);
                   
                   if (match.winner_id === match.player1_id) {
                     // Player1 won
-                    player1_rating_change = ratingData.winner_rating_change;
-                    player2_rating_change = ratingData.loser_rating_change;
+                    player1_rating_change = actualWinnerChange;
+                    player2_rating_change = actualLoserChange;
                   } else {
                     // Player2 won
-                    player1_rating_change = ratingData.loser_rating_change;
-                    player2_rating_change = ratingData.winner_rating_change;
+                    player1_rating_change = actualLoserChange;
+                    player2_rating_change = actualWinnerChange;
                   }
                   
                   return {
