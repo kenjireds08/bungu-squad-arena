@@ -230,6 +230,17 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
   };
 
   const getPlayerRatingChange = (match: Match) => {
+    // Debug: Show actual match data for the first match
+    if (matches.indexOf(match) === 0) {
+      alert(`Debug - Match data:
+Current User: ${currentUserId}
+Player1: ${match.player1_id}
+Player2: ${match.player2_id}
+Winner: ${match.winner_id}
+Player1 Change: ${match.player1_rating_change}
+Player2 Change: ${match.player2_rating_change}`);
+    }
+    
     // Check which position (player1 or player2) the current user is in
     if (currentUserId === match.player1_id) {
       // Current user is player1
