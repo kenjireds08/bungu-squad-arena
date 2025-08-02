@@ -82,22 +82,11 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
     }
   }
 
-  // Initialize notifications with tournament data
+  // Initialize notifications - tournament notifications disabled (PWA push notifications will handle this)
   useEffect(() => {
-    if (nextTournament && !acknowledgedTournaments.has(nextTournament.id)) {
-      setNotifications([
-        {
-          id: nextTournament.id,
-          type: 'tournament' as const,
-          title: '新しい大会が作成されました',
-          message: `${nextTournament.name}が${nextTournament.date}に開催されます`,
-          timestamp: new Date(),
-          priority: 'high' as const
-        }
-      ]);
-    } else {
-      setNotifications([]);
-    }
+    // Tournament notifications are now handled by PWA push notifications
+    // No longer showing in-app popup notifications for tournaments
+    setNotifications([]);
   }, [nextTournament, acknowledgedTournaments]);
 
   // Check for PWA install prompt
@@ -319,8 +308,7 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-fantasy-frame shadow-soft">
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Trophy className="h-6 w-6 text-primary" />
+            <div className="flex items-center">
               <img 
                 src="/assets/logos/ロゴ1列mono.png" 
                 alt="BUNGU SQUAD" 
