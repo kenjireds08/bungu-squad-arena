@@ -58,7 +58,6 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
     setIsLoading(true);
     
     try {
-      alert('Step 1: Starting to load matches');
       // 1. Load matches with error handling
       try {
         const matchResponse = await fetch(`/api/matches?playerId=${currentUserId}`);
@@ -100,7 +99,6 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
           );
           
           setMatches(matchesWithRating);
-          alert(`Step 1 complete: Loaded ${matchesWithRating.length} matches`);
         } else {
           setMatches([]);
         }
@@ -109,14 +107,12 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
         setMatches([]);
       }
 
-      alert('Step 2: Starting to load players');
       // 2. Load players with error handling
       try {
         const playersResponse = await fetch('/api/players');
         if (playersResponse.ok) {
           const playersData = await playersResponse.json();
           setPlayers(Array.isArray(playersData) ? playersData : []);
-          alert(`Step 2 complete: Loaded ${playersData.length} players`);
         } else {
           setPlayers([]);
         }
@@ -125,30 +121,34 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
         setPlayers([]);
       }
 
-      alert('Step 3: Starting to load tournaments');
       // 3. Load tournament participation history
       try {
         const tournamentsResponse = await fetch('/api/tournaments');
         if (tournamentsResponse.ok) {
           const tournamentsData = await tournamentsResponse.json();
           
-          // DEBUG: Show actual data
-          alert(`Tournaments: ${tournamentsData.length}, Matches: ${matchesWithRating.length}`);
           
           // Create tournament participation based on matches
           const participatedTournaments = tournamentsData.filter((tournament: any) => {
             return matchesWithRating.some((match: any) => match.tournament_id === tournament.id);
           });
           
-          // If no direct matches, try to create entry based on existing tournaments
-          if (participatedTournaments.length === 0 && tournamentsData.length > 0) {
-            // As fallback, show recent tournaments
-            const recentTournaments = tournamentsData
-              .filter((t: any) => new Date(t.date) >= new Date('2025-08-01'))
-              .slice(0, 1);
+          // If no tournaments data at all, create dummy entry based on matches
+          if (tournamentsData.length === 0 && matchesWithRating.length > 0) {
+            // Get unique dates from matches
+            const matchDates = [...new Set(matchesWithRating.map((m: any) => 
+              m.match_start_time.split(' ')[0] // Extract date part
+            ))];
             
-            participatedTournaments.push(...recentTournaments);
-            alert(`Using fallback: ${recentTournaments.length} tournaments`);
+            // Create dummy tournament entries for each date
+            matchDates.forEach(date => {
+              participatedTournaments.push({
+                id: `dummy_${date}`,
+                tournament_name: 'BUNGU SQUAD大会',
+                date: date,
+                status: 'completed'
+              });
+            });
           }
           
           const userTournaments = await Promise.all(
