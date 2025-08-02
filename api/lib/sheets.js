@@ -1013,7 +1013,9 @@ class SheetsService {
       for (let match of matches) {
         if (match.status === 'approved' || match.status === 'completed') {
           try {
+            console.log(`Getting rating changes for match: ${match.match_id}`);
             const ratingChanges = await this.getRatingHistoryForMatch(match.match_id);
+            console.log(`Rating changes result:`, ratingChanges);
             if (ratingChanges) {
               match.winner_rating_change = ratingChanges.winner_rating_change;
               match.loser_rating_change = ratingChanges.loser_rating_change;
