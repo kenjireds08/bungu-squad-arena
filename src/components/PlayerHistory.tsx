@@ -128,9 +128,8 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
         if (tournamentsResponse.ok) {
           const tournamentsData = await tournamentsResponse.json();
           
-          // Debug: Show match tournament IDs vs available tournament IDs
-          const matchTournamentIds = matchesWithRating.map(m => m.tournament_id);
-          const availableTournamentIds = tournamentsData.map((t: any) => t.id);
+          // DEBUG: Show actual data
+          alert(`Tournaments: ${tournamentsData.length}, Matches: ${matchesWithRating.length}`);
           
           // Create tournament participation based on matches
           const participatedTournaments = tournamentsData.filter((tournament: any) => {
@@ -142,9 +141,10 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
             // As fallback, show recent tournaments
             const recentTournaments = tournamentsData
               .filter((t: any) => new Date(t.date) >= new Date('2025-08-01'))
-              .slice(0, 3);
+              .slice(0, 1);
             
             participatedTournaments.push(...recentTournaments);
+            alert(`Using fallback: ${recentTournaments.length} tournaments`);
           }
           
           const userTournaments = await Promise.all(
