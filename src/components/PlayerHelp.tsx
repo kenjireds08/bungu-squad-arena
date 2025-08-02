@@ -124,8 +124,7 @@ export const PlayerHelp = ({ onClose }: PlayerHelpProps) => {
                   <ol className="text-sm space-y-1 pl-6 list-decimal text-muted-foreground">
                     <li>大会エントリー後、対戦相手が決定</li>
                     <li>指定された卓で試合開始</li>
-                    <li>試合終了後、勝者・敗者が結果を申告</li>
-                    <li>管理者が結果を承認</li>
+                    <li>試合終了後、管理者が勝敗を入力</li>
                     <li>レーティングが自動更新</li>
                   </ol>
                 </AccordionContent>
