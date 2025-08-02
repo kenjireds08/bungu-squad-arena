@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Character Icon Styles */
+@import './styles/character-icon.css';
+
 /* BUNGU SQUAD Design System - Fantasy RPG Theme */
 
 @layer base {

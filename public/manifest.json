@@ -11,21 +11,21 @@
   "start_url": "/?utm_source=pwa",
   "icons": [
     {
-      "src": "/icon-192x192.png",
+      "src": "/assets/characters/main-character.JPG",
       "sizes": "192x192",
-      "type": "image/png",
+      "type": "image/jpeg",
       "purpose": "any"
     },
     {
-      "src": "/icon-512x512.png",
+      "src": "/assets/characters/main-character.JPG",
       "sizes": "512x512",
-      "type": "image/png",
+      "type": "image/jpeg",
       "purpose": "any maskable"
     },
     {
-      "src": "/main-character.png",
+      "src": "/assets/characters/main-character.JPG",
       "sizes": "144x144",
-      "type": "image/png",
+      "type": "image/jpeg",
       "purpose": "any"
     }
   ],
@@ -46,7 +46,7 @@
       "url": "/?action=qr-scan",
       "icons": [
         {
-          "src": "/icon-192x192.png",
+          "src": "/assets/characters/main-character.JPG",
           "sizes": "192x192"
         }
       ]

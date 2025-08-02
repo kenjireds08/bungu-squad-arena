@@ -1,0 +1,65 @@
+/* キャラクターアイコン用のスタイル */
+.character-icon {
+  display: inline-block;
+  overflow: hidden;
+  border-radius: 50%; /* 円形にしたい場合 */
+  background: #f0f0f0;
+  position: relative;
+}
+
+.character-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
+
+/* サイズバリエーション */
+.character-icon-small {
+  width: 32px;
+  height: 32px;
+}
+
+.character-icon-medium {
+  width: 64px;
+  height: 64px;
+}
+
+.character-icon-large {
+  width: 128px;
+  height: 128px;
+}
+
+.character-icon-xl {
+  width: 192px;
+  height: 192px;
+}
+
+/* 正方形バージョン（角丸） */
+.character-icon-square {
+  border-radius: 8px;
+}
+
+.character-icon-square.character-icon-small {
+  border-radius: 4px;
+}
+
+.character-icon-square.character-icon-medium {
+  border-radius: 6px;
+}
+
+.character-icon-square.character-icon-large {
+  border-radius: 8px;
+}
+
+.character-icon-square.character-icon-xl {
+  border-radius: 12px;
+}
+
+/* ファビコン用（非常に小さいサイズ） */
+.character-icon-favicon {
+  width: 16px;
+  height: 16px;
+  border-radius: 2px;
+}

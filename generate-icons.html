@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>アイコン生成ツール</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .icon-preview {
+            display: inline-block;
+            margin: 10px;
+            text-align: center;
+        }
+        .icon-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        .icon-512 { width: 512px; height: 512px; }
+        .icon-192 { width: 192px; height: 192px; }
+        .icon-144 { width: 144px; height: 144px; }
+        .icon-32 { width: 32px; height: 32px; }
+        .icon-16 { width: 16px; height: 16px; }
+        
+        .download-section {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 8px;
+        }
+        .download-btn {
+            display: inline-block;
+            margin: 5px;
+            padding: 10px 15px;
+            background: #DAA520;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+        }
+        .download-btn:hover {
+            background: #B8941C;
+        }
+        h2 {
+            color: #3C2415;
+            margin-bottom: 15px;
+        }
+        .canvas-container {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>BUNGU SQUAD アイコン生成ツール</h1>
+        <p>main-character.JPGから正方形のアイコンを生成します</p>
+        
+        <h2>プレビュー</h2>
+        <div class="preview-section">
+            <div class="icon-preview">
+                <div class="icon-512">
+                    <img src="/assets/characters/main-character.JPG" alt="512x512 icon" class="icon-image">
+                </div>
+                <p>512x512 (PWA用)</p>
+            </div>
+            
+            <div class="icon-preview">
+                <div class="icon-192">
+                    <img src="/assets/characters/main-character.JPG" alt="192x192 icon" class="icon-image">
+                </div>
+                <p>192x192 (PWA用)</p>
+            </div>
+            
+            <div class="icon-preview">
+                <div class="icon-144">
+                    <img src="/assets/characters/main-character.JPG" alt="144x144 icon" class="icon-image">
+                </div>
+                <p>144x144 (Web用)</p>
+            </div>
+            
+            <div class="icon-preview">
+                <div class="icon-32">
+                    <img src="/assets/characters/main-character.JPG" alt="32x32 icon" class="icon-image">
+                </div>
+                <p>32x32 (ファビコン)</p>
+            </div>
+            
+            <div class="icon-preview">
+                <div class="icon-16">
+                    <img src="/assets/characters/main-character.JPG" alt="16x16 icon" class="icon-image">
+                </div>
+                <p>16x16 (ファビコン)</p>
+            </div>
+        </div>
+        
+        <div class="download-section">
+            <h2>ダウンロード</h2>
+            <p>以下のボタンをクリックして、各サイズのアイコンを生成・ダウンロードできます：</p>
+            
+            <button class="download-btn" onclick="generateIcon(512)">512x512をダウンロード</button>
+            <button class="download-btn" onclick="generateIcon(192)">192x192をダウンロード</button>
+            <button class="download-btn" onclick="generateIcon(144)">144x144をダウンロード</button>
+            <button class="download-btn" onclick="generateIcon(32)">32x32をダウンロード</button>
+            <button class="download-btn" onclick="generateIcon(16)">16x16をダウンロード</button>
+        </div>
+        
+        <div class="canvas-container">
+            <canvas id="iconCanvas"></canvas>
+        </div>
+    </div>
+
+    <script>
+        function generateIcon(size) {
+            const canvas = document.getElementById('iconCanvas');
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+            
+            img.onload = function() {
+                // Canvasサイズを設定
+                canvas.width = size;
+                canvas.height = size;
+                
+                // 画像の中央部分を正方形で切り抜く
+                const minDimension = Math.min(img.width, img.height);
+                const sourceX = (img.width - minDimension) / 2;
+                const sourceY = (img.height - minDimension) / 2;
+                
+                // 画像を正方形に切り抜いてCanvasに描画
+                ctx.drawImage(
+                    img,
+                    sourceX, sourceY, minDimension, minDimension,  // ソース領域
+                    0, 0, size, size  // 描画先領域
+                );
+                
+                // PNGとしてダウンロード
+                canvas.toBlob(function(blob) {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    
+                    let filename;
+                    if (size >= 512) {
+                        filename = 'icon-512x512.png';
+                    } else if (size >= 192) {
+                        filename = 'icon-192x192.png';
+                    } else if (size >= 144) {
+                        filename = 'main-character.png';
+                    } else if (size >= 32) {
+                        filename = 'favicon-32x32.png';
+                    } else {
+                        filename = 'favicon-16x16.png';
+                    }
+                    
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 'image/png', 1.0);
+            };
+            
+            img.crossOrigin = 'anonymous';
+            img.src = '/assets/characters/main-character.JPG';
+        }
+    </script>
+</body>
+</html>
