@@ -32,6 +32,8 @@ interface Match {
   created_at: string;
   completed_at: string;
   approved_at: string;
+  winner_rating_change?: number;
+  loser_rating_change?: number;
 }
 
 export const TournamentMatchesEditor = ({ onClose, tournamentId, tournamentName }: TournamentMatchesEditorProps) => {
@@ -376,9 +378,32 @@ export const TournamentMatchesEditor = ({ onClose, tournamentId, tournamentName 
                       {match.player1_name} vs {match.player2_name}
                     </p>
                     {match.winner_id && (
-                      <p className="text-sm text-success">
-                        勝者: {match.winner_id === match.player1_id ? match.player1_name : match.player2_name}
-                      </p>
+                      <div className="space-y-1">
+                        <p className="text-sm text-success">
+                          勝者: {match.winner_id === match.player1_id ? match.player1_name : match.player2_name}
+                        </p>
+                        {/* レーティング変動表示 */}
+                        {match.winner_rating_change !== undefined && match.loser_rating_change !== undefined && (
+                          <div className="flex items-center gap-4 text-xs">
+                            <div className="flex items-center gap-1">
+                              <span className="text-green-600 font-medium">
+                                +{Math.abs(match.winner_rating_change)}
+                              </span>
+                              <span className="text-muted-foreground">
+                                ({match.winner_id === match.player1_id ? match.player1_name : match.player2_name})
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-red-600 font-medium">
+                                {match.loser_rating_change > 0 ? '-' : ''}{Math.abs(match.loser_rating_change)}
+                              </span>
+                              <span className="text-muted-foreground">
+                                ({match.winner_id === match.player1_id ? match.player2_name : match.player1_name})
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
                   <div className="flex gap-2">

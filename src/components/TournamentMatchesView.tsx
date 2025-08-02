@@ -28,6 +28,8 @@ interface Match {
   created_at: string;
   completed_at: string;
   approved_at: string;
+  winner_rating_change?: number;
+  loser_rating_change?: number;
 }
 
 export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: TournamentMatchesViewProps) => {
@@ -502,11 +504,34 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
                           </span>
                         </p>
                         {match.status === 'approved' && match.winner_id && (
-                          <div className="flex items-center gap-2 mt-2 p-2 bg-success/10 rounded border border-success/20">
-                            <Trophy className="h-4 w-4 text-success" />
-                            <span className="text-sm font-medium text-success">
-                              勝者: {match.winner_id === match.player1_id ? match.player1_name : match.player2_name}
-                            </span>
+                          <div className="space-y-2 mt-2">
+                            <div className="flex items-center gap-2 p-2 bg-success/10 rounded border border-success/20">
+                              <Trophy className="h-4 w-4 text-success" />
+                              <span className="text-sm font-medium text-success">
+                                勝者: {match.winner_id === match.player1_id ? match.player1_name : match.player2_name}
+                              </span>
+                            </div>
+                            {/* レーティング変動表示 */}
+                            {match.winner_rating_change !== undefined && match.loser_rating_change !== undefined && (
+                              <div className="flex items-center gap-3 p-2 bg-blue-50 rounded border border-blue-200">
+                                <div className="flex items-center gap-1">
+                                  <span className="text-xs text-green-600 font-medium">
+                                    +{Math.abs(match.winner_rating_change)}
+                                  </span>
+                                  <span className="text-xs text-muted-foreground">
+                                    ({match.winner_id === match.player1_id ? match.player1_name : match.player2_name})
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <span className="text-xs text-red-600 font-medium">
+                                    {match.loser_rating_change > 0 ? '-' : ''}{Math.abs(match.loser_rating_change)}
+                                  </span>
+                                  <span className="text-xs text-muted-foreground">
+                                    ({match.winner_id === match.player1_id ? match.player2_name : match.player1_name})
+                                  </span>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
