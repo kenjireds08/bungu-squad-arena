@@ -41,12 +41,29 @@ export const TournamentEntry = () => {
         const userId = localStorage.getItem('userId');
         let userIsActive = false;
         
-        // TODO: Replace with actual API call
-        // Mock tournament data for now
-        const today = new Date().toISOString().split('T')[0];
+        // Get active tournament data from API
+        let activeTournament = null;
+        let participantCount = 0;
+        
+        try {
+          // Fetch current active tournaments
+          const tournamentsResponse = await fetch('/api/tournaments');
+          if (tournamentsResponse.ok) {
+            const tournaments = await tournamentsResponse.json();
+            console.log('All tournaments:', tournaments);
+            
+            // Find today's active tournament
+            const today = new Date().toISOString().split('T')[0];
+            activeTournament = tournaments.find((t: any) => 
+              t.date === today && (t.status === 'active' || t.status === 'upcoming')
+            );
+            console.log('Today\'s active tournament:', activeTournament);
+          }
+        } catch (error) {
+          console.error('Failed to fetch tournaments:', error);
+        }
         
         // Get real participant count and check user status
-        let participantCount = 0;
         try {
           const playersResponse = await fetch('/api/players');
           if (playersResponse.ok) {
@@ -69,20 +86,37 @@ export const TournamentEntry = () => {
         
         setUserTournamentActive(userIsActive);
         
-        const mockTournament: Tournament = {
-          id: tournamentId || 'tournament_1753934765383',
-          name: '第三回BUNGU SQUAD大会',
-          date: today,
-          time: '15:00',
-          location: '△△コミュニティセンター',
-          participants: participantCount,
-          status: '開催中'
-        };
+        // Use real tournament data if available, otherwise fallback to mock
+        let tournamentData: Tournament;
+        if (activeTournament) {
+          tournamentData = {
+            id: activeTournament.id,
+            name: activeTournament.name,
+            date: activeTournament.date,
+            time: activeTournament.start_time || activeTournament.time,
+            location: activeTournament.location,
+            participants: participantCount,
+            status: activeTournament.status === 'active' ? '開催中' : 
+                    activeTournament.status === 'upcoming' ? '開催予定' : '終了'
+          };
+        } else {
+          // Fallback to mock data if no active tournament found
+          const today = new Date().toISOString().split('T')[0];
+          tournamentData = {
+            id: tournamentId || 'tournament_fallback',
+            name: 'BUNGU SQUAD大会',
+            date: today,
+            time: '19:00',
+            location: 'コミュニティセンター',
+            participants: participantCount,
+            status: '開催中'
+          };
+        }
         
         // Simulate API delay
         await new Promise(resolve => setTimeout(resolve, 500));
         
-        setTournament(mockTournament);
+        setTournament(tournamentData);
         
         // If user is logged in and tournament active, show waiting room
         if (userId && userIsActive) {
