@@ -1013,7 +1013,7 @@ class SheetsService {
       for (let match of matches) {
         if (match.status === 'approved' || match.status === 'completed') {
           try {
-            const ratingChanges = await this.getMatchRatingChanges(match.match_id);
+            const ratingChanges = await this.getRatingHistoryForMatch(match.match_id);
             if (ratingChanges) {
               match.winner_rating_change = ratingChanges.winner_rating_change;
               match.loser_rating_change = ratingChanges.loser_rating_change;
@@ -1336,44 +1336,6 @@ class SheetsService {
     return this.getMatchHistory();
   }
 
-  async getMatchRatingChanges(matchId) {
-    await this.authenticate();
-    
-    try {
-      const response = await this.sheets.spreadsheets.values.get({
-        spreadsheetId: this.spreadsheetId,
-        range: 'RatingHistory!A2:H1000'
-      });
-
-      const rows = response.data.values || [];
-      
-      // Find rating changes for this match
-      const matchRatingChanges = rows
-        .filter(row => row[7] === matchId) // match_id is in column H (index 7)
-        .map(row => ({
-          player_id: row[0],
-          rating_change: parseInt(row[3]) || 0,
-          result: row[6] // win/lose
-        }));
-
-      if (matchRatingChanges.length === 2) {
-        const winner = matchRatingChanges.find(change => change.result === 'win');
-        const loser = matchRatingChanges.find(change => change.result === 'lose');
-        
-        if (winner && loser) {
-          return {
-            winner_rating_change: winner.rating_change,
-            loser_rating_change: loser.rating_change
-          };
-        }
-      }
-
-      return null;
-    } catch (error) {
-      console.error('Error fetching match rating changes:', error);
-      return null;
-    }
-  }
 
   calculateEloRating(player1Rating, player2Rating, result, player1Matches = 0) {
     const K = player1Matches < 10 ? 40 : player1Matches < 30 ? 20 : 10;
