@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ArrowLeft, Plus, Calendar, MapPin, QrCode, Users, Settings, Shuffle } from 'lucide-react';
+import { ArrowLeft, Plus, Calendar, MapPin, QrCode, Users, Settings, Shuffle, Edit, Trash2 } from 'lucide-react';
 import { QRCodeDisplay } from './QRCodeDisplay';
 import { TournamentManagementView } from './TournamentManagementView';
 import { TournamentMatchmaking } from './TournamentMatchmaking';
@@ -494,6 +494,14 @@ export const AdminTournaments = ({ onBack, initialView = 'list', selectedTournam
                     <Button variant="outline" size="sm" onClick={() => handleShowQR(tournament)}>
                       <QrCode className="h-3 w-3" />
                       QRコード
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => handleEdit(tournament)}>
+                      <Edit className="h-3 w-3" />
+                      編集
+                    </Button>
+                    <Button variant="destructive" size="sm" onClick={() => handleDelete(tournament)}>
+                      <Trash2 className="h-3 w-3" />
+                      削除
                     </Button>
                   </div>
                 </div>
