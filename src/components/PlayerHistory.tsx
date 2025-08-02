@@ -161,10 +161,25 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
                 const ratingResponse = await fetch(`/api/rating-history?matchId=${match.id}`);
                 if (ratingResponse.ok) {
                   const ratingData = await ratingResponse.json();
+                  
+                  // Correctly assign rating changes based on who won
+                  let player1_rating_change = 0;
+                  let player2_rating_change = 0;
+                  
+                  if (match.winner_id === match.player1_id) {
+                    // Player1 won
+                    player1_rating_change = ratingData.winner_rating_change;
+                    player2_rating_change = ratingData.loser_rating_change;
+                  } else {
+                    // Player2 won
+                    player1_rating_change = ratingData.loser_rating_change;
+                    player2_rating_change = ratingData.winner_rating_change;
+                  }
+                  
                   return {
                     ...match,
-                    player1_rating_change: ratingData.winner_rating_change,
-                    player2_rating_change: ratingData.loser_rating_change
+                    player1_rating_change,
+                    player2_rating_change
                   };
                 }
               } catch (error) {
@@ -230,17 +245,6 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
   };
 
   const getPlayerRatingChange = (match: Match) => {
-    // Debug: Show actual match data for the first match
-    if (matches.indexOf(match) === 0) {
-      alert(`Debug - Match data:
-Current User: ${currentUserId}
-Player1: ${match.player1_id}
-Player2: ${match.player2_id}
-Winner: ${match.winner_id}
-Player1 Change: ${match.player1_rating_change}
-Player2 Change: ${match.player2_rating_change}`);
-    }
-    
     // Check which position (player1 or player2) the current user is in
     if (currentUserId === match.player1_id) {
       // Current user is player1
