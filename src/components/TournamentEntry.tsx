@@ -23,6 +23,8 @@ export const TournamentEntry = () => {
   const { tournamentId, date } = useParams<{ tournamentId?: string; date?: string }>();
   const searchParams = new URLSearchParams(window.location.search);
   const isFromQR = searchParams.has('qr') || searchParams.has('from_qr'); // Check if accessed via QR code
+  const refUserId = searchParams.get('ref_user'); // User ID from QR code reference
+  const isAdminRef = searchParams.has('admin'); // Admin flag from QR code
   const navigate = useNavigate();
   const { toast } = useToast();
   const [tournament, setTournament] = useState<Tournament | null>(null);
@@ -51,8 +53,26 @@ export const TournamentEntry = () => {
         setIsLoading(true);
         
         // Check if user is logged in and tournament active
-        const userId = localStorage.getItem('userId');
+        // Use URL parameter if localStorage is not available (cross-browser/incognito issues)
+        const localUserId = localStorage.getItem('userId');
+        const userId = localUserId || refUserId;
         let userIsActive = false;
+        
+        // Log current login state for debugging
+        console.log('TournamentEntry: Current userId from localStorage:', localUserId);
+        console.log('TournamentEntry: refUserId from URL:', refUserId);
+        console.log('TournamentEntry: Final userId:', userId);
+        console.log('TournamentEntry: isFromQR:', isFromQR);
+        console.log('TournamentEntry: Current URL:', window.location.href);
+        
+        // If we have a user ID from QR reference but not in localStorage, set it
+        if (refUserId && !localUserId) {
+          localStorage.setItem('userId', refUserId);
+          if (isAdminRef) {
+            localStorage.setItem('isAdmin', 'true');
+          }
+          console.log('TournamentEntry: Set userId from QR reference:', refUserId);
+        }
         
         // Get active tournament data from API
         let activeTournament = null;
@@ -325,7 +345,14 @@ export const TournamentEntry = () => {
   if (showWaitingRoom && tournament) {
     return (
       <TournamentWaiting 
-        onClose={() => navigate('/')}
+        onClose={() => {
+          // QR code entry should stay in waiting room, not return to dashboard
+          if (isFromQR) {
+            console.log('TournamentWaiting: Ignoring close action for QR entry');
+            return;
+          }
+          navigate('/');
+        }}
         onViewRanking={() => navigate('/ranking')}
       />
     );

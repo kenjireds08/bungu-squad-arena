@@ -19,7 +19,19 @@ export const QRCodeDisplay = ({ tournamentId, tournamentName, onClose, isOpen }:
   // Generate entry URL for the tournament
   // Use date-based URL for proper tournament identification
   const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
-  const entryUrl = `${window.location.origin}/tournament/${today}`;
+  
+  // Get current user info to include in QR code for better session handling
+  const currentUserId = localStorage.getItem('userId');
+  const isAdmin = localStorage.getItem('isAdmin') === 'true';
+  
+  // Add user context to QR code URL to help with cross-browser/device issues
+  let entryUrl = `${window.location.origin}/tournament/${today}?from_qr=true`;
+  if (currentUserId) {
+    entryUrl += `&ref_user=${currentUserId}`;
+  }
+  if (isAdmin) {
+    entryUrl += `&admin=true`;
+  }
   
   const handleCopyUrl = async () => {
     try {
