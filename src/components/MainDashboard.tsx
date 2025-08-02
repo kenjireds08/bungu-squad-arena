@@ -321,7 +321,12 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Trophy className="h-6 w-6 text-primary" />
-              <h1 className="text-xl font-bold text-foreground">BUNGU SQUAD</h1>
+              <img 
+                src="/assets/logos/ロゴ1列mono.png" 
+                alt="BUNGU SQUAD" 
+                className="h-8 w-auto"
+                style={{ maxHeight: '32px' }}
+              />
             </div>
             <div className="flex items-center gap-2">
               <Button
