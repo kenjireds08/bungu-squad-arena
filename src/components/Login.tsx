@@ -90,7 +90,7 @@ export const Login = ({ onLoginSuccess, isNewPlayer = false }: LoginProps) => {
         // 管理者チェック
         const adminEmails = [
           'kenji.reds08@gmail.com',
-          'warabisako@example.com',
+          'mr.warabisako@gmail.com',
           'yosshio@example.com'
         ];
         
