@@ -166,7 +166,7 @@ export const AdminTournaments = ({ onBack, initialView = 'list', selectedTournam
 
   const handleShowMatchmaking = (tournament: any) => {
     setManagementTournament(tournament);
-    setCurrentView('management');
+    setCurrentView('matchmaking');
   };
 
   const handleShowManagement = (tournament: any) => {
@@ -261,7 +261,7 @@ export const AdminTournaments = ({ onBack, initialView = 'list', selectedTournam
     );
   }
 
-  if (currentView === 'management-matchmaking' && managementTournament) {
+  if (currentView === 'matchmaking' && managementTournament) {
     return (
       <TournamentMatchmaking
         onClose={handleBackFromManagement}

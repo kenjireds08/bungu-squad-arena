@@ -172,17 +172,23 @@ export const TournamentEntry = () => {
   }, [tournamentId, toast]);
 
   const handleEntry = async () => {
+    if (!tournament || !isFromQR) {
+      toast({
+        title: "エラー",
+        description: "QRコード経由でのみエントリーできます",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     try {
       setIsEntering(true);
       
       // Check if user is logged in
       const userId = localStorage.getItem('userId');
       if (!userId) {
-        toast({
-          title: "ログインが必要です",
-          description: "ログインボタンからログインしてください",
-          variant: "destructive"
-        });
+        // New user - show email verification form
+        setShowEmailForm(true);
         return;
       }
 
@@ -204,12 +210,12 @@ export const TournamentEntry = () => {
         description: `${tournament.name}にエントリーしました！`,
       });
       
-      // Auto-redirect to waiting room after 5 seconds
+      // Auto-redirect to waiting room
       console.log('Setting timeout for waiting room transition...');
       setTimeout(() => {
         console.log('Timeout executed, setting showWaitingRoom to true');
         setShowWaitingRoom(true);
-      }, 5000);
+      }, 3000);
       
     } catch (error) {
       console.error('Failed to enter tournament:', error);
@@ -323,8 +329,8 @@ export const TournamentEntry = () => {
             <CheckCircle className="h-12 w-12 mx-auto mb-4 text-success" />
             <h2 className="text-xl font-bold mb-2">エントリー完了！</h2>
             <p className="text-muted-foreground mb-4">
-              大会への参加登録が完了しました<br />
-              5秒後に待機画面に移動します...
+              {tournament.name}にエントリーしました。<br />
+              3秒後に待機画面に移動します...
             </p>
             <div className="animate-pulse">
               <Loader2 className="h-6 w-6 animate-spin mx-auto" />
@@ -518,15 +524,33 @@ export const TournamentEntry = () => {
                 </div>
               )}
 
+              {/* Entry Button - Only show if from QR code and not in email verification flow */}
+              {isFromQR && !showEmailForm && !emailSent && (
+                <Button
+                  variant="heroic"
+                  size="lg"
+                  className="w-full"
+                  onClick={handleEntry}
+                  disabled={isEntering || tournament.status === '開催中' || tournament.status === '完了'}
+                >
+                  {isEntering ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                      エントリー中...
+                    </>
+                  ) : (
+                    <>
+                      <Trophy className="h-5 w-5 mr-2" />
+                      大会にエントリー
+                    </>
+                  )}
+                </Button>
+              )}
 
               {/* QR Code Notice - Show if not accessed via QR code */}
               {!isFromQR && !showEmailForm && !emailSent && (
                 <div className="text-center p-4 bg-info/10 rounded-lg border border-info/20">
-                  <div className="h-8 w-8 text-info mx-auto mb-2 flex items-center justify-center">
-                    <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M3 11h8V3H3v8zm2-6h4v4H5V5zM13 3v8h8V3h-8zm6 6h-4V5h4v4zM3 21h8v-8H3v8zm2-6h4v4H5v-4z"/>
-                    </svg>
-                  </div>
+                  <QrCode className="h-8 w-8 text-info mx-auto mb-2" />
                   <h3 className="font-semibold text-info-foreground mb-1">QRコード経由でのエントリー</h3>
                   <p className="text-sm text-muted-foreground">
                     このページはQRコードを読み取った方のエントリー専用です。<br />
@@ -547,21 +571,13 @@ export const TournamentEntry = () => {
                 <div className="space-y-2">
                   <div className="text-center">
                     <p className="text-xs text-muted-foreground mb-3">
-                      既存プレイヤーはログイン、初回参加の方は新規登録でエントリーできます
+                      既存プレイヤーはログイン、初回参加の方はメール認証でエントリーできます
                     </p>
                   </div>
                 <div className="space-y-2">
                   <Button 
                     variant="outline" 
-                    onClick={() => {
-                      const userId = localStorage.getItem('userId');
-                      if (userId) {
-                        // Already logged in, proceed with entry
-                        handleEntry();
-                      } else {
-                        navigate(`/?returnTo=${window.location.pathname}`);
-                      }
-                    }}
+                    onClick={() => navigate(`/?returnTo=${window.location.pathname}`)}
                     className="w-full"
                   >
                     ログイン
@@ -571,7 +587,7 @@ export const TournamentEntry = () => {
                   </Button>
                   <Button 
                     variant="outline" 
-                    onClick={() => setShowEmailForm(true)}
+                    onClick={() => navigate(`/?returnTo=${window.location.pathname}&newPlayer=true`)}
                     className="w-full"
                   >
                     初めての方
