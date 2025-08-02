@@ -495,11 +495,11 @@ export const AdminTournaments = ({ onBack, initialView = 'list', selectedTournam
                       <QrCode className="h-3 w-3" />
                       QRコード
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => handleEdit(tournament)}>
+                    <Button variant="outline" size="sm" onClick={() => handleEditTournament(tournament)}>
                       <Edit className="h-3 w-3" />
                       編集
                     </Button>
-                    <Button variant="destructive" size="sm" onClick={() => handleDelete(tournament)}>
+                    <Button variant="destructive" size="sm" onClick={() => handleDeleteTournament(tournament.id, tournament.name)}>
                       <Trash2 className="h-3 w-3" />
                       削除
                     </Button>
