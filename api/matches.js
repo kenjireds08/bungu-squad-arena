@@ -88,9 +88,9 @@ module.exports = async function handler(req, res) {
             });
           }
 
-          if (!['win', 'loss', 'draw'].includes(result)) {
+          if (!['win', 'loss', 'draw', 'invalid'].includes(result)) {
             return res.status(400).json({ 
-              error: 'result must be win, loss, or draw' 
+              error: 'result must be win, loss, draw, or invalid' 
             });
           }
 
@@ -101,12 +101,17 @@ module.exports = async function handler(req, res) {
             return res.status(404).json({ error: 'One or both players not found' });
           }
 
-          const ratingChanges = sheetsService.calculateEloRating(
-            player1.rating,
-            player2.rating,
-            result,
-            player1.matches
-          );
+          // Skip rating calculation for invalid matches
+          let ratingChanges = { player1Change: 0, player2Change: 0 };
+          
+          if (result !== 'invalid') {
+            ratingChanges = sheetsService.calculateEloRating(
+              player1.rating,
+              player2.rating,
+              result,
+              player1.matches
+            );
+          }
 
           const matchResult = await sheetsService.addMatchResult(
             player1Id,

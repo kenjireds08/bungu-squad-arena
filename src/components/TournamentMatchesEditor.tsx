@@ -26,7 +26,7 @@ interface Match {
   player2_id: string;
   player2_name: string;
   game_type: 'trump' | 'cardplus';
-  status: 'scheduled' | 'in_progress' | 'completed' | 'approved' | 'cancelled';
+  status: 'scheduled' | 'in_progress' | 'completed' | 'approved' | 'cancelled' | 'invalid';
   winner_id: string;
   result_details: string;
   created_at: string;
@@ -238,6 +238,8 @@ export const TournamentMatchesEditor = ({ onClose, tournamentId, tournamentName 
         return 'bg-success text-success-foreground';
       case 'cancelled':
         return 'bg-destructive/20 text-destructive border border-destructive/30';
+      case 'invalid':
+        return 'bg-orange-100 text-orange-700 border border-orange-300';
       default:
         return 'bg-muted text-muted-foreground';
     }
@@ -255,6 +257,8 @@ export const TournamentMatchesEditor = ({ onClose, tournamentId, tournamentName 
         return '完了';
       case 'cancelled':
         return 'キャンセル済';
+      case 'invalid':
+        return '無効試合';
       default:
         return '不明';
     }

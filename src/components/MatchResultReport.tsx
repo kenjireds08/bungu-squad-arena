@@ -1,24 +1,31 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Trophy, Frown, Send, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Trophy, Frown, Send, AlertCircle, XOctagon } from 'lucide-react';
 
 interface MatchResultReportProps {
   onClose: () => void;
-  onSubmitResult: (result: 'win' | 'lose') => void;
+  onSubmitResult: (result: 'win' | 'lose' | 'invalid') => void;
+  match?: {
+    opponent: string;
+    opponentRating: number;
+    table?: string;
+    rule: string;
+    matchId: string;
+  };
 }
 
-// Mock match data
-const mockMatch = {
-  opponent: "田中さん",
-  opponentRating: 1620,
-  table: "卓2",
-  rule: "カードプラスルール",
-  duration: "18分"
-};
-
-export const MatchResultReport = ({ onClose, onSubmitResult }: MatchResultReportProps) => {
-  const [selectedResult, setSelectedResult] = useState<'win' | 'lose' | null>(null);
+export const MatchResultReport = ({ onClose, onSubmitResult, match }: MatchResultReportProps) => {
+  const [selectedResult, setSelectedResult] = useState<'win' | 'lose' | 'invalid' | null>(null);
+  
+  // Use provided match data or fallback to mock data
+  const displayMatch = match || {
+    opponent: "田中さん",
+    opponentRating: 1620,
+    table: "卓2",
+    rule: "カードプラスルール",
+    matchId: "mock-match"
+  };
 
   const handleSubmit = () => {
     if (selectedResult) {
@@ -51,11 +58,11 @@ export const MatchResultReport = ({ onClose, onSubmitResult }: MatchResultReport
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="text-center space-y-2">
-              <div className="text-lg">あなた vs <span className="font-semibold">{mockMatch.opponent}</span></div>
+              <div className="text-lg">あなた vs <span className="font-semibold">{displayMatch.opponent}</span></div>
               <div className="text-sm text-muted-foreground space-y-1">
-                <div>対戦相手レート: {mockMatch.opponentRating}pt</div>
-                <div>ルール: {mockMatch.rule}</div>
-                <div>卓: {mockMatch.table} • 対戦時間: {mockMatch.duration}</div>
+                <div>対戦相手レート: {displayMatch.opponentRating}pt</div>
+                <div>ルール: {displayMatch.rule}</div>
+                {displayMatch.table && <div>卓: {displayMatch.table}</div>}
               </div>
             </div>
           </CardContent>
@@ -70,39 +77,65 @@ export const MatchResultReport = ({ onClose, onSubmitResult }: MatchResultReport
                 <p className="text-sm text-muted-foreground">正しい結果を選択してください</p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <Button
-                  variant={selectedResult === 'win' ? 'fantasy' : 'outline'}
-                  size="xl"
-                  className="h-24 flex-col space-y-2"
-                  onClick={() => setSelectedResult('win')}
-                >
-                  <Trophy className="h-8 w-8" />
-                  <span className="text-lg font-bold">勝った</span>
-                </Button>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <Button
+                    variant={selectedResult === 'win' ? 'fantasy' : 'outline'}
+                    size="xl"
+                    className="h-24 flex-col space-y-2"
+                    onClick={() => setSelectedResult('win')}
+                  >
+                    <Trophy className="h-8 w-8" />
+                    <span className="text-lg font-bold">勝った</span>
+                  </Button>
+
+                  <Button
+                    variant={selectedResult === 'lose' ? 'destructive' : 'outline'}
+                    size="xl"
+                    className="h-24 flex-col space-y-2"
+                    onClick={() => setSelectedResult('lose')}
+                  >
+                    <Frown className="h-8 w-8" />
+                    <span className="text-lg font-bold">負けた</span>
+                  </Button>
+                </div>
 
                 <Button
-                  variant={selectedResult === 'lose' ? 'destructive' : 'outline'}
-                  size="xl"
-                  className="h-24 flex-col space-y-2"
-                  onClick={() => setSelectedResult('lose')}
+                  variant={selectedResult === 'invalid' ? 'secondary' : 'outline'}
+                  size="lg"
+                  className="w-full flex items-center gap-2"
+                  onClick={() => setSelectedResult('invalid')}
                 >
-                  <Frown className="h-8 w-8" />
-                  <span className="text-lg font-bold">負けた</span>
+                  <XOctagon className="h-5 w-5" />
+                  <span className="font-bold">無効試合として報告</span>
                 </Button>
               </div>
 
               {/* Rating Preview */}
               {selectedResult && (
                 <div className="bg-muted/30 rounded-lg p-4 animate-fade-in">
-                  <div className="text-sm font-medium mb-2">予想レート変動</div>
-                  <div className={`text-lg font-bold ${selectedResult === 'win' ? 'text-success' : 'text-destructive'}`}>
-                    {selectedResult === 'win' ? '+' : ''}
-                    {selectedResult === 'win' ? '18' : '-12'}pt
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    ※管理者承認後に確定します
-                  </div>
+                  {selectedResult === 'invalid' ? (
+                    <div>
+                      <div className="text-sm font-medium mb-2">無効試合について</div>
+                      <div className="text-lg font-bold text-muted-foreground">
+                        レート変動なし
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        ※無効試合はレーティング計算に含まれません
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="text-sm font-medium mb-2">予想レート変動</div>
+                      <div className={`text-lg font-bold ${selectedResult === 'win' ? 'text-success' : 'text-destructive'}`}>
+                        {selectedResult === 'win' ? '+' : ''}
+                        {selectedResult === 'win' ? '18' : '-12'}pt
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        ※管理者承認後に確定します
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -134,6 +167,7 @@ export const MatchResultReport = ({ onClose, onSubmitResult }: MatchResultReport
                   <li>• 管理者が確認・承認後にレーティングが更新されます</li>
                   <li>• 間違いがあった場合は管理者にお声がけください</li>
                   <li>• 対戦相手も同じ結果を報告する必要があります</li>
+                  <li>• 無効試合：体調不良・ルール違反・外的要因等で正常な試合ができなかった場合</li>
                 </ul>
               </div>
             </div>

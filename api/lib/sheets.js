@@ -1079,11 +1079,18 @@ class SheetsService {
         resource: { values }
       });
 
-      if (matchData.player1_rating_after) {
-        await this.updatePlayerRating(matchData.player1_id, matchData.player1_rating_after);
-      }
-      if (matchData.player2_rating_after) {
-        await this.updatePlayerRating(matchData.player2_id, matchData.player2_rating_after);
+      // Only update ratings if this is not an invalid match
+      const isInvalidMatch = matchData.player1_rating_change === 0 && matchData.player2_rating_change === 0 && 
+                            matchData.player1_rating_after === matchData.player1_rating_before && 
+                            matchData.player2_rating_after === matchData.player2_rating_before;
+      
+      if (!isInvalidMatch) {
+        if (matchData.player1_rating_after) {
+          await this.updatePlayerRating(matchData.player1_id, matchData.player1_rating_after);
+        }
+        if (matchData.player2_rating_after) {
+          await this.updatePlayerRating(matchData.player2_id, matchData.player2_rating_after);
+        }
       }
 
       return { success: true, matchId };
