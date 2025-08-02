@@ -230,13 +230,15 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
   };
 
   const getPlayerRatingChange = (match: Match) => {
-    // If this player is the winner, get winner rating change
-    if (match.winner_id === currentUserId) {
+    // Check which position (player1 or player2) the current user is in
+    if (currentUserId === match.player1_id) {
+      // Current user is player1
       return match.player1_rating_change || 0;
-    } else {
-      // If loser, get loser rating change (should be negative)
+    } else if (currentUserId === match.player2_id) {
+      // Current user is player2
       return match.player2_rating_change || 0;
     }
+    return 0;
   };
 
   const getGameTypeName = (gameRule: string) => {
