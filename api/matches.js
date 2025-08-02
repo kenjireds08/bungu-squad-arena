@@ -37,13 +37,47 @@ module.exports = async function handler(req, res) {
             return res.status(400).json({ error: 'Missing required fields: tournamentId, matches' });
           }
           
-          const result = await sheetsService.saveTournamentMatches(tournamentId, matches);
-          
-          // Here we could add push notification logic for players
-          // For now, we'll just log it
-          console.log(`Tournament matches created for ${tournamentId}, should notify players`);
-          
-          return res.status(201).json(result);
+          // Check if this is a single match addition (new format)
+          if (matches.length === 1 && matches[0].player1_id && matches[0].player2_id && !matches[0].player1) {
+            // This is adding a single match after pairing
+            const match = matches[0];
+            
+            // Get player names
+            const player1 = await sheetsService.getPlayer(match.player1_id);
+            const player2 = await sheetsService.getPlayer(match.player2_id);
+            
+            if (!player1 || !player2) {
+              return res.status(404).json({ error: 'One or both players not found' });
+            }
+            
+            const matchData = {
+              player1_id: match.player1_id,
+              player1_name: player1.nickname,
+              player2_id: match.player2_id,
+              player2_name: player2.nickname,
+              game_type: match.game_type
+            };
+            
+            const result = await sheetsService.addSingleTournamentMatch(tournamentId, matchData);
+            console.log(`Single match added for tournament ${tournamentId}`);
+            
+            return res.status(201).json(result);
+          } else {
+            // This is bulk tournament creation (original format)
+            const transformedMatches = matches.map((match) => {
+              // Return original format if already in the expected structure
+              if (match.player1 && match.player2) {
+                return match;
+              }
+              // Should not reach here for bulk creation
+              throw new Error('Invalid match format for bulk creation');
+            });
+            
+            const result = await sheetsService.saveTournamentMatches(tournamentId, transformedMatches);
+            console.log(`Tournament matches created for ${tournamentId}, should notify players`);
+            
+            return res.status(201).json(result);
+          }
         } else {
           // Original match result logic
           const { player1Id, player2Id, result } = req.body;

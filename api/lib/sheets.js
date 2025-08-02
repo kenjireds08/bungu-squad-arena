@@ -2718,6 +2718,58 @@ class SheetsService {
       // Don't throw error to prevent blocking the match result process
     }
   }
+
+  async addSingleTournamentMatch(tournamentId, matchData) {
+    await this.authenticate();
+    
+    try {
+      // Ensure tournament matches sheet exists
+      await this.createTournamentMatchesSheet();
+      
+      // Get existing matches to determine the next match number
+      const existingMatches = await this.getTournamentMatches(tournamentId);
+      const nextMatchNumber = existingMatches.length + 1;
+      
+      const timestamp = new Date().toISOString();
+      const matchId = `${tournamentId}_${nextMatchNumber}`;
+      
+      const values = [[
+        matchId,                          // A: match_id
+        tournamentId,                     // B: tournament_id
+        nextMatchNumber.toString(),       // C: match_number
+        matchData.player1_id,             // D: player1_id
+        matchData.player1_name,           // E: player1_name
+        matchData.player2_id,             // F: player2_id
+        matchData.player2_name,           // G: player2_name
+        matchData.game_type,              // H: game_type
+        'scheduled',                      // I: status
+        '',                               // J: winner_id
+        '',                               // K: result_details
+        timestamp,                        // L: created_at
+        '',                               // M: completed_at
+        ''                                // N: approved_at
+      ]];
+
+      await this.sheets.spreadsheets.values.append({
+        spreadsheetId: this.spreadsheetId,
+        range: 'TournamentMatches!A:N',
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+          values
+        }
+      });
+
+      console.log(`Single match added to tournament ${tournamentId}: ${matchId}`);
+      return { 
+        success: true, 
+        matchId: matchId,
+        matchNumber: nextMatchNumber 
+      };
+    } catch (error) {
+      console.error('Error adding single tournament match:', error);
+      throw new Error(`Failed to add tournament match: ${error.message}`);
+    }
+  }
 }
 
 module.exports = SheetsService;
