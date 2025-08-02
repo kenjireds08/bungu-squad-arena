@@ -54,6 +54,82 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
     }
   }, [currentUserId]);
 
+  const loadTournamentHistory = async (userMatches: any[]) => {
+    try {
+      const tournamentsResponse = await fetch('/api/tournaments');
+      if (tournamentsResponse.ok) {
+        const tournamentsData = await tournamentsResponse.json();
+        
+        // Create tournament participation based on matches
+        const participatedTournaments = tournamentsData.filter((tournament: any) => {
+          return userMatches.some((match: any) => match.tournament_id === tournament.id);
+        });
+        
+        // If no direct match found, try matching by date
+        if (participatedTournaments.length === 0 && userMatches.length > 0) {
+          // Get unique dates from matches
+          const matchDates = [...new Set(userMatches.map((m: any) => {
+            if (m.match_start_time) {
+              // Extract date from "8月1日 21:11" format
+              const dateMatch = m.match_start_time.match(/(\d{4}-\d{2}-\d{2})|(\d+月\d+日)/);
+              if (dateMatch) {
+                if (dateMatch[2]) {
+                  // Convert "8月1日" to "2025-08-01"
+                  const [month, day] = dateMatch[2].match(/\d+/g);
+                  return `2025-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                }
+                return dateMatch[1];
+              }
+            }
+            return null;
+          }).filter(date => date !== null))];
+          
+          // Find tournaments matching these dates
+          matchDates.forEach(date => {
+            const tournamentsOnDate = tournamentsData.filter((t: any) => t.date === date);
+            participatedTournaments.push(...tournamentsOnDate);
+          });
+        }
+        
+        const userTournaments = await Promise.all(
+          participatedTournaments.map(async (tournament: any) => {
+            let actualParticipants = 0;
+            
+            try {
+              const participantsResponse = await fetch(`/api/matches?tournamentId=${tournament.id}`);
+              if (participantsResponse.ok) {
+                const tournamentMatches = await participantsResponse.json();
+                const playerSet = new Set();
+                tournamentMatches.forEach((match: any) => {
+                  if (match.player1_id) playerSet.add(match.player1_id);
+                  if (match.player2_id) playerSet.add(match.player2_id);
+                });
+                actualParticipants = playerSet.size;
+              }
+            } catch (error) {
+              console.error('Error counting participants:', error);
+            }
+            
+            return {
+              archive_id: tournament.id,
+              tournament_date: tournament.date,
+              tournament_name: tournament.tournament_name || tournament.name || 'BUNGU SQUAD大会',
+              total_participants_that_day: actualParticipants || tournament.current_participants || 0,
+              entry_timestamp: tournament.date
+            };
+          })
+        );
+        
+        setTournamentArchive(userTournaments);
+      } else {
+        setTournamentArchive([]);
+      }
+    } catch (error) {
+      console.error('Tournament archive loading error:', error);
+      setTournamentArchive([]);
+    }
+  };
+
   const loadPlayerHistory = async () => {
     setIsLoading(true);
     
@@ -99,12 +175,17 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
           );
           
           setMatches(matchesWithRating);
+          
+          // Continue with tournament loading after matches are ready
+          await loadTournamentHistory(matchesWithRating);
         } else {
           setMatches([]);
+          await loadTournamentHistory([]);
         }
       } catch (error) {
         console.error('Match loading error:', error);
         setMatches([]);
+        await loadTournamentHistory([]);
       }
 
       // 2. Load players with error handling
@@ -121,116 +202,6 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
         setPlayers([]);
       }
 
-      // 3. Load tournament participation history
-      try {
-        const tournamentsResponse = await fetch('/api/tournaments');
-        if (tournamentsResponse.ok) {
-          const tournamentsData = await tournamentsResponse.json();
-          
-          
-          // Create tournament participation based on matches
-          const participatedTournaments = tournamentsData.filter((tournament: any) => {
-            return matchesWithRating.some((match: any) => match.tournament_id === tournament.id);
-          });
-          
-          // If no tournaments data at all, create dummy entry based on matches
-          if (tournamentsData.length === 0 && matchesWithRating.length > 0) {
-            // Debug: Check match data format
-            console.log('Match data sample:', matchesWithRating[0]);
-            
-            // Get unique dates from matches
-            const matchDates = [...new Set(matchesWithRating.map((m: any) => {
-              // Handle different date formats
-              if (m.match_start_time) {
-                // Try to extract date from various formats
-                const dateMatch = m.match_start_time.match(/(\d{4}-\d{2}-\d{2})|(\d+月\d+日)/);
-                if (dateMatch) {
-                  // Convert Japanese date format to standard format if needed
-                  if (dateMatch[2]) {
-                    // Convert "8月1日" to "2025-08-01"
-                    const [month, day] = dateMatch[2].match(/\d+/g);
-                    return `2025-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-                  }
-                  return dateMatch[1];
-                }
-              }
-              return null;
-            }).filter(date => date !== null))];
-            
-            console.log('Extracted dates:', matchDates);
-            
-            // Create dummy tournament entries for each date
-            matchDates.forEach(date => {
-              participatedTournaments.push({
-                id: `dummy_${date}`,
-                tournament_name: 'BUNGU SQUAD大会',
-                date: date,
-                status: 'completed'
-              });
-            });
-          }
-          
-          const userTournaments = await Promise.all(
-            participatedTournaments
-              .map(async (tournament: any) => {
-                // Get actual participants for this tournament
-                let actualParticipants = 0;
-                
-                // For dummy tournaments, count players from matches on that date
-                if (tournament.id.startsWith('dummy_')) {
-                  const tournamentDate = tournament.date;
-                  const dateMatches = matchesWithRating.filter((m: any) => {
-                    if (!m.match_start_time) return false;
-                    // Check if date matches (handle both "2025-08-01" and "8月1日" formats)
-                    const matchDateStr = m.match_start_time;
-                    if (matchDateStr.includes(tournamentDate)) return true;
-                    // Check Japanese date format
-                    const [year, month, day] = tournamentDate.split('-');
-                    const jpDate = `${parseInt(month)}月${parseInt(day)}日`;
-                    return matchDateStr.includes(jpDate);
-                  });
-                  const playerSet = new Set();
-                  dateMatches.forEach((match: any) => {
-                    if (match.player1_id) playerSet.add(match.player1_id);
-                    if (match.player2_id) playerSet.add(match.player2_id);
-                  });
-                  actualParticipants = playerSet.size;
-                } else {
-                  // For real tournaments, use the API
-                  try {
-                    const participantsResponse = await fetch(`/api/matches?tournamentId=${tournament.id}`);
-                    if (participantsResponse.ok) {
-                      const tournamentMatches = await participantsResponse.json();
-                      const playerSet = new Set();
-                      tournamentMatches.forEach((match: any) => {
-                        if (match.player1_id) playerSet.add(match.player1_id);
-                        if (match.player2_id) playerSet.add(match.player2_id);
-                      });
-                      actualParticipants = playerSet.size;
-                    }
-                  } catch (error) {
-                    console.error('Error counting participants:', error);
-                  }
-                }
-                
-                return {
-                  archive_id: tournament.id,
-                  tournament_date: tournament.date,
-                  tournament_name: tournament.tournament_name || tournament.name || 'BUNGU SQUAD大会',
-                  total_participants_that_day: actualParticipants,
-                  entry_timestamp: tournament.date
-                };
-              })
-          );
-          
-          setTournamentArchive(userTournaments);
-        } else {
-          setTournamentArchive([]);
-        }
-      } catch (error) {
-        console.error('Tournament archive loading error:', error);
-        setTournamentArchive([]);
-      }
 
     } catch (error) {
       console.error('LoadPlayerHistory error:', error);
