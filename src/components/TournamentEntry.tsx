@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Trophy, Calendar, MapPin, Users, Loader2, CheckCircle, XCircle } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Trophy, Calendar, MapPin, Users, Loader2, CheckCircle, XCircle, Mail, AlertCircle } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { TournamentWaiting } from './TournamentWaiting';
 import { useUpdatePlayerTournamentActive } from '@/hooks/useApi';
@@ -27,6 +29,15 @@ export const TournamentEntry = () => {
   const [isEntered, setIsEntered] = useState(false);
   const [userTournamentActive, setUserTournamentActive] = useState(false);
   const [showWaitingRoom, setShowWaitingRoom] = useState(false);
+  
+  // Email verification states
+  const [showEmailForm, setShowEmailForm] = useState(false);
+  const [email, setEmail] = useState('');
+  const [nickname, setNickname] = useState('');
+  const [isEmailSending, setIsEmailSending] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
+  const [verificationLink, setVerificationLink] = useState(''); // For development only
+  
   const updateTournamentActive = useUpdatePlayerTournamentActive();
   
   // Add component mount log
@@ -147,14 +158,8 @@ export const TournamentEntry = () => {
       // Check if user is logged in
       const userId = localStorage.getItem('userId');
       if (!userId) {
-        toast({
-          title: "ログインが必要です",
-          description: "大会にエントリーするにはログインしてください",
-          variant: "destructive"
-        });
-        // Redirect to login with return URL  
-        const currentUrl = window.location.pathname;
-        navigate(`/?returnTo=${currentUrl}`);
+        // New user - show email verification form
+        setShowEmailForm(true);
         return;
       }
 
@@ -192,6 +197,68 @@ export const TournamentEntry = () => {
       });
     } finally {
       setIsEntering(false);
+    }
+  };
+
+  // Send email verification
+  const handleEmailVerification = async () => {
+    if (!email || !nickname || !tournament) {
+      toast({
+        title: "入力エラー",
+        description: "メールアドレスとニックネームを入力してください",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Simple email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      toast({
+        title: "メールアドレスエラー",
+        description: "正しいメールアドレスを入力してください",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      setIsEmailSending(true);
+      
+      const response = await fetch('/api/email-verification/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          nickname,
+          tournamentId: tournament.id
+        })
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        setEmailSent(true);
+        setVerificationLink(result.verificationLink || ''); // For development
+        toast({
+          title: "認証メール送信完了",
+          description: "メールを確認してエントリーを完了してください",
+        });
+      } else {
+        throw new Error(result.error || 'Failed to send verification email');
+      }
+      
+    } catch (error) {
+      console.error('Error sending verification email:', error);
+      toast({
+        title: "メール送信エラー",
+        description: "認証メールの送信に失敗しました。再試行してください。",
+        variant: "destructive"
+      });
+    } finally {
+      setIsEmailSending(false);
     }
   };
 
@@ -304,34 +371,154 @@ export const TournamentEntry = () => {
                 </div>
               </div>
 
-              {/* Entry Button */}
-              <Button
-                variant="heroic"
-                size="lg"
-                className="w-full"
-                onClick={handleEntry}
-                disabled={isEntering || tournament.status === '開催中' || tournament.status === '完了'}
-              >
-                {isEntering ? (
-                  <>
-                    <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                    エントリー中...
-                  </>
-                ) : (
-                  <>
-                    <Trophy className="h-5 w-5 mr-2" />
-                    大会にエントリー
-                  </>
-                )}
-              </Button>
+              {/* Email Verification Form */}
+              {showEmailForm && !emailSent && (
+                <div className="space-y-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="text-center">
+                    <Mail className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+                    <h3 className="font-semibold text-blue-900">メール認証によるエントリー</h3>
+                    <p className="text-sm text-blue-700 mt-1">
+                      不正防止のため、メール認証を行います
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div>
+                      <Label htmlFor="email">メールアドレス</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="your-email@example.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="nickname">ニックネーム</Label>
+                      <Input
+                        id="nickname"
+                        type="text"
+                        placeholder="表示名を入力"
+                        value={nickname}
+                        onChange={(e) => setNickname(e.target.value)}
+                        required
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowEmailForm(false)}
+                      className="flex-1"
+                    >
+                      戻る
+                    </Button>
+                    <Button
+                      onClick={handleEmailVerification}
+                      disabled={isEmailSending || !email || !nickname}
+                      className="flex-1"
+                    >
+                      {isEmailSending ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          送信中...
+                        </>
+                      ) : (
+                        <>
+                          <Mail className="h-4 w-4 mr-2" />
+                          認証メール送信
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Email Verification Sent */}
+              {emailSent && (
+                <div className="space-y-4 p-4 bg-green-50 rounded-lg border border-green-200">
+                  <div className="text-center">
+                    <CheckCircle className="h-8 w-8 text-green-600 mx-auto mb-2" />
+                    <h3 className="font-semibold text-green-900">認証メール送信完了</h3>
+                    <p className="text-sm text-green-700 mt-1">
+                      <strong>{email}</strong> に認証メールを送信しました
+                    </p>
+                  </div>
+                  
+                  <div className="text-center space-y-2">
+                    <p className="text-sm text-green-700">
+                      メール内のリンクをクリックしてエントリーを完了してください
+                    </p>
+                    <div className="flex items-center justify-center gap-1 text-xs text-green-600">
+                      <AlertCircle className="h-3 w-3" />
+                      認証リンクは15分間有効です
+                    </div>
+                  </div>
+
+                  {/* Development only: Show verification link */}
+                  {verificationLink && process.env.NODE_ENV === 'development' && (
+                    <div className="p-3 bg-yellow-100 rounded border border-yellow-300">
+                      <p className="text-xs text-yellow-800 mb-2">開発用：</p>
+                      <a 
+                        href={verificationLink} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-xs text-blue-600 underline break-all"
+                      >
+                        {verificationLink}
+                      </a>
+                    </div>
+                  )}
+                  
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setEmailSent(false);
+                      setShowEmailForm(false);
+                      setEmail('');
+                      setNickname('');
+                    }}
+                    className="w-full"
+                  >
+                    別のメールアドレスで再送信
+                  </Button>
+                </div>
+              )}
+
+              {/* Entry Button - Only show if not in email verification flow */}
+              {!showEmailForm && !emailSent && (
+                <Button
+                  variant="heroic"
+                  size="lg"
+                  className="w-full"
+                  onClick={handleEntry}
+                  disabled={isEntering || tournament.status === '開催中' || tournament.status === '完了'}
+                >
+                  {isEntering ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                      エントリー中...
+                    </>
+                  ) : (
+                    <>
+                      <Trophy className="h-5 w-5 mr-2" />
+                      大会にエントリー
+                    </>
+                  )}
+                </Button>
+              )}
 
               {/* Login/Signup buttons */}
-              <div className="space-y-2">
-                <div className="text-center">
-                  <p className="text-xs text-muted-foreground mb-3">
-                    ※ エントリーにはログインが必要です
-                  </p>
-                </div>
+              {!showEmailForm && !emailSent && (
+                <div className="space-y-2">
+                  <div className="text-center">
+                    <p className="text-xs text-muted-foreground mb-3">
+                      既存プレイヤーはログイン、初回参加の方はメール認証でエントリーできます
+                    </p>
+                  </div>
                 <div className="space-y-2">
                   <Button 
                     variant="outline" 
@@ -354,7 +541,8 @@ export const TournamentEntry = () => {
                     </span>
                   </Button>
                 </div>
-              </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
