@@ -162,6 +162,16 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
                 if (ratingResponse.ok) {
                   const ratingData = await ratingResponse.json();
                   
+                  // Debug: Show API response for first match
+                  if (validMatches.indexOf(match) === 0) {
+                    alert(`API Response Debug:
+Match ID: ${match.id}
+Winner ID: ${match.winner_id}
+Player1 ID: ${match.player1_id}
+API winner_rating_change: ${ratingData.winner_rating_change}
+API loser_rating_change: ${ratingData.loser_rating_change}`);
+                  }
+                  
                   // Correctly assign rating changes based on who won
                   let player1_rating_change = 0;
                   let player2_rating_change = 0;
