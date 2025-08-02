@@ -1009,22 +1009,7 @@ class SheetsService {
         player2_name: playerMap.get(match.player2_id) || match.player2_name || match.player2_id,
       }));
 
-      // Get rating changes for completed/approved matches
-      for (let match of matches) {
-        if (match.status === 'approved' || match.status === 'completed') {
-          try {
-            console.log(`Getting rating changes for match: ${match.match_id}`);
-            const ratingChanges = await this.getRatingHistoryForMatch(match.match_id);
-            console.log(`Rating changes result:`, ratingChanges);
-            if (ratingChanges) {
-              match.winner_rating_change = ratingChanges.winner_rating_change;
-              match.loser_rating_change = ratingChanges.loser_rating_change;
-            }
-          } catch (error) {
-            console.warn(`Failed to get rating changes for match ${match.match_id}:`, error.message);
-          }
-        }
-      }
+      // Note: Rating changes are fetched separately by frontend via /api/rating-history endpoint
 
       return matches;
     } catch (error) {

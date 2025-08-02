@@ -44,10 +44,35 @@ export const TournamentMatchesEditor = ({ onClose, tournamentId, tournamentName 
   const [showAddMatch, setShowAddMatch] = useState(false);
   const [deleteMatchId, setDeleteMatchId] = useState<string | null>(null);
   const [cancelMatchId, setCancelMatchId] = useState<string | null>(null);
+  const [ratingChanges, setRatingChanges] = useState<Map<string, {winner_rating_change: number, loser_rating_change: number}>>(new Map());
   const { data: players } = useRankings();
   
   // Get active players for dropdowns
   const activePlayers = players?.filter(p => p.tournament_active) || [];
+
+  // Fetch rating changes for completed matches
+  const fetchRatingChanges = async (matchList: Match[]) => {
+    const newRatingChanges = new Map();
+    
+    for (const match of matchList) {
+      if (match.status === 'approved' || match.status === 'completed') {
+        try {
+          const response = await fetch(`/api/rating-history?matchId=${match.match_id}`);
+          if (response.ok) {
+            const ratingData = await response.json();
+            newRatingChanges.set(match.match_id, {
+              winner_rating_change: ratingData.winner_rating_change,
+              loser_rating_change: ratingData.loser_rating_change
+            });
+          }
+        } catch (error) {
+          console.warn(`Failed to fetch rating changes for ${match.match_id}:`, error);
+        }
+      }
+    }
+    
+    setRatingChanges(newRatingChanges);
+  };
 
   // Fetch current matches
   const fetchMatches = async () => {
@@ -57,6 +82,9 @@ export const TournamentMatchesEditor = ({ onClose, tournamentId, tournamentName 
       if (response.ok) {
         const data = await response.json();
         setMatches(data);
+        
+        // Fetch rating changes for completed matches
+        await fetchRatingChanges(data);
       }
     } catch (error) {
       console.error('Failed to fetch matches:', error);
@@ -383,26 +411,32 @@ export const TournamentMatchesEditor = ({ onClose, tournamentId, tournamentName 
                           勝者: {match.winner_id === match.player1_id ? match.player1_name : match.player2_name}
                         </p>
                         {/* レーティング変動表示 */}
-                        {match.winner_rating_change !== undefined && match.loser_rating_change !== undefined && (
-                          <div className="flex items-center gap-4 text-xs">
-                            <div className="flex items-center gap-1">
-                              <span className="text-green-600 font-medium">
-                                +{Math.abs(match.winner_rating_change)}
-                              </span>
-                              <span className="text-muted-foreground">
-                                ({match.winner_id === match.player1_id ? match.player1_name : match.player2_name})
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <span className="text-red-600 font-medium">
-                                {match.loser_rating_change > 0 ? '-' : ''}{Math.abs(match.loser_rating_change)}
-                              </span>
-                              <span className="text-muted-foreground">
-                                ({match.winner_id === match.player1_id ? match.player2_name : match.player1_name})
-                              </span>
-                            </div>
-                          </div>
-                        )}
+                        {(() => {
+                          const ratingChange = ratingChanges.get(match.match_id);
+                          if (ratingChange) {
+                            return (
+                              <div className="flex items-center gap-4 text-xs">
+                                <div className="flex items-center gap-1">
+                                  <span className="text-green-600 font-medium">
+                                    +{Math.abs(ratingChange.winner_rating_change)}
+                                  </span>
+                                  <span className="text-muted-foreground">
+                                    ({match.winner_id === match.player1_id ? match.player1_name : match.player2_name})
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <span className="text-red-600 font-medium">
+                                    {ratingChange.loser_rating_change > 0 ? '-' : ''}{Math.abs(ratingChange.loser_rating_change)}
+                                  </span>
+                                  <span className="text-muted-foreground">
+                                    ({match.winner_id === match.player1_id ? match.player2_name : match.player1_name})
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()}
                       </div>
                     )}
                   </div>

@@ -39,7 +39,32 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
   const [showMatchInProgress, setShowMatchInProgress] = useState(false);
   const [tournamentProgress, setTournamentProgress] = useState<any>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [ratingChanges, setRatingChanges] = useState<Map<string, {winner_rating_change: number, loser_rating_change: number}>>(new Map());
   const { data: players } = useRankings();
+
+  // Fetch rating changes for completed matches
+  const fetchRatingChanges = async (matchList: Match[]) => {
+    const newRatingChanges = new Map();
+    
+    for (const match of matchList) {
+      if (match.status === 'approved' || match.status === 'completed') {
+        try {
+          const response = await fetch(`/api/rating-history?matchId=${match.match_id}`);
+          if (response.ok) {
+            const ratingData = await response.json();
+            newRatingChanges.set(match.match_id, {
+              winner_rating_change: ratingData.winner_rating_change,
+              loser_rating_change: ratingData.loser_rating_change
+            });
+          }
+        } catch (error) {
+          console.warn(`Failed to fetch rating changes for ${match.match_id}:`, error);
+        }
+      }
+    }
+    
+    setRatingChanges(newRatingChanges);
+  };
 
   // Manual refresh function
   const handleManualRefresh = async () => {
@@ -58,6 +83,9 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
       if (response.ok) {
         const matchesData = await response.json();
         setMatches(matchesData);
+        
+        // Fetch rating changes for completed matches
+        await fetchRatingChanges(matchesData);
         
         // Find current user's match that's ready to start or in progress
         const userMatch = matchesData.find((match: Match) => 
@@ -90,6 +118,9 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
       if (response.ok) {
         const matchesData = await response.json();
         setMatches(matchesData);
+        
+        // Fetch rating changes for completed matches
+        await fetchRatingChanges(matchesData);
         
         // Find current user's match that's ready to start or in progress
         const userMatch = matchesData.find((match: Match) => 
@@ -512,26 +543,32 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
                               </span>
                             </div>
                             {/* レーティング変動表示 */}
-                            {match.winner_rating_change !== undefined && match.loser_rating_change !== undefined && (
-                              <div className="flex items-center gap-3 p-2 bg-blue-50 rounded border border-blue-200">
-                                <div className="flex items-center gap-1">
-                                  <span className="text-xs text-green-600 font-medium">
-                                    +{Math.abs(match.winner_rating_change)}
-                                  </span>
-                                  <span className="text-xs text-muted-foreground">
-                                    ({match.winner_id === match.player1_id ? match.player1_name : match.player2_name})
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  <span className="text-xs text-red-600 font-medium">
-                                    {match.loser_rating_change > 0 ? '-' : ''}{Math.abs(match.loser_rating_change)}
-                                  </span>
-                                  <span className="text-xs text-muted-foreground">
-                                    ({match.winner_id === match.player1_id ? match.player2_name : match.player1_name})
-                                  </span>
-                                </div>
-                              </div>
-                            )}
+                            {(() => {
+                              const ratingChange = ratingChanges.get(match.match_id);
+                              if (ratingChange) {
+                                return (
+                                  <div className="flex items-center gap-3 p-2 bg-blue-50 rounded border border-blue-200">
+                                    <div className="flex items-center gap-1">
+                                      <span className="text-xs text-green-600 font-medium">
+                                        +{Math.abs(ratingChange.winner_rating_change)}
+                                      </span>
+                                      <span className="text-xs text-muted-foreground">
+                                        ({match.winner_id === match.player1_id ? match.player1_name : match.player2_name})
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <span className="text-xs text-red-600 font-medium">
+                                        {ratingChange.loser_rating_change > 0 ? '-' : ''}{Math.abs(ratingChange.loser_rating_change)}
+                                      </span>
+                                      <span className="text-xs text-muted-foreground">
+                                        ({match.winner_id === match.player1_id ? match.player2_name : match.player1_name})
+                                      </span>
+                                    </div>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            })()}
                           </div>
                         )}
                       </div>
