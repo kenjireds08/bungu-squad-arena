@@ -82,14 +82,27 @@ export const TournamentMatchesEditor = ({ onClose, tournamentId, tournamentName 
     try {
       setIsSaving(true);
       
+      const updateData: any = {
+        player1_id: editingMatch.player1_id,
+        player2_id: editingMatch.player2_id,
+        game_type: editingMatch.game_type,
+      };
+
+      // Add winner information if this is a completed match
+      if (editingMatch.status === 'completed' || editingMatch.status === 'approved') {
+        if (editingMatch.winner_id === 'invalid') {
+          updateData.status = 'invalid';
+          updateData.winner_id = '';
+        } else if (editingMatch.winner_id) {
+          updateData.winner_id = editingMatch.winner_id;
+          updateData.status = 'completed';
+        }
+      }
+      
       const response = await fetch(`/api/matches?matchId=${editingMatch.match_id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          player1_id: editingMatch.player1_id,
-          player2_id: editingMatch.player2_id,
-          game_type: editingMatch.game_type,
-        }),
+        body: JSON.stringify(updateData),
       });
 
       if (response.ok) {
@@ -265,13 +278,15 @@ export const TournamentMatchesEditor = ({ onClose, tournamentId, tournamentName 
   };
 
   const canEditMatch = (match: Match) => {
-    // Can only edit matches that haven't started yet
-    return match.status === 'scheduled';
+    // Can edit scheduled matches, and completed/approved matches for admins
+    return match.status === 'scheduled' || 
+           (match.status === 'completed' || match.status === 'approved');
   };
 
   const canDeleteMatch = (match: Match) => {
-    // Can only delete matches that haven't started yet
-    return match.status === 'scheduled';
+    // Can delete scheduled matches, and completed/approved matches for admins
+    return match.status === 'scheduled' || 
+           (match.status === 'completed' || match.status === 'approved');
   };
 
   const canCancelMatch = (match: Match) => {
@@ -500,6 +515,34 @@ export const TournamentMatchesEditor = ({ onClose, tournamentId, tournamentName 
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Winner selection for completed matches */}
+              {(editingMatch.status === 'completed' || editingMatch.status === 'approved') && (
+                <div className="space-y-2">
+                  <Label>試合結果</Label>
+                  <Select
+                    value={editingMatch.winner_id || 'none'}
+                    onValueChange={(value) => setEditingMatch({ 
+                      ...editingMatch, 
+                      winner_id: value === 'none' ? '' : value 
+                    })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">未決定</SelectItem>
+                      <SelectItem value={editingMatch.player1_id}>
+                        {editingMatch.player1_name} の勝利
+                      </SelectItem>
+                      <SelectItem value={editingMatch.player2_id}>
+                        {editingMatch.player2_name} の勝利
+                      </SelectItem>
+                      <SelectItem value="invalid">無効試合</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
           )}
           <DialogFooter>
@@ -546,7 +589,14 @@ export const TournamentMatchesEditor = ({ onClose, tournamentId, tournamentName 
           <AlertDialogHeader>
             <AlertDialogTitle>試合を削除しますか？</AlertDialogTitle>
             <AlertDialogDescription>
-              この操作は取り消せません。本当に削除しますか？
+              この操作は取り消せません。
+              {(() => {
+                const match = matches.find(m => m.match_id === deleteMatchId);
+                if (match && (match.status === 'completed' || match.status === 'approved')) {
+                  return '完了済みの試合を削除すると、レーティング履歴も削除されます。';
+                }
+                return '本当に削除しますか？';
+              })()}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
