@@ -65,7 +65,10 @@ export const TournamentEntry = () => {
         console.log('TournamentEntry: isFromQR:', isFromQR);
         console.log('TournamentEntry: date:', date);
         console.log('TournamentEntry: tournamentName:', decodedTournamentName);
-        console.log('TournamentEntry: time:', time);
+        // Convert time format from URL (15-30) back to standard format (15:30)
+        const formattedTime = time ? time.replace('-', ':') : null;
+        console.log('TournamentEntry: time (URL):', time);
+        console.log('TournamentEntry: time (formatted):', formattedTime);
         console.log('TournamentEntry: Current URL:', window.location.href);
         
         // Get active tournament data from API
@@ -82,9 +85,9 @@ export const TournamentEntry = () => {
             // Find tournament by date and name if provided, otherwise find today's active tournament
             const targetDate = date || new Date().toISOString().split('T')[0];
             
-            if (time) {
+            if (formattedTime) {
               // Find tournament by date and time (new preferred method)
-              console.log('Searching for tournament with date:', targetDate, 'and time:', time);
+              console.log('Searching for tournament with date:', targetDate, 'and time:', formattedTime);
               console.log('Available tournaments:', tournaments.map(t => ({
                 date: t.date,
                 start_time: t.start_time,
@@ -111,7 +114,7 @@ export const TournamentEntry = () => {
                   if (timeMatch) {
                     // Normalize time format for comparison (add leading zero if needed)
                     const tournamentTime = timeMatch[1].padStart(5, '0');
-                    const urlTime = time.padStart(5, '0');
+                    const urlTime = formattedTime.padStart(5, '0');
                     console.log(`Comparing tournament time: '${tournamentTime}' with URL time: '${urlTime}'`);
                     if (tournamentTime === urlTime) {
                       console.log('Time match found!');

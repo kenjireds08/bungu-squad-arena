@@ -52,8 +52,8 @@ export const QRCodeDisplay = ({ tournamentId, tournamentName, tournamentDate, on
     fetchTournamentTime();
   }, [tournamentId]);
   
-  // Create URL with date and time: /tournament/2025-08-03/15:30
-  const urlTime = tournamentTime || '00:00';
+  // Create URL with date and time: /tournament/2025-08-03/15-30 (replace : with -)
+  const urlTime = (tournamentTime || '00:00').replace(':', '-');
   let entryUrl = `${window.location.origin}/tournament/${tournamentDate}/${urlTime}?from_qr=true`;
   
   const handleCopyUrl = async () => {
