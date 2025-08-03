@@ -188,7 +188,9 @@ async function verifyEmail(req, res) {
     };
 
     // データベースに保存
-    const createResponse = await fetch(`${req.headers.origin}/api/rankings`, {
+    const baseUrl = req.headers.origin || `https://${req.headers.host}`;
+    console.log('Base URL for ranking creation:', baseUrl);
+    const createResponse = await fetch(`${baseUrl}/api/rankings`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newUser)
