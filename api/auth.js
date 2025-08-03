@@ -25,15 +25,16 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { pathname } = new URL(req.url, `http://${req.headers.host}`);
+    const { searchParams } = new URL(req.url, `http://${req.headers.host}`);
+    const action = searchParams.get('action');
     
     // メール認証送信
-    if (req.method === 'POST' && pathname === '/api/auth/send-verification') {
+    if (req.method === 'POST' && action === 'send-verification') {
       return await sendVerificationEmail(req, res);
     }
     
     // メール認証確認
-    if (req.method === 'GET' && pathname.startsWith('/api/auth/verify/')) {
+    if (req.method === 'GET' && action === 'verify') {
       return await verifyEmail(req, res);
     }
     
@@ -58,7 +59,7 @@ async function sendVerificationEmail(req, res) {
   const expiryTime = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24時間後
 
   // 認証リンクを生成
-  const verificationLink = `${req.headers.origin}/api/auth/verify/${verificationToken}`;
+  const verificationLink = `${req.headers.origin}/api/auth?action=verify&token=${verificationToken}`;
 
   // メール内容
   const mailOptions = {
@@ -130,7 +131,8 @@ async function sendVerificationEmail(req, res) {
 
 // メール認証確認
 async function verifyEmail(req, res) {
-  const token = req.url.split('/').pop();
+  const { searchParams } = new URL(req.url, `http://${req.headers.host}`);
+  const token = searchParams.get('token');
 
   if (!token) {
     return res.status(400).redirect('/?error=invalid_token');

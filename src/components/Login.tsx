@@ -39,7 +39,7 @@ export const Login = ({ onLoginSuccess, isNewPlayer = false }: LoginProps) => {
         }
 
         // メール認証送信処理
-        const emailResponse = await fetch('/api/auth/send-verification', {
+        const emailResponse = await fetch('/api/auth?action=send-verification', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
