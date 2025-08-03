@@ -20,7 +20,7 @@ interface Tournament {
 }
 
 export const TournamentEntry = () => {
-  const { tournamentId, date, tournamentName } = useParams<{ tournamentId?: string; date?: string; tournamentName?: string }>();
+  const { tournamentId, date, tournamentName, time } = useParams<{ tournamentId?: string; date?: string; tournamentName?: string; time?: string }>();
   const searchParams = new URLSearchParams(window.location.search);
   const isFromQR = searchParams.has('qr') || searchParams.has('from_qr'); // Check if accessed via QR code
   
@@ -65,6 +65,7 @@ export const TournamentEntry = () => {
         console.log('TournamentEntry: isFromQR:', isFromQR);
         console.log('TournamentEntry: date:', date);
         console.log('TournamentEntry: tournamentName:', decodedTournamentName);
+        console.log('TournamentEntry: time:', time);
         console.log('TournamentEntry: Current URL:', window.location.href);
         
         // Get active tournament data from API
@@ -81,8 +82,25 @@ export const TournamentEntry = () => {
             // Find tournament by date and name if provided, otherwise find today's active tournament
             const targetDate = date || new Date().toISOString().split('T')[0];
             
-            if (decodedTournamentName) {
-              // Find tournament by date and name
+            if (time) {
+              // Find tournament by date and time (new preferred method)
+              activeTournament = tournaments.find((t: any) => {
+                if (t.date !== targetDate || (t.status !== 'active' && t.status !== 'upcoming')) {
+                  return false;
+                }
+                
+                // Extract time from start_time and compare
+                if (t.start_time) {
+                  const timeMatch = t.start_time.match(/(\d{2}:\d{2})/);
+                  if (timeMatch && timeMatch[1] === time) {
+                    return true;
+                  }
+                }
+                return false;
+              });
+              console.log('Found tournament by date and time:', activeTournament);
+            } else if (decodedTournamentName) {
+              // Find tournament by date and name (legacy support)
               activeTournament = tournaments.find((t: any) => 
                 t.date === targetDate && 
                 t.name === decodedTournamentName &&
