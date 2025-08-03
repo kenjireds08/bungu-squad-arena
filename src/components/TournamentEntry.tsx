@@ -91,9 +91,15 @@ export const TournamentEntry = () => {
                 
                 // Extract time from start_time and compare
                 if (t.start_time) {
-                  const timeMatch = t.start_time.match(/(\d{2}:\d{2})/);
-                  if (timeMatch && timeMatch[1] === time) {
-                    return true;
+                  const timeMatch = t.start_time.match(/(\d{1,2}:\d{2})/);
+                  if (timeMatch) {
+                    // Normalize time format for comparison (add leading zero if needed)
+                    const tournamentTime = timeMatch[1].padStart(5, '0');
+                    const urlTime = time.padStart(5, '0');
+                    console.log(`Comparing tournament time: ${tournamentTime} with URL time: ${urlTime}`);
+                    if (tournamentTime === urlTime) {
+                      return true;
+                    }
                   }
                 }
                 return false;
@@ -148,26 +154,24 @@ export const TournamentEntry = () => {
         if (activeTournament) {
           tournamentData = {
             id: activeTournament.id,
-            name: activeTournament.name,
+            name: activeTournament.tournament_name,
             date: activeTournament.date,
-            time: activeTournament.start_time || activeTournament.time,
+            time: activeTournament.start_time,
             location: activeTournament.location,
             participants: participantCount,
             status: activeTournament.status === 'active' ? '開催中' : 
                     activeTournament.status === 'upcoming' ? '開催予定' : '終了'
           };
         } else {
-          // Fallback to mock data if no active tournament found
-          const today = new Date().toISOString().split('T')[0];
-          tournamentData = {
-            id: tournamentId || 'tournament_fallback',
-            name: 'BUNGU SQUAD大会',
-            date: today,
-            time: '19:00',
-            location: 'コミュニティセンター',
-            participants: participantCount,
-            status: '開催中'
-          };
+          console.error('No tournament found for date:', targetDate, 'time:', time);
+          // Show error state instead of fallback data
+          setIsLoading(false);
+          toast({
+            variant: "destructive",
+            title: "大会が見つかりません",
+            description: `指定された日付・時間の大会が見つかりませんでした。${targetDate} ${time || ''}`
+          });
+          return;
         }
         
         // Simulate API delay
