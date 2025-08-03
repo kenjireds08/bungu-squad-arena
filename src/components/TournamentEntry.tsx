@@ -84,8 +84,24 @@ export const TournamentEntry = () => {
             
             if (time) {
               // Find tournament by date and time (new preferred method)
+              console.log('Searching for tournament with date:', targetDate, 'and time:', time);
+              console.log('Available tournaments:', tournaments.map(t => ({
+                date: t.date,
+                start_time: t.start_time,
+                name: t.tournament_name,
+                status: t.status
+              })));
+              
               activeTournament = tournaments.find((t: any) => {
-                if (t.date !== targetDate || (t.status !== 'active' && t.status !== 'upcoming')) {
+                console.log(`Checking tournament: ${t.tournament_name}, date: ${t.date}, time: ${t.start_time}, status: ${t.status}`);
+                
+                if (t.date !== targetDate) {
+                  console.log(`Date mismatch: ${t.date} !== ${targetDate}`);
+                  return false;
+                }
+                
+                if (t.status !== 'active' && t.status !== 'upcoming') {
+                  console.log(`Status mismatch: ${t.status} not active/upcoming`);
                   return false;
                 }
                 
@@ -96,11 +112,18 @@ export const TournamentEntry = () => {
                     // Normalize time format for comparison (add leading zero if needed)
                     const tournamentTime = timeMatch[1].padStart(5, '0');
                     const urlTime = time.padStart(5, '0');
-                    console.log(`Comparing tournament time: ${tournamentTime} with URL time: ${urlTime}`);
+                    console.log(`Comparing tournament time: '${tournamentTime}' with URL time: '${urlTime}'`);
                     if (tournamentTime === urlTime) {
+                      console.log('Time match found!');
                       return true;
+                    } else {
+                      console.log('Time mismatch');
                     }
+                  } else {
+                    console.log('No time match in start_time:', t.start_time);
                   }
+                } else {
+                  console.log('No start_time found');
                 }
                 return false;
               });
