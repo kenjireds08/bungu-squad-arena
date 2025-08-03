@@ -146,21 +146,27 @@ async function sendVerificationEmail(req, res) {
 
 // メール認証確認
 async function verifyEmail(req, res) {
+  console.log('=== EMAIL VERIFICATION START ===');
   const { searchParams } = new URL(req.url, `http://${req.headers.host}`);
   const token = searchParams.get('token');
+  console.log('Received token:', token);
 
   if (!token) {
+    console.log('No token provided');
     return res.status(400).redirect('/?error=invalid_token');
   }
 
   // トークンの検証
   const verificationData = verificationTokens.get(token);
+  console.log('Verification data:', verificationData);
   
   if (!verificationData) {
+    console.log('Token not found in storage');
     return res.status(400).redirect('/?error=expired_token');
   }
 
   if (new Date() > verificationData.expiryTime) {
+    console.log('Token expired');
     verificationTokens.delete(token);
     return res.status(400).redirect('/?error=expired_token');
   }
