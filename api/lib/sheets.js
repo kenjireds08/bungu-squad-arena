@@ -1044,7 +1044,7 @@ class SheetsService {
         matchData.player2_id,
         matchData.winner_id || '',
         matchData.loser_id || '',
-        matchData.game_rule || 'trump',
+        matchData.game_type || matchData.game_rule || 'trump',
         timestamp,
         matchData.match_end_time || '',
         'completed',
@@ -1292,7 +1292,8 @@ class SheetsService {
             player1_name: row[4] || '',          // player1_name
             player2_id: row[5] || '',            // player2_id
             player2_name: row[6] || '',          // player2_name
-            game_rule: row[7] || '',             // game_type
+            game_rule: row[7] || '',             // game_rule
+            game_type: row[7] || 'trump',        // game_typeとしても利用
             match_status: row[8] || '',          // status
             winner_id: row[9] || '',             // winner_id
             result_details: row[10] || '',       // result_details
