@@ -15,6 +15,8 @@ const transporter = nodemailer.createTransporter({
 });
 
 export default async function handler(req, res) {
+  console.log('Auth handler called:', req.method, req.url);
+  
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -27,6 +29,7 @@ export default async function handler(req, res) {
   try {
     const { searchParams } = new URL(req.url, `http://${req.headers.host}`);
     const action = searchParams.get('action');
+    console.log('Action:', action);
     
     // メール認証送信
     if (req.method === 'POST' && action === 'send-verification') {
@@ -48,9 +51,12 @@ export default async function handler(req, res) {
 
 // メール認証送信
 async function sendVerificationEmail(req, res) {
+  console.log('sendVerificationEmail called with body:', req.body);
+  
   const { email, nickname, tournamentId, tournamentDate, tournamentTime } = req.body;
 
   if (!email || !nickname) {
+    console.log('Missing email or nickname:', { email, nickname });
     return res.status(400).json({ error: 'Email and nickname are required' });
   }
 
@@ -106,7 +112,12 @@ async function sendVerificationEmail(req, res) {
 
   try {
     // メール送信
+    console.log('Sending email to:', email);
+    console.log('EMAIL_USER:', process.env.EMAIL_USER ? 'Set' : 'Not set');
+    console.log('EMAIL_PASS:', process.env.EMAIL_PASS ? 'Set' : 'Not set');
+    
     await transporter.sendMail(mailOptions);
+    console.log('Email sent successfully');
 
     // 認証トークンをメモリに保存
     verificationTokens.set(verificationToken, {
