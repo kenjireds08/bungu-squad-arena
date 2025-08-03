@@ -35,9 +35,9 @@ const App = () => {
               <Route path="/" element={<Index />} />
               <Route path="/tournament-entry/:tournamentId" element={<TournamentEntry />} />
               <Route path="/tour" element={<TournamentEntry />} />
+              {/* More specific routes should come first */}
+              <Route path="/tournament/:date/:timeOrName" element={<TournamentEntry />} />
               <Route path="/tournament/:date" element={<TournamentEntry />} />
-              <Route path="/tournament/:date/:tournamentName" element={<TournamentEntry />} />
-              <Route path="/tournament/:date/:time" element={<TournamentEntry />} />
               <Route path="/tournament-waiting" element={<TournamentWaitingPage />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />

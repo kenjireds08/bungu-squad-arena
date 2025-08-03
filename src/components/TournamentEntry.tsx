@@ -20,12 +20,23 @@ interface Tournament {
 }
 
 export const TournamentEntry = () => {
-  const { tournamentId, date, tournamentName, time } = useParams<{ tournamentId?: string; date?: string; tournamentName?: string; time?: string }>();
+  const { tournamentId, date, tournamentName, time, timeOrName } = useParams<{ 
+    tournamentId?: string; 
+    date?: string; 
+    tournamentName?: string; 
+    time?: string;
+    timeOrName?: string;
+  }>();
   const searchParams = new URLSearchParams(window.location.search);
   const isFromQR = searchParams.has('qr') || searchParams.has('from_qr'); // Check if accessed via QR code
   
   // Decode tournament name from URL if present
   const decodedTournamentName = tournamentName ? decodeURIComponent(tournamentName) : null;
+  
+  // Determine if timeOrName is a time (XX-XX format) or tournament name
+  const isTimeFormat = timeOrName && /^\d{1,2}-\d{2}$/.test(timeOrName);
+  const actualTime = isTimeFormat ? timeOrName : time;
+  const actualTournamentName = !isTimeFormat ? timeOrName : tournamentName;
   const navigate = useNavigate();
   const { toast } = useToast();
   const [tournament, setTournament] = useState<Tournament | null>(null);
@@ -66,9 +77,11 @@ export const TournamentEntry = () => {
         console.log('TournamentEntry: date:', date);
         console.log('TournamentEntry: tournamentName:', decodedTournamentName);
         // Convert time format from URL (15-30) back to standard format (15:30)
-        const formattedTime = time ? time.replace('-', ':') : null;
-        console.log('TournamentEntry: time (URL):', time);
-        console.log('TournamentEntry: time (formatted):', formattedTime);
+        const formattedTime = actualTime ? actualTime.replace('-', ':') : null;
+        console.log('TournamentEntry: timeOrName:', timeOrName);
+        console.log('TournamentEntry: isTimeFormat:', isTimeFormat);
+        console.log('TournamentEntry: actualTime (URL):', actualTime);
+        console.log('TournamentEntry: actualTime (formatted):', formattedTime);
         console.log('TournamentEntry: Current URL:', window.location.href);
         
         // Get active tournament data from API
