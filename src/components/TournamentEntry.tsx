@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Trophy, Calendar, MapPin, Users, Loader2, CheckCircle, XCircle, Mail, AlertCircle } from 'lucide-react';
+import { Trophy, Calendar, MapPin, Users, Loader2, CheckCircle, XCircle, Mail, AlertCircle, QrCode } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { TournamentWaiting } from './TournamentWaiting';
 import { useUpdatePlayerTournamentActive } from '@/hooks/useApi';
@@ -334,12 +334,13 @@ export const TournamentEntry = () => {
     try {
       setIsEmailSending(true);
       
-      const response = await fetch('/api/email-verification/send', {
+      const response = await fetch('/api/auth', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          action: 'sendVerification',
           email,
           nickname,
           tournamentId: tournament.id
