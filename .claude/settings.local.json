@@ -29,7 +29,9 @@
       "Bash(npm run build:*)",
       "Bash(curl:*)",
       "Bash(npm uninstall:*)",
-      "Bash(vercel:*)"
+      "Bash(vercel:*)",
+      "WebFetch(domain:zenn.dev)",
+      "Bash(claude mcp:*)"
     ],
     "deny": []
   }
