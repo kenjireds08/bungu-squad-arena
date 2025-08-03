@@ -83,6 +83,14 @@ export const TournamentEntry = () => {
         console.log('TournamentEntry: actualTime (URL):', actualTime);
         console.log('TournamentEntry: actualTime (formatted):', formattedTime);
         console.log('TournamentEntry: Current URL:', window.location.href);
+        console.log('TournamentEntry: User-Agent:', navigator.userAgent);
+        console.log('TournamentEntry: Device type:', /Mobi|Android/i.test(navigator.userAgent) ? 'Mobile' : 'Desktop');
+        console.log('TournamentEntry: Window location details:', {
+          hostname: window.location.hostname,
+          pathname: window.location.pathname,
+          search: window.location.search,
+          origin: window.location.origin
+        });
         
         // Get active tournament data from API
         let activeTournament = null;
@@ -110,6 +118,7 @@ export const TournamentEntry = () => {
               
               activeTournament = tournaments.find((t: any) => {
                 console.log(`Checking tournament: ${t.tournament_name}, date: ${t.date}, time: ${t.start_time}, status: ${t.status}`);
+                console.log(`Tournament full object:`, JSON.stringify(t, null, 2));
                 
                 if (t.date !== targetDate) {
                   console.log(`Date mismatch: ${t.date} !== ${targetDate}`);
@@ -123,23 +132,27 @@ export const TournamentEntry = () => {
                 
                 // Extract time from start_time and compare
                 if (t.start_time) {
+                  console.log(`Raw start_time: "${t.start_time}", type: ${typeof t.start_time}`);
                   const timeMatch = t.start_time.match(/(\d{1,2}:\d{2})/);
+                  console.log(`Time match result:`, timeMatch);
                   if (timeMatch) {
                     // Normalize time format for comparison (add leading zero if needed)
                     const tournamentTime = timeMatch[1].padStart(5, '0');
                     const urlTime = formattedTime.padStart(5, '0');
-                    console.log(`Comparing tournament time: '${tournamentTime}' with URL time: '${urlTime}'`);
+                    console.log(`Comparing tournament time: '${tournamentTime}' (from "${t.start_time}") with URL time: '${urlTime}' (from "${actualTime}" -> "${formattedTime}")`);
+                    console.log(`Comparison result: ${tournamentTime === urlTime}`);
+                    console.log(`Device: ${/Mobi|Android/i.test(navigator.userAgent) ? 'Mobile' : 'Desktop'}`);
                     if (tournamentTime === urlTime) {
-                      console.log('Time match found!');
+                      console.log('✓ Time match found!');
                       return true;
                     } else {
-                      console.log('Time mismatch');
+                      console.log('✗ Time mismatch');
                     }
                   } else {
-                    console.log('No time match in start_time:', t.start_time);
+                    console.log('✗ No time match in start_time:', t.start_time);
                   }
                 } else {
-                  console.log('No start_time found');
+                  console.log('✗ No start_time found');
                 }
                 return false;
               });
@@ -616,7 +629,7 @@ export const TournamentEntry = () => {
                 <div className="space-y-2">
                   <div className="text-center">
                     <p className="text-xs text-muted-foreground mb-3">
-                      既存プレイヤーはログイン、初回参加の方は新規登録でエントリーできます
+                      既存プレイヤーはログイン、初回参加の方はメール認証による新規登録でエントリーできます
                     </p>
                   </div>
                 <div className="space-y-2">

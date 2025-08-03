@@ -65,7 +65,11 @@ async function sendVerificationEmail(req, res) {
   const expiryTime = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24時間後
 
   // 認証リンクを生成
-  const verificationLink = `${req.headers.origin}/api/auth?action=verify&token=${verificationToken}`;
+  // 本番環境では固定ドメインを使用（Vercel Preview URLではなく）
+  const baseUrl = process.env.NODE_ENV === 'production' 
+    ? 'https://ranking.bungu-squad.jp' 
+    : (req.headers.origin || `https://${req.headers.host}`);
+  const verificationLink = `${baseUrl}/api/auth?action=verify&token=${verificationToken}`;
 
   try {
     console.log('Sending email to:', email);
@@ -75,11 +79,9 @@ async function sendVerificationEmail(req, res) {
     const resend = new Resend(process.env.RESEND_API_KEY);
     
     console.log('About to call resend.emails.send...');
-    // 一時的に送信先を固定（Resendの制限回避）
-    const testEmail = 'kli@k-lifeinnovation.com';
     const emailResult = await resend.emails.send({
       from: 'BUNGU SQUAD <onboarding@resend.dev>',
-      to: testEmail,
+      to: email, // 本来のメールアドレスに送信
       subject: 'BUNGU SQUAD - メール認証のお願い',
       html: `
         <div style="max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif;">
@@ -121,9 +123,9 @@ async function sendVerificationEmail(req, res) {
     
     console.log('Email sent successfully:', JSON.stringify(emailResult, null, 2));
 
-    // 認証トークンをメモリに保存（実際に入力されたメールアドレスを保存）
+    // 認証トークンをメモリに保存
     verificationTokens.set(verificationToken, {
-      email, // 実際に入力されたメールアドレス
+      email,
       nickname,
       tournamentId,
       tournamentDate,
@@ -131,7 +133,7 @@ async function sendVerificationEmail(req, res) {
       expiryTime
     });
     
-    console.log('Token stored for email:', email, 'but sent to:', testEmail);
+    console.log('Token stored for email:', email);
 
     res.status(200).json({ 
       success: true, 
@@ -188,7 +190,9 @@ async function verifyEmail(req, res) {
     };
 
     // データベースに保存
-    const baseUrl = req.headers.origin || `https://${req.headers.host}`;
+    const baseUrl = process.env.NODE_ENV === 'production' 
+      ? 'https://ranking.bungu-squad.jp' 
+      : (req.headers.origin || `https://${req.headers.host}`);
     console.log('Base URL for ranking creation:', baseUrl);
     const createResponse = await fetch(`${baseUrl}/api/rankings`, {
       method: 'POST',

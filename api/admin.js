@@ -1,5 +1,75 @@
 const SheetsService = require('./lib/sheets');
 
+// 無効試合処理（レーティング変化なし）
+async function handleInvalidateMatch(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const { matchId, reason } = req.body;
+
+  if (!matchId) {
+    return res.status(400).json({ error: 'Match ID is required' });
+  }
+
+  try {
+    const sheetsService = new SheetsService();
+    await sheetsService.authenticate();
+
+    // 試合を無効としてマーク（レーティング変化は取り消し）
+    const result = await sheetsService.invalidateMatch(matchId, reason || '管理者により無効化');
+
+    console.log(`Match ${matchId} invalidated successfully`);
+    
+    return res.status(200).json({
+      success: true,
+      message: '試合を無効にしました',
+      result
+    });
+
+  } catch (error) {
+    console.error('Invalidate match error:', error);
+    return res.status(500).json({ 
+      error: 'Failed to invalidate match: ' + error.message 
+    });
+  }
+}
+
+// 完了した試合の編集（勝敗判定・ルール変更）
+async function handleEditCompletedMatch(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const { matchId, newWinnerId, newGameType } = req.body;
+
+  if (!matchId || !newWinnerId) {
+    return res.status(400).json({ error: 'Match ID and winner ID are required' });
+  }
+
+  try {
+    const sheetsService = new SheetsService();
+    await sheetsService.authenticate();
+
+    // 完了した試合を編集（勝敗判定・ルール変更）
+    const result = await sheetsService.editCompletedMatch(matchId, newWinnerId, newGameType);
+
+    console.log(`Match ${matchId} edited successfully`);
+    
+    return res.status(200).json({
+      success: true,
+      message: '試合情報を更新しました',
+      result
+    });
+
+  } catch (error) {
+    console.error('Edit completed match error:', error);
+    return res.status(500).json({ 
+      error: 'Failed to edit completed match: ' + error.message 
+    });
+  }
+}
+
 module.exports = async function handler(req, res) {
   const { action } = req.query;
 
@@ -19,6 +89,10 @@ module.exports = async function handler(req, res) {
         return await handleFixMatchData(req, res);
       case 'fix-badges':
         return await handleFixBadges(req, res);
+      case 'invalidate-match':
+        return await handleInvalidateMatch(req, res);
+      case 'edit-completed-match':
+        return await handleEditCompletedMatch(req, res);
       default:
         return res.status(400).json({ error: 'Invalid action parameter' });
     }
@@ -26,7 +100,7 @@ module.exports = async function handler(req, res) {
     console.error('Admin API error:', error);
     return res.status(500).json({ error: error.message });
   }
-};
+};;;
 
 async function handleCheckAuth(req, res) {
   try {

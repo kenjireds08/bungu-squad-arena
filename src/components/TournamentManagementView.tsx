@@ -51,6 +51,8 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isSaving, setIsSaving] = useState(false);
   const [directInputMatch, setDirectInputMatch] = useState<Match | null>(null);
+  const [invalidateMatchId, setInvalidateMatchId] = useState<string | null>(null);
+  const [editCompletedMatch, setEditCompletedMatch] = useState<Match | null>(null);
   const { data: players } = useRankings();
   const adminDirectInputMutation = useAdminDirectInput();
   const startMatchMutation = useStartMatch();
@@ -115,6 +117,8 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
         return 'bg-warning text-warning-foreground';
       case 'approved':
         return 'bg-success text-success-foreground';
+      case 'invalidated':
+        return 'bg-destructive text-destructive-foreground';
       default:
         return 'bg-muted text-muted-foreground';
     }
@@ -130,6 +134,8 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
         return '報告待ち';
       case 'approved':
         return '完了';
+      case 'invalidated':
+        return '無効';
       default:
         return '不明';
     }
@@ -311,6 +317,83 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
       toast({
         title: 'エラー',
         description: '試合の追加に失敗しました',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // 無効試合処理
+  const handleInvalidateMatch = async () => {
+    if (!invalidateMatchId) return;
+
+    try {
+      setIsSaving(true);
+      
+      const response = await fetch('/api/admin?action=invalidate-match', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          matchId: invalidateMatchId,
+          reason: '管理者により無効化（レーティング変化なし）'
+        }),
+      });
+
+      if (response.ok) {
+        toast({
+          title: '無効化完了',
+          description: '試合を無効にし、レーティング変化を取り消しました',
+        });
+        await fetchMatches();
+        setInvalidateMatchId(null);
+      } else {
+        throw new Error('Failed to invalidate match');
+      }
+    } catch (error) {
+      console.error('Failed to invalidate match:', error);
+      toast({
+        title: 'エラー',
+        description: '試合の無効化に失敗しました',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // 完了した試合の編集
+  const handleEditCompletedMatch = async (newWinnerId: string, newGameType?: string) => {
+    if (!editCompletedMatch) return;
+
+    try {
+      setIsSaving(true);
+      
+      const response = await fetch('/api/admin?action=edit-completed-match', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          matchId: editCompletedMatch.match_id,
+          newWinnerId,
+          newGameType
+        }),
+      });
+
+      if (response.ok) {
+        toast({
+          title: '編集完了',
+          description: '試合情報を更新し、レーティングを再計算しました',
+        });
+        await fetchMatches();
+        setEditCompletedMatch(null);
+      } else {
+        throw new Error('Failed to edit completed match');
+      }
+    } catch (error) {
+      console.error('Failed to edit completed match:', error);
+      toast({
+        title: 'エラー',
+        description: '試合の編集に失敗しました',
         variant: 'destructive',
       });
     } finally {
@@ -678,8 +761,27 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
                             <Trophy className="h-4 w-4 text-success" />
                             <span className="font-medium text-success">勝者: {winnerName}</span>
                           </div>
-                          <div className="text-sm text-muted-foreground">
-                            敗者: {loserName}
+                          <div className="flex items-center gap-2">
+                            <div className="text-sm text-muted-foreground">
+                              敗者: {loserName}
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="ml-1"
+                              onClick={() => setEditCompletedMatch(match)}
+                            >
+                              <Edit className="h-3 w-3 mr-1" />
+                              編集
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="ml-1 text-destructive hover:text-destructive"
+                              onClick={() => setInvalidateMatchId(match.match_id)}
+                            >
+                              無効試合
+                            </Button>
                           </div>
                         </div>
                       </div>
@@ -807,6 +909,154 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Invalidate Match Confirmation */}
+      <AlertDialog open={!!invalidateMatchId} onOpenChange={() => setInvalidateMatchId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>試合を無効にしますか？</AlertDialogTitle>
+            <AlertDialogDescription>
+              この試合のレーティング変化を取り消し、試合を無効としてマークします。この操作は取り消せません。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>キャンセル</AlertDialogCancel>
+            <AlertDialogAction onClick={handleInvalidateMatch} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              無効にする
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Edit Completed Match Dialog */}
+      <Dialog open={!!editCompletedMatch} onOpenChange={() => setEditCompletedMatch(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>完了した試合を編集 - {editCompletedMatch?.match_number.replace(/^match_/, '')}試合目</DialogTitle>
+          </DialogHeader>
+          {editCompletedMatch && (
+            <div className="space-y-6">
+              {/* Match Info Header */}
+              <div className="text-center p-4 bg-gradient-to-r from-primary/10 to-accent/10 rounded-lg border border-primary/20">
+                <div className="space-y-2">
+                  <h3 className="text-lg font-bold text-primary">
+                    {editCompletedMatch.player1_name} vs {editCompletedMatch.player2_name}
+                  </h3>
+                  <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                    <span className="px-2 py-1 bg-primary/10 rounded-full">
+                      {editCompletedMatch.match_number.replace(/^match_/, '')}試合目
+                    </span>
+                    <span>•</span>
+                    <span className="px-2 py-1 bg-accent/10 rounded-full">
+                      現在: {editCompletedMatch.game_type === 'trump' ? 'トランプルール' : 'カードプラスルール'}
+                    </span>
+                  </div>
+                  <div className="text-sm">
+                    <span className="text-success font-medium">
+                      現在の勝者: {editCompletedMatch.winner_id === editCompletedMatch.player1_id ? editCompletedMatch.player1_name : editCompletedMatch.player2_name}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Instructions */}
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground">
+                  新しい勝者とゲームルールを選択してください。レーティングが自動で再計算されます。
+                </p>
+              </div>
+                
+              {/* Winner Selection */}
+              <div className="space-y-3">
+                <h4 className="font-medium">新しい勝者を選択:</h4>
+                <div className="grid grid-cols-1 gap-3">
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="h-12 justify-start"
+                    onClick={() => {
+                      // ゲームタイプは現在のものを保持
+                      handleEditCompletedMatch(editCompletedMatch.player1_id, editCompletedMatch.game_type);
+                    }}
+                    disabled={isSaving}
+                  >
+                    <Trophy className="h-4 w-4 mr-2 text-green-600" />
+                    <span className="font-medium">{editCompletedMatch.player1_name} の勝利</span>
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="h-12 justify-start"
+                    onClick={() => {
+                      // ゲームタイプは現在のものを保持
+                      handleEditCompletedMatch(editCompletedMatch.player2_id, editCompletedMatch.game_type);
+                    }}
+                    disabled={isSaving}
+                  >
+                    <Trophy className="h-4 w-4 mr-2 text-green-600" />
+                    <span className="font-medium">{editCompletedMatch.player2_name} の勝利</span>
+                  </Button>
+                </div>
+              </div>
+              
+              {/* Game Type Change */}
+              <div className="space-y-3">
+                <h4 className="font-medium">ゲームルールを変更:</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    variant="outline"
+                    className="h-12 flex items-center justify-center gap-2"
+                    onClick={() => {
+                      // 現在の勝者を保持してゲームタイプのみ変更
+                      handleEditCompletedMatch(editCompletedMatch.winner_id, 'trump');
+                    }}
+                    disabled={isSaving}
+                  >
+                    <Spade className="h-4 w-4" />
+                    <span>トランプルール</span>
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    className="h-12 flex items-center justify-center gap-2"
+                    onClick={() => {
+                      // 現在の勝者を保持してゲームタイプのみ変更
+                      handleEditCompletedMatch(editCompletedMatch.winner_id, 'cardplus');
+                    }}
+                    disabled={isSaving}
+                  >
+                    <PlusIcon className="h-4 w-4" />
+                    <span>カード+ルール</span>
+                  </Button>
+                </div>
+              </div>
+                
+              {/* Processing Status */}
+              {isSaving && (
+                <div className="text-center p-4 bg-info/10 rounded-lg border border-info/20">
+                  <div className="flex items-center justify-center gap-2 text-info">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-info"></div>
+                    <span className="text-sm font-medium">試合情報を更新中...</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Cancel Button */}
+              <div className="flex justify-center pt-4">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setEditCompletedMatch(null)}
+                  disabled={isSaving}
+                  className="min-w-24"
+                >
+                  キャンセル
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Direct Input Dialog - Winner Selection */}
       <Dialog open={!!directInputMatch} onOpenChange={() => setDirectInputMatch(null)}>

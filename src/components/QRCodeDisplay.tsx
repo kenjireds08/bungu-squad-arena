@@ -37,6 +37,16 @@ export const QRCodeDisplay = ({ tournamentId, tournamentName, tournamentDate, on
             const timeMatch = tournament.start_time.match(/(\d{2}:\d{2})/);
             if (timeMatch) {
               setTournamentTime(timeMatch[1]);
+            } else {
+              // If no match, try to parse it differently
+              console.log('Tournament start_time format:', tournament.start_time);
+              // Fallback: if start_time is like "9:30", pad it to "09:30"
+              const simpleTimeMatch = tournament.start_time.match(/(\d{1,2}:\d{2})/);
+              if (simpleTimeMatch) {
+                const [hours, minutes] = simpleTimeMatch[1].split(':');
+                const paddedTime = `${hours.padStart(2, '0')}:${minutes}`;
+                setTournamentTime(paddedTime);
+              }
             }
           }
         }
@@ -53,8 +63,10 @@ export const QRCodeDisplay = ({ tournamentId, tournamentName, tournamentDate, on
   }, [tournamentId]);
   
   // Create URL with date and time: /tournament/2025-08-03/15-30 (replace : with -)
-  const urlTime = (tournamentTime || '00:00').replace(':', '-');
-  let entryUrl = `${window.location.origin}/tournament/${tournamentDate}/${urlTime}?from_qr=true`;
+  // Use the production domain instead of current origin
+  const urlTime = (tournamentTime || '09-30').replace(':', '-'); // Default to 09-30 instead of 00-00
+  const baseUrl = 'https://ranking.bungu-squad.jp'; // Use production domain
+  let entryUrl = `${baseUrl}/tournament/${tournamentDate}/${urlTime}?from_qr=true`;
   
   const handleCopyUrl = async () => {
     try {

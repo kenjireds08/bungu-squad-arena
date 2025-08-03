@@ -2814,6 +2814,264 @@ class SheetsService {
     }
   }
 
+  // 試合を無効にする（レーティング変化を取り消し）
+  async invalidateMatch(matchId, reason = '管理者により無効化') {
+    await this.authenticate();
+    
+    try {
+      console.log(`Invalidating match ${matchId} with reason: ${reason}`);
+      
+      // 1. TournamentMatchesシートから該当試合を取得
+      const matchResponse = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'TournamentMatches!A2:Z1000'
+      });
+      
+      const matchRows = matchResponse.data.values || [];
+      const matchRowIndex = matchRows.findIndex(row => row[0] === matchId);
+      
+      if (matchRowIndex === -1) {
+        throw new Error(`Match ${matchId} not found`);
+      }
+      
+      const matchRow = matchRows[matchRowIndex];
+      const actualRowNumber = matchRowIndex + 2;
+      
+      // 試合が完了状態でない場合はエラー
+      if (matchRow[5] !== 'completed') {
+        throw new Error('Only completed matches can be invalidated');
+      }
+      
+      const player1Id = matchRow[2];
+      const player2Id = matchRow[3];
+      const player1RatingBefore = parseInt(matchRow[15]) || 1500;
+      const player2RatingBefore = parseInt(matchRow[16]) || 1500;
+      
+      // 2. プレイヤーのレーティングを元に戻す
+      await this.updatePlayerRating(player1Id, player1RatingBefore);
+      await this.updatePlayerRating(player2Id, player2RatingBefore);
+      console.log(`Reverted ratings: ${player1Id} -> ${player1RatingBefore}, ${player2Id} -> ${player2RatingBefore}`);
+      
+      // 3. TournamentMatchesシートの試合ステータスを'invalidated'に変更
+      await this.sheets.spreadsheets.values.update({
+        spreadsheetId: this.spreadsheetId,
+        range: `TournamentMatches!F${actualRowNumber}`,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+          values: [['invalidated']]
+        }
+      });
+      
+      // 4. 無効化理由を記録（notes列に追加）
+      const currentNotes = matchRow[21] || '';
+      const newNotes = currentNotes ? `${currentNotes}\n[無効化] ${reason}` : `[無効化] ${reason}`;
+      await this.sheets.spreadsheets.values.update({
+        spreadsheetId: this.spreadsheetId,
+        range: `TournamentMatches!V${actualRowNumber}`,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+          values: [[newNotes]]
+        }
+      });
+      
+      // 5. MatchResultsシートの該当レコードも無効化
+      try {
+        const resultResponse = await this.sheets.spreadsheets.values.get({
+          spreadsheetId: this.spreadsheetId,
+          range: 'MatchResults!A2:H1000'
+        });
+        
+        const resultRows = resultResponse.data.values || [];
+        for (let i = 0; i < resultRows.length; i++) {
+          const row = resultRows[i];
+          if (row[1] === matchId) { // match_id列でフィルタ
+            const resultRowNumber = i + 2;
+            await this.sheets.spreadsheets.values.update({
+              spreadsheetId: this.spreadsheetId,
+              range: `MatchResults!G${resultRowNumber}`,
+              valueInputOption: 'USER_ENTERED',
+              requestBody: {
+                values: [['invalidated']]
+              }
+            });
+          }
+        }
+      } catch (resultError) {
+        console.warn('Could not update MatchResults sheet:', resultError);
+      }
+      
+      console.log(`Match ${matchId} successfully invalidated`);
+      
+      return {
+        matchId,
+        player1Id,
+        player2Id,
+        revertedRatings: {
+          [player1Id]: player1RatingBefore,
+          [player2Id]: player2RatingBefore
+        },
+        reason
+      };
+      
+    } catch (error) {
+      console.error('Error invalidating match:', error);
+      throw new Error(`Failed to invalidate match: ${error.message}`);
+    }
+  }
+
+  // 完了した試合を編集（勝敗判定・ルール変更）
+  async editCompletedMatch(matchId, newWinnerId, newGameType = null) {
+    await this.authenticate();
+    
+    try {
+      console.log(`Editing completed match ${matchId} - new winner: ${newWinnerId}, new game type: ${newGameType}`);
+      
+      // 1. TournamentMatchesシートから該当試合を取得
+      const matchResponse = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'TournamentMatches!A2:Z1000'
+      });
+      
+      const matchRows = matchResponse.data.values || [];
+      const matchRowIndex = matchRows.findIndex(row => row[0] === matchId);
+      
+      if (matchRowIndex === -1) {
+        throw new Error(`Match ${matchId} not found`);
+      }
+      
+      const matchRow = matchRows[matchRowIndex];
+      const actualRowNumber = matchRowIndex + 2;
+      
+      // 試合が完了状態でない場合はエラー
+      if (matchRow[5] !== 'completed' && matchRow[5] !== 'approved') {
+        throw new Error('Only completed/approved matches can be edited');
+      }
+      
+      const player1Id = matchRow[2];
+      const player2Id = matchRow[3];
+      const oldWinnerId = matchRow[7];
+      const oldGameType = matchRow[6];
+      const player1RatingBefore = parseInt(matchRow[15]) || 1500;
+      const player2RatingBefore = parseInt(matchRow[16]) || 1500;
+      
+      // 新しい敗者を決定
+      const newLoserId = newWinnerId === player1Id ? player2Id : player1Id;
+      const oldLoserId = oldWinnerId === player1Id ? player2Id : player1Id;
+      
+      // 2. 既存のレーティング変更を取り消し
+      await this.updatePlayerRating(player1Id, player1RatingBefore);
+      await this.updatePlayerRating(player2Id, player2RatingBefore);
+      console.log(`Reverted ratings: ${player1Id} -> ${player1RatingBefore}, ${player2Id} -> ${player2RatingBefore}`);
+      
+      // 3. 新しい勝敗でレーティングを再計算
+      const newRatingResult = await this.updatePlayersRating(newWinnerId, newLoserId, 'win');
+      console.log(`Applied new ratings: Winner ${newWinnerId}, Loser ${newLoserId}`);
+      
+      // 4. TournamentMatchesシートを更新
+      const updateData = [
+        matchRow[0], // match_id
+        matchRow[1], // tournament_id 
+        matchRow[2], // player1_id
+        matchRow[3], // player2_id
+        matchRow[4], // table_number
+        matchRow[5], // status (keep as is)
+        newGameType || oldGameType, // game_type (更新または既存値)
+        matchRow[7], // created_at
+        newWinnerId, // winner_id (更新)
+        newLoserId,  // loser_id (更新)
+        matchRow[10], // match_start_time
+        matchRow[11], // match_end_time
+        matchRow[12], // reported_by
+        matchRow[13], // reported_at
+        matchRow[14], // approved_by
+        matchRow[15], // approved_at
+        player1RatingBefore, // player1_rating_before
+        player2RatingBefore, // player2_rating_before
+        newRatingResult.player1NewRating, // player1_rating_after
+        newRatingResult.player2NewRating, // player2_rating_after
+        newRatingResult.player1, // player1_rating_change
+        newRatingResult.player2, // player2_rating_change
+        matchRow[22] || '' // notes
+      ];
+      
+      await this.sheets.spreadsheets.values.update({
+        spreadsheetId: this.spreadsheetId,
+        range: `TournamentMatches!A${actualRowNumber}:W${actualRowNumber}`,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+          values: [updateData]
+        }
+      });
+      
+      // 5. ゲームタイプが変更された場合、ゲーム経験を更新
+      if (newGameType && newGameType !== oldGameType) {
+        console.log(`Game type changed from ${oldGameType} to ${newGameType}`);
+        
+        // 両プレイヤーの新しいゲームタイプ経験を更新
+        if (newGameType !== 'basic') {
+          await this.updatePlayerGameExperience(player1Id, newGameType);
+          await this.updatePlayerGameExperience(player2Id, newGameType);
+          await this.updatePlayerBadges(player1Id);
+          await this.updatePlayerBadges(player2Id);
+        }
+      }
+      
+      // 6. MatchResultsシートも更新
+      try {
+        const resultResponse = await this.sheets.spreadsheets.values.get({
+          spreadsheetId: this.spreadsheetId,
+          range: 'MatchResults!A2:H1000'
+        });
+        
+        const resultRows = resultResponse.data.values || [];
+        for (let i = 0; i < resultRows.length; i++) {
+          const row = resultRows[i];
+          if (row[1] === matchId) { // match_id列でフィルタ
+            const resultRowNumber = i + 2;
+            const playerId = row[2];
+            const newResult = playerId === newWinnerId ? 'win' : 'lose';
+            const newOpponentId = playerId === newWinnerId ? newLoserId : newWinnerId;
+            
+            await this.sheets.spreadsheets.values.update({
+              spreadsheetId: this.spreadsheetId,
+              range: `MatchResults!C${resultRowNumber}:G${resultRowNumber}`,
+              valueInputOption: 'USER_ENTERED',
+              requestBody: {
+                values: [[playerId, newOpponentId, newResult, newGameType || oldGameType, 'approved']]
+              }
+            });
+          }
+        }
+      } catch (resultError) {
+        console.warn('Could not update MatchResults sheet:', resultError);
+      }
+      
+      console.log(`Match ${matchId} successfully edited`);
+      
+      return {
+        matchId,
+        oldWinnerId,
+        newWinnerId,
+        oldLoserId,
+        newLoserId,
+        oldGameType,
+        newGameType: newGameType || oldGameType,
+        newRatings: {
+          [player1Id]: newRatingResult.player1NewRating,
+          [player2Id]: newRatingResult.player2NewRating
+        },
+        ratingChanges: {
+          [player1Id]: newRatingResult.player1,
+          [player2Id]: newRatingResult.player2
+        }
+      };
+      
+    } catch (error) {
+      console.error('Error editing completed match:', error);
+      throw new Error(`Failed to edit completed match: ${error.message}`);
+    }
+  }
+
   async getAllMatches() {
     await this.authenticate();
     
