@@ -17,6 +17,8 @@ module.exports = async function handler(req, res) {
         return await handleEmergencyFixMatch(req, res);
       case 'fix-match-data':
         return await handleFixMatchData(req, res);
+      case 'fix-badges':
+        return await handleFixBadges(req, res);
       default:
         return res.status(400).json({ error: 'Invalid action parameter' });
     }
@@ -179,6 +181,70 @@ async function handleFixMatchData(req, res) {
     
   } catch (error) {
     console.error('Fix match data failed:', error);
+    return res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
+  }
+}
+
+async function handleFixBadges(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  try {
+    const sheetsService = new SheetsService();
+    
+    console.log('バッジ修正スクリプト開始...');
+    
+    // 1. 全試合データを取得
+    const matches = await sheetsService.getMatches();
+    console.log(`${matches.length}件の試合データを取得`);
+    
+    // 2. basic以外の試合を特定
+    const nonBasicMatches = matches.filter(match => 
+      match.game_type !== 'basic' && match.status === 'completed'
+    );
+    console.log(`basic以外の完了試合: ${nonBasicMatches.length}件`);
+    
+    // 3. 各試合の参加者にバッジ付与
+    for (const match of nonBasicMatches) {
+      console.log(`処理中: ${match.match_id} (${match.game_type})`);
+      
+      // player1のバッジ更新
+      if (match.player1_id) {
+        await sheetsService.updatePlayerGameExperience(match.player1_id, match.game_type);
+        console.log(`  ${match.player1_name}に${match.game_type}バッジ付与`);
+      }
+      
+      // player2のバッジ更新
+      if (match.player2_id) {
+        await sheetsService.updatePlayerGameExperience(match.player2_id, match.game_type);
+        console.log(`  ${match.player2_name}に${match.game_type}バッジ付与`);
+      }
+    }
+    
+    // 4. バッジ再計算
+    console.log('バッジ再計算中...');
+    const players = await sheetsService.getPlayers();
+    
+    for (const player of players) {
+      await sheetsService.updatePlayerBadges(player.player_id);
+      console.log(`${player.nickname}のバッジを更新`);
+    }
+    
+    console.log('バッジ修正完了！');
+    
+    return res.status(200).json({ 
+      success: true, 
+      message: 'バッジ修正完了',
+      processedMatches: nonBasicMatches.length,
+      updatedPlayers: players.length
+    });
+    
+  } catch (error) {
+    console.error('バッジ修正エラー:', error);
     return res.status(500).json({ 
       success: false,
       error: error.message 
