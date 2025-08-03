@@ -27,7 +27,7 @@ export const Login = ({ onLoginSuccess, isNewPlayer = false }: LoginProps) => {
 
     try {
       if (isSignUp) {
-        // 新規登録 - ニックネーム+メールで即アカウント作成
+        // 新規登録 - メール認証フローに変更
         if (!formData.nickname.trim() || !formData.email.trim()) {
           toast({
             title: "エラー",
@@ -38,32 +38,34 @@ export const Login = ({ onLoginSuccess, isNewPlayer = false }: LoginProps) => {
           return;
         }
 
-        // アカウント作成処理
-        const createResponse = await fetch('/api/rankings', {
+        // メール認証送信処理
+        const emailResponse = await fetch('/api/sendVerificationEmail', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            nickname: formData.nickname.trim(),
             email: formData.email.trim(),
-            current_rating: 1200,
-            tournament_active: true
+            nickname: formData.nickname.trim(),
+            tournamentId: 'current',
+            tournamentDate: new Date().toISOString().split('T')[0],
+            tournamentTime: '15:30'
           })
         });
 
-        if (!createResponse.ok) {
-          const errorData = await createResponse.json();
-          throw new Error(errorData.error || 'Failed to create player account');
+        if (!emailResponse.ok) {
+          const errorData = await emailResponse.json();
+          throw new Error(errorData.error || 'メール送信に失敗しました');
         }
 
-        const newPlayer = await createResponse.json();
+        const emailResult = await emailResponse.json();
         
         toast({
-          title: "登録完了！",
-          description: `${formData.nickname}さん、ようこそ！大会にエントリーしました。`,
+          title: "認証メールを送信しました",
+          description: `${formData.email} に認証リンクを送信しました。メールを確認してリンクをクリックしてください。`,
+          duration: 8000,
         });
 
-        localStorage.setItem('userId', newPlayer.id);
-        onLoginSuccess(newPlayer.id, false);
+        // 認証待ち状態に切り替え（実装必要）
+        console.log('メール認証待ち状態:', emailResult);
         
       } else {
         // 既存プレイヤーログイン処理
