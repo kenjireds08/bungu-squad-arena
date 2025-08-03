@@ -66,7 +66,7 @@ async function sendVerificationEmail(req, res) {
     const resend = new Resend(process.env.RESEND_API_KEY);
     
     const emailResult = await resend.emails.send({
-      from: 'BUNGU SQUAD <noreply@bungu-squad-arena.vercel.app>',
+      from: 'BUNGU SQUAD <onboarding@resend.dev>',
       to: email,
       subject: 'BUNGU SQUAD - メール認証のお願い',
       html: `
