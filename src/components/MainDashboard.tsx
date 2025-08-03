@@ -41,8 +41,22 @@ interface MainDashboardProps {
 export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboardProps) => {
   // Fallback to default if no user ID provided
   const CURRENT_USER_ID = currentUserId || "player_001";
-  const [currentPage, setCurrentPage] = useState<string>('dashboard');
+  
+  // Check for URL parameters to determine initial page
+  const urlParams = new URLSearchParams(window.location.search);
+  const initialPage = urlParams.get('page') || 'dashboard';
+  const isFromQR = urlParams.has('from_qr');
+  
+  const [currentPage, setCurrentPage] = useState<string>(initialPage);
   const [previousPage, setPreviousPage] = useState<string>('dashboard');
+  
+  // Clean up URL parameters after processing
+  useEffect(() => {
+    if (urlParams.has('page') || urlParams.has('from_qr')) {
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, '', newUrl);
+    }
+  }, []);
   
   // Debug currentPage changes
   useEffect(() => {
@@ -253,7 +267,19 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
   }
 
   if (currentPage === 'tournament-entry-complete') {
-    return <TournamentEntryComplete onClose={() => setCurrentPage('dashboard')} onViewTournament={() => setCurrentPage('tournament-waiting')} />;
+    return <TournamentEntryComplete 
+      onClose={() => {
+        // QR経由の場合は戻るボタンを無効化
+        if (isFromQR) {
+          console.log('MainDashboard: QR経由のため戻るボタンを無効化');
+          return;
+        }
+        setCurrentPage('dashboard');
+      }}
+      onViewTournament={() => setCurrentPage('tournament-waiting')}
+      disableAutoTransition={false} // QR経由でも自動遷移を有効化
+      hideBackButton={isFromQR} // QR経由の場合は戻るボタンを非表示
+    />;
   }
 
   if (currentPage === 'tournament-waiting') {

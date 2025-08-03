@@ -192,22 +192,58 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
         description: "大会エントリーが完了しました",
       });
       
-      // All users (logged in or not) go to tournament entry page with QR parameter
-      setTimeout(() => {
-        // Extract tournament ID from QR code URL or use fallback
-        let targetUrl = data;
-        if (data.includes('tournament-entry')) {
-          // Add QR parameter to indicate this came from QR scan
-          const separator = data.includes('?') ? '&' : '?';
-          targetUrl = `${data}${separator}from_qr=true`;
-        } else {
-          // Fallback to generic tournament entry with QR parameter
-          targetUrl = `/tournament-entry/current?from_qr=true`;
-        }
+      // Check if user is logged in to determine flow
+      const userId = localStorage.getItem('userId');
+      
+      if (userId) {
+        // Logged in user: Direct entry processing
+        console.log('BUNGU SQUAD: ログイン済みユーザーの直接エントリー処理開始');
         
-        console.log('BUNGU SQUAD: QRコード読み取り後の遷移先:', targetUrl);
-        window.location.href = targetUrl;
-      }, 2000);
+        setTimeout(async () => {
+          try {
+            // Update tournament active status directly
+            const response = await fetch(`/api/players?id=${userId}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ updateTournamentActive: true })
+            });
+            
+            if (response.ok) {
+              console.log('BUNGU SQUAD: tournament_active更新成功');
+              // Navigate directly to entry complete page via MainDashboard
+              window.location.href = '/?page=tournament-entry-complete&from_qr=true';
+            } else {
+              console.error('BUNGU SQUAD: tournament_active更新失敗');
+              // Fallback to tournament entry page
+              window.location.href = `/tournament-entry/current?from_qr=true`;
+            }
+          } catch (error) {
+            console.error('BUNGU SQUAD: エントリー処理エラー:', error);
+            // Fallback to tournament entry page
+            window.location.href = `/tournament-entry/current?from_qr=true`;
+          }
+        }, 2000);
+        
+      } else {
+        // Not logged in: Go to tournament entry page for email verification
+        console.log('BUNGU SQUAD: 未ログインユーザーのメール認証フロー');
+        
+        setTimeout(() => {
+          // Extract tournament ID from QR code URL or use fallback
+          let targetUrl = data;
+          if (data.includes('tournament-entry')) {
+            // Add QR parameter to indicate this came from QR scan
+            const separator = data.includes('?') ? '&' : '?';
+            targetUrl = `${data}${separator}from_qr=true`;
+          } else {
+            // Fallback to generic tournament entry with QR parameter
+            targetUrl = `/tournament-entry/current?from_qr=true`;
+          }
+          
+          console.log('BUNGU SQUAD: QRコード読み取り後の遷移先:', targetUrl);
+          window.location.href = targetUrl;
+        }, 2000);
+      }
       
     } else {
       setScanResult('error');

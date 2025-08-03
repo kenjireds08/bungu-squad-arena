@@ -11,9 +11,10 @@ interface TournamentEntryCompleteProps {
   onClose: () => void;
   onViewTournament: () => void;
   disableAutoTransition?: boolean;
+  hideBackButton?: boolean; // QR経由の場合は戻るボタンを非表示
 }
 
-export const TournamentEntryComplete = ({ onClose, onViewTournament, disableAutoTransition = false }: TournamentEntryCompleteProps) => {
+export const TournamentEntryComplete = ({ onClose, onViewTournament, disableAutoTransition = false, hideBackButton = false }: TournamentEntryCompleteProps) => {
   const [countdown, setCountdown] = useState(5);
   const { data: tournamentsData } = useTournaments();
   
@@ -43,10 +44,13 @@ export const TournamentEntryComplete = ({ onClose, onViewTournament, disableAuto
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b border-fantasy-frame shadow-soft">
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
-            <Button variant="ghost" onClick={onClose} className="flex items-center gap-2">
-              <ArrowLeft className="h-4 w-4" />
-              戻る
-            </Button>
+            {!hideBackButton && (
+              <Button variant="ghost" onClick={onClose} className="flex items-center gap-2">
+                <ArrowLeft className="h-4 w-4" />
+                戻る
+              </Button>
+            )}
+            {hideBackButton && <div />} {/* Spacer for layout */}
             <h1 className="text-lg font-bold text-foreground">エントリー完了</h1>
             <div className="w-16"></div>
           </div>
