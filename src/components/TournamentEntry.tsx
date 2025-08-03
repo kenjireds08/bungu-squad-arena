@@ -340,7 +340,7 @@ export const TournamentEntry = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          action: 'sendVerification',
+          action: 'send-verification',
           email,
           nickname,
           tournamentId: tournament.id

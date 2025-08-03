@@ -72,8 +72,11 @@ async function sendVerificationEmail(req, res) {
   const verificationLink = `${baseUrl}/api/auth?action=verify&token=${verificationToken}`;
 
   try {
+    console.log('=== EMAIL SENDING START ===');
     console.log('Sending email to:', email);
-    console.log('RESEND_API_KEY:', process.env.RESEND_API_KEY ? 'Set' : 'Not set');
+    console.log('Nickname:', nickname);
+    console.log('Tournament ID:', tournamentId);
+    console.log('RESEND_API_KEY:', process.env.RESEND_API_KEY ? 'Set (length: ' + process.env.RESEND_API_KEY.length + ')' : 'Not set');
     
     // Resend APIでメール送信
     const resend = new Resend(process.env.RESEND_API_KEY);
@@ -122,6 +125,11 @@ async function sendVerificationEmail(req, res) {
     });
     
     console.log('Email sent successfully:', JSON.stringify(emailResult, null, 2));
+    
+    if (emailResult.error) {
+      console.error('Resend API returned error:', emailResult.error);
+      throw new Error('Resend API error: ' + JSON.stringify(emailResult.error));
+    }
 
     // 認証トークンをメモリに保存
     verificationTokens.set(verificationToken, {
@@ -141,8 +149,14 @@ async function sendVerificationEmail(req, res) {
     });
 
   } catch (error) {
-    console.error('Email sending error:', error);
-    res.status(500).json({ error: 'メール送信に失敗しました: ' + error.message });
+    console.error('=== EMAIL SENDING ERROR ===');
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    console.error('Full error object:', JSON.stringify(error, null, 2));
+    res.status(500).json({ 
+      error: 'メール送信に失敗しました: ' + error.message,
+      detail: error.toString()
+    });
   }
 }
 
