@@ -75,9 +75,11 @@ async function sendVerificationEmail(req, res) {
     const resend = new Resend(process.env.RESEND_API_KEY);
     
     console.log('About to call resend.emails.send...');
+    // 一時的に送信先を固定（Resendの制限回避）
+    const testEmail = 'kli@k-lifeinnovation.com';
     const emailResult = await resend.emails.send({
       from: 'BUNGU SQUAD <onboarding@resend.dev>',
-      to: email,
+      to: testEmail,
       subject: 'BUNGU SQUAD - メール認証のお願い',
       html: `
         <div style="max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif;">
