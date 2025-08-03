@@ -121,15 +121,17 @@ async function sendVerificationEmail(req, res) {
     
     console.log('Email sent successfully:', JSON.stringify(emailResult, null, 2));
 
-    // 認証トークンをメモリに保存
+    // 認証トークンをメモリに保存（実際に入力されたメールアドレスを保存）
     verificationTokens.set(verificationToken, {
-      email,
+      email, // 実際に入力されたメールアドレス
       nickname,
       tournamentId,
       tournamentDate,
       tournamentTime,
       expiryTime
     });
+    
+    console.log('Token stored for email:', email, 'but sent to:', testEmail);
 
     res.status(200).json({ 
       success: true, 
