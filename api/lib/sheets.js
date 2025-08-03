@@ -1545,6 +1545,16 @@ class SheetsService {
         await this.updatePlayerRating(player1_id, eloResult.player1NewRating);
         await this.updatePlayerRating(player2_id, eloResult.player2NewRating);
 
+        // Update game experience and badges for both players
+        const gameType = matchRow[6] || 'basic'; // game_type is in column G
+        if (gameType && gameType !== 'basic') {
+          console.log(`Updating game experience and badges for match approval: Player1 ${player1_id}, Player2 ${player2_id}, GameType: ${gameType}`);
+          await this.updatePlayerGameExperience(player1_id, gameType);
+          await this.updatePlayerGameExperience(player2_id, gameType);
+          await this.updatePlayerBadges(player1_id);
+          await this.updatePlayerBadges(player2_id);
+        }
+
         // Add to MatchResults sheet for historical record
         await this.addMatchResult({
           tournament_id: matchRow[1],
@@ -1552,7 +1562,7 @@ class SheetsService {
           player2_id,
           winner_id,
           loser_id: matchRow[8],
-          game_rule: 'trump',
+          game_rule: gameType,
           match_end_time: approved_at,
           reported_by: matchRow[11],
           approved_by,
@@ -2045,8 +2055,18 @@ class SheetsService {
         const playerId = resultRow[2];
         const opponentId = resultRow[3];
         const result = resultRow[4]; // 'win' or 'lose'
+        const gameRule = resultRow[6]; // game_rule is typically in column G
         
         ratingUpdateResult = await this.updatePlayersRating(playerId, opponentId, result);
+        
+        // Update game experience and badges for both players if it's not basic rule
+        if (gameRule && gameRule !== 'basic') {
+          console.log(`Updating game experience and badges for result approval: Player ${playerId}, Opponent ${opponentId}, GameRule: ${gameRule}`);
+          await this.updatePlayerGameExperience(playerId, gameRule);
+          await this.updatePlayerGameExperience(opponentId, gameRule);
+          await this.updatePlayerBadges(playerId);
+          await this.updatePlayerBadges(opponentId);
+        }
       }
       
       // Update status
@@ -2406,6 +2426,11 @@ class SheetsService {
         console.log(`Updating game experience: Winner ${winnerId}, Loser ${loserId}, GameType: ${gameType}`);
         await this.updatePlayerGameExperience(winnerId, gameType);
         await this.updatePlayerGameExperience(loserId, gameType);
+        
+        // Update badges after game experience update
+        console.log(`Updating badges for Winner ${winnerId} and Loser ${loserId}`);
+        await this.updatePlayerBadges(winnerId);
+        await this.updatePlayerBadges(loserId);
       } else {
         console.warn(`No game type found for match ${matchId}`);
       }
