@@ -1,18 +1,9 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 const crypto = require('crypto');
 
 // 認証トークン管理用のシンプルなメモリストレージ
 // 本番環境では Redis や Database を推奨
 let verificationTokens = new Map();
-
-// メール送信設定（環境変数を使用）
-const transporter = nodemailer.createTransporter({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  }
-});
 
 module.exports = async function handler(req, res) {
   console.log('Auth handler called:', req.method, req.url);
@@ -49,7 +40,7 @@ module.exports = async function handler(req, res) {
   }
 }
 
-// メール認証送信
+// メール認証送信（Resend API使用）
 async function sendVerificationEmail(req, res) {
   console.log('sendVerificationEmail called with body:', req.body);
   
@@ -67,57 +58,56 @@ async function sendVerificationEmail(req, res) {
   // 認証リンクを生成
   const verificationLink = `${req.headers.origin}/api/auth?action=verify&token=${verificationToken}`;
 
-  // メール内容
-  const mailOptions = {
-    from: process.env.EMAIL_USER,
-    to: email,
-    subject: 'BUNGU SQUAD - メール認証のお願い',
-    html: `
-      <div style="max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif;">
-        <h2 style="color: #D4A853;">BUNGU SQUAD メール認証</h2>
-        
-        <p><strong>${nickname}</strong>さん、</p>
-        
-        <p>BUNGU SQUADの大会エントリーにお申し込みいただき、ありがとうございます。</p>
-        
-        <div style="background-color: #f5f5f5; padding: 20px; margin: 20px 0; border-radius: 8px;">
-          <h3 style="margin-top: 0;">大会情報</h3>
-          <p><strong>日時:</strong> ${tournamentDate} ${tournamentTime}〜</p>
-          <p><strong>場所:</strong> オンライン</p>
-        </div>
-        
-        <p>下記のリンクをクリックして、メール認証を完了してください：</p>
-        
-        <div style="text-align: center; margin: 30px 0;">
-          <a href="${verificationLink}" 
-             style="background-color: #D4A853; color: white; padding: 15px 30px; 
-                    text-decoration: none; border-radius: 5px; display: inline-block;">
-            メール認証を完了する
-          </a>
-        </div>
-        
-        <p style="color: #666; font-size: 14px;">
-          ※ このリンクは24時間で無効になります<br>
-          ※ 認証完了後、自動的に大会にエントリーされます
-        </p>
-        
-        <hr style="margin: 30px 0;">
-        <p style="color: #999; font-size: 12px;">
-          BUNGU SQUAD ランキングシステム<br>
-          このメールに心当たりがない場合は、このメールを無視してください。
-        </p>
-      </div>
-    `
-  };
-
   try {
-    // メール送信
     console.log('Sending email to:', email);
-    console.log('EMAIL_USER:', process.env.EMAIL_USER ? 'Set' : 'Not set');
-    console.log('EMAIL_PASS:', process.env.EMAIL_PASS ? 'Set' : 'Not set');
+    console.log('RESEND_API_KEY:', process.env.RESEND_API_KEY ? 'Set' : 'Not set');
     
-    await transporter.sendMail(mailOptions);
-    console.log('Email sent successfully');
+    // Resend APIでメール送信
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    
+    const emailResult = await resend.emails.send({
+      from: 'BUNGU SQUAD <noreply@bungu-squad-arena.vercel.app>',
+      to: email,
+      subject: 'BUNGU SQUAD - メール認証のお願い',
+      html: `
+        <div style="max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif;">
+          <h2 style="color: #D4A853;">BUNGU SQUAD メール認証</h2>
+          
+          <p><strong>${nickname}</strong>さん、</p>
+          
+          <p>BUNGU SQUADの大会エントリーにお申し込みいただき、ありがとうございます。</p>
+          
+          <div style="background-color: #f5f5f5; padding: 20px; margin: 20px 0; border-radius: 8px;">
+            <h3 style="margin-top: 0;">大会情報</h3>
+            <p><strong>日時:</strong> ${tournamentDate} ${tournamentTime}〜</p>
+            <p><strong>場所:</strong> オンライン</p>
+          </div>
+          
+          <p>下記のリンクをクリックして、メール認証を完了してください：</p>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${verificationLink}" 
+               style="background-color: #D4A853; color: white; padding: 15px 30px; 
+                      text-decoration: none; border-radius: 5px; display: inline-block;">
+              メール認証を完了する
+            </a>
+          </div>
+          
+          <p style="color: #666; font-size: 14px;">
+            ※ このリンクは24時間で無効になります<br>
+            ※ 認証完了後、自動的に大会にエントリーされます
+          </p>
+          
+          <hr style="margin: 30px 0;">
+          <p style="color: #999; font-size: 12px;">
+            BUNGU SQUAD ランキングシステム<br>
+            このメールに心当たりがない場合は、このメールを無視してください。
+          </p>
+        </div>
+      `
+    });
+    
+    console.log('Email sent successfully:', emailResult);
 
     // 認証トークンをメモリに保存
     verificationTokens.set(verificationToken, {
@@ -136,7 +126,7 @@ async function sendVerificationEmail(req, res) {
 
   } catch (error) {
     console.error('Email sending error:', error);
-    res.status(500).json({ error: 'メール送信に失敗しました' });
+    res.status(500).json({ error: 'メール送信に失敗しました: ' + error.message });
   }
 }
 
