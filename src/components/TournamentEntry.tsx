@@ -524,28 +524,6 @@ export const TournamentEntry = () => {
                 </div>
               )}
 
-              {/* Entry Button - Only show if from QR code and not in email verification flow */}
-              {isFromQR && !showEmailForm && !emailSent && (
-                <Button
-                  variant="heroic"
-                  size="lg"
-                  className="w-full"
-                  onClick={handleEntry}
-                  disabled={isEntering || tournament.status === '開催中' || tournament.status === '完了'}
-                >
-                  {isEntering ? (
-                    <>
-                      <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                      エントリー中...
-                    </>
-                  ) : (
-                    <>
-                      <Trophy className="h-5 w-5 mr-2" />
-                      大会にエントリー
-                    </>
-                  )}
-                </Button>
-              )}
 
               {/* QR Code Notice - Show if not accessed via QR code */}
               {!isFromQR && !showEmailForm && !emailSent && (
@@ -571,7 +549,7 @@ export const TournamentEntry = () => {
                 <div className="space-y-2">
                   <div className="text-center">
                     <p className="text-xs text-muted-foreground mb-3">
-                      既存プレイヤーはログイン、初回参加の方はメール認証でエントリーできます
+                      既存プレイヤーはログイン、初回参加の方は新規登録でエントリーできます
                     </p>
                   </div>
                 <div className="space-y-2">
