@@ -2730,6 +2730,97 @@ class SheetsService {
     }
   }
 
+  async updatePlayerBadges(playerId) {
+    await this.authenticate();
+    
+    console.log(`updatePlayerBadges called: playerId=${playerId}`);
+    
+    try {
+      // Get player data to check game experience
+      const response = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'Players!A2:Z1000'
+      });
+      
+      const rows = response.data.values || [];
+      const playerRowIndex = rows.findIndex(row => row[0] === playerId);
+      
+      if (playerRowIndex === -1) {
+        console.warn(`Player ${playerId} not found for badge update`);
+        return;
+      }
+      
+      const playerRow = rows[playerRowIndex];
+      const actualRowNumber = playerRowIndex + 2;
+      
+      // Get current badge string (column I)
+      let currentBadges = playerRow[8] || '';
+      
+      // Check trump experience (column J) and add ♠️ badge if experienced
+      const trumpExperienced = playerRow[9] === 'TRUE';
+      if (trumpExperienced && !currentBadges.includes('♠️')) {
+        currentBadges += '♠️';
+        console.log(`Added trump badge ♠️ to player ${playerId}`);
+      }
+      
+      // Check cardplus experience (column L) and add ➕ badge if experienced  
+      const cardplusExperienced = playerRow[11] === 'TRUE';
+      if (cardplusExperienced && !currentBadges.includes('➕')) {
+        currentBadges += '➕';
+        console.log(`Added cardplus badge ➕ to player ${playerId}`);
+      }
+      
+      // Update badges if changed
+      if (currentBadges !== (playerRow[8] || '')) {
+        await this.sheets.spreadsheets.values.update({
+          spreadsheetId: this.spreadsheetId,
+          range: `Players!I${actualRowNumber}`,
+          valueInputOption: 'USER_ENTERED',
+          requestBody: {
+            values: [[currentBadges]]
+          }
+        });
+        console.log(`Updated badges for player ${playerId}: ${currentBadges}`);
+      }
+      
+    } catch (error) {
+      console.error('Error updating player badges:', error);
+      // Don't throw error to prevent blocking processes
+    }
+  }
+
+  async getAllMatches() {
+    await this.authenticate();
+    
+    try {
+      const response = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'TournamentMatches!A2:Z1000'
+      });
+      
+      const rows = response.data.values || [];
+      return rows.map(row => ({
+        match_id: row[0],
+        tournament_id: row[1],
+        match_number: row[2],
+        player1_id: row[3],
+        player1_name: row[4],
+        player2_id: row[5],
+        player2_name: row[6],
+        game_type: row[7],
+        status: row[8],
+        winner_id: row[9],
+        result_details: row[10],
+        created_at: row[11],
+        completed_at: row[12],
+        approved_at: row[13]
+      }));
+    } catch (error) {
+      console.error('Error getting all matches:', error);
+      return [];
+    }
+  }
+
   async addSingleTournamentMatch(tournamentId, matchData) {
     await this.authenticate();
     

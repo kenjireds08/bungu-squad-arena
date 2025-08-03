@@ -199,17 +199,18 @@ async function handleFixBadges(req, res) {
     console.log('バッジ修正スクリプト開始...');
     
     // 1. 全試合データを取得
-    const matches = await sheetsService.getMatches();
+    const matches = await sheetsService.getAllMatches();
     console.log(`${matches.length}件の試合データを取得`);
     
-    // 2. basic以外の試合を特定
-    const nonBasicMatches = matches.filter(match => 
-      match.game_type !== 'basic' && match.status === 'completed'
+    // 2. trump/cardplus以外の試合を特定
+    const gameRuleMatches = matches.filter(match => 
+      (match.game_type === 'trump' || match.game_type === 'cardplus') && 
+      (match.status === 'completed' || match.status === 'approved')
     );
-    console.log(`basic以外の完了試合: ${nonBasicMatches.length}件`);
+    console.log(`trump/cardplusの完了試合: ${gameRuleMatches.length}件`);
     
     // 3. 各試合の参加者にバッジ付与
-    for (const match of nonBasicMatches) {
+    for (const match of gameRuleMatches) {
       console.log(`処理中: ${match.match_id} (${match.game_type})`);
       
       // player1のバッジ更新
@@ -239,7 +240,7 @@ async function handleFixBadges(req, res) {
     return res.status(200).json({ 
       success: true, 
       message: 'バッジ修正完了',
-      processedMatches: nonBasicMatches.length,
+      processedMatches: gameRuleMatches.length,
       updatedPlayers: players.length
     });
     
