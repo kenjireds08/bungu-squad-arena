@@ -66,19 +66,25 @@ export const PWAInstallPrompt = ({ onClose }: PWAInstallPromptProps) => {
         </div>
       ) : (
         <div className="space-y-3">
-          <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-            <p className="text-amber-800 font-medium text-xs mb-2">⚠️ 重要</p>
-            <p className="text-amber-700 text-xs">
-              Chromeのメニューから「ホーム画面に追加」すると、ショートカットになってしまいます。
-              正しいアプリとしてインストールするには以下をお試しください：
-            </p>
-          </div>
           <ol className="list-decimal list-inside space-y-2 text-muted-foreground">
-            <li>ページを再読み込みしてください</li>
-            <li>「アプリをインストール」ボタンが表示されるまで待つ</li>
-            <li>ボタンが表示されない場合は、Chromeのメニュー（⋮）から「アプリをインストール」を探す</li>
-            <li>「ホーム画面に追加」を押した場合は、メニューに「BUNGU SQUADを起動」が表示されるので、それを再度タップ</li>
+            <li>Chromeのメニュー（⋮）から<strong>「アプリをインストール」</strong>を選択（推奨）</li>
+            <li>表示がない場合は<strong>「ホーム画面に追加」</strong>を選択</li>
           </ol>
+          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-blue-800 font-medium text-xs mb-2">💡 インストール確認方法</p>
+            <ul className="text-blue-700 text-xs space-y-1">
+              <li>• アプリ一覧に「BUNGU SQUAD」が表示 → アプリとして追加済み</li>
+              <li>• ホーム画面アイコンのみ → ショートカット</li>
+            </ul>
+          </div>
+          <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+            <p className="text-amber-800 font-medium text-xs mb-2">⚠️ ボタンが出ない場合</p>
+            <ul className="text-amber-700 text-xs space-y-1">
+              <li>• すでにインストール済み</li>
+              <li>• ページを再読み込みして再試行</li>
+              <li>• Chromeを最新版に更新</li>
+            </ul>
+          </div>
         </div>
       )}
     </div>
