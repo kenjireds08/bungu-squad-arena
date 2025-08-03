@@ -199,9 +199,9 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
         // Logged in user: Direct entry processing
         console.log('BUNGU SQUAD: ログイン済みユーザーの直接エントリー処理開始');
         
+        // Update tournament active status and navigate directly to waiting screen
         setTimeout(async () => {
           try {
-            // Update tournament active status directly
             const response = await fetch(`/api/players?id=${userId}`, {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
@@ -210,8 +210,8 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
             
             if (response.ok) {
               console.log('BUNGU SQUAD: tournament_active更新成功');
-              // Navigate directly to entry complete page via MainDashboard
-              window.location.href = '/?page=tournament-entry-complete&from_qr=true';
+              // Navigate directly to tournament waiting screen
+              window.location.href = '/?page=tournament-waiting';
             } else {
               console.error('BUNGU SQUAD: tournament_active更新失敗');
               // Fallback to tournament entry page
@@ -267,17 +267,26 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
     startCamera();
   };
 
-  // Show success state
+  // Show success state with loading message
   if (scanResult === 'success') {
     return (
-      <TournamentEntryComplete 
-        onClose={onClose}
-        onViewTournament={() => {
-          // This will be handled by the automatic navigation in handleQRDetected
-          // The TournamentEntryComplete component will just show the countdown
-        }}
-        disableAutoTransition={true}
-      />
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4 animate-bounce-gentle" />
+            <CardTitle className="text-green-700">QRコード読み取り完了！</CardTitle>
+          </CardHeader>
+          <CardContent className="text-center">
+            <p className="text-sm text-muted-foreground mb-4">
+              大会エントリーが完了しました
+            </p>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mx-auto mb-4"></div>
+            <p className="text-xs text-muted-foreground">
+              待機画面に移動しています...
+            </p>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 

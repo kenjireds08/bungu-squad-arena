@@ -22,20 +22,29 @@ export const TournamentEntryComplete = ({ onClose, onViewTournament, disableAuto
   const currentTournament = getTournamentForMainDashboard(tournamentsData || []);
 
   useEffect(() => {
-    console.log('TournamentEntryComplete: useEffect called, disableAutoTransition=', disableAutoTransition);
+    console.log('TournamentEntryComplete: useEffect called');
+    console.log('TournamentEntryComplete: disableAutoTransition=', disableAutoTransition);
+    console.log('TournamentEntryComplete: onViewTournament function=', typeof onViewTournament);
     
     if (disableAutoTransition) {
       console.log('TournamentEntryComplete: Auto transition disabled');
       return;
     }
     
+    console.log('TournamentEntryComplete: Starting countdown timer');
     const timer = setInterval(() => {
       setCountdown((prev) => {
         console.log('TournamentEntryComplete: Countdown tick, current value:', prev);
         if (prev <= 1) {
           console.log('TournamentEntryComplete: Countdown reached 0, calling onViewTournament');
+          console.log('TournamentEntryComplete: onViewTournament type:', typeof onViewTournament);
           clearInterval(timer);
-          onViewTournament(); // 自動的に待機画面へ遷移
+          try {
+            onViewTournament(); // 自動的に待機画面へ遷移
+            console.log('TournamentEntryComplete: onViewTournament called successfully');
+          } catch (error) {
+            console.error('TournamentEntryComplete: Error calling onViewTournament:', error);
+          }
           return 0;
         }
         return prev - 1;
@@ -146,25 +155,6 @@ export const TournamentEntryComplete = ({ onClose, onViewTournament, disableAuto
         </Card>
 
 
-        {/* Auto-transition info */}
-        <Card className="border-primary/20 bg-primary/5 shadow-soft animate-slide-up">
-          <CardContent className="pt-4">
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground mb-2">
-                このまま待機画面で組み合わせの発表をお待ちください
-              </p>
-              <div className="w-full bg-muted rounded-full h-2 mb-2">
-                <div 
-                  className="bg-primary h-2 rounded-full transition-all duration-1000 ease-linear"
-                  style={{ width: `${((5 - countdown) / 5) * 100}%` }}
-                />
-              </div>
-              <p className="text-xs text-muted-foreground">
-                待機画面でランキング・ルール・計算方式が確認できます
-              </p>
-            </div>
-          </CardContent>
-        </Card>
 
         {/* Manual navigation button */}
         <Card className="border-primary/20 bg-primary/5 shadow-soft animate-slide-up">
