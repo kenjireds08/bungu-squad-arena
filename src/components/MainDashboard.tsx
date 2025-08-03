@@ -278,9 +278,16 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
         setCurrentPage('dashboard');
       }}
       onViewTournament={() => {
-        console.log('MainDashboard: tournament-entry-complete から tournament-waiting へ遷移');
+        console.log('MainDashboard: onViewTournament called from TournamentEntryComplete');
+        console.log('MainDashboard: Current page before transition:', currentPage);
         setCurrentPage('tournament-waiting');
         setIsQREntry(false); // 遷移後はQR状態をリセット
+        console.log('MainDashboard: Page set to tournament-waiting');
+        
+        // Force a small delay to ensure state update
+        setTimeout(() => {
+          console.log('MainDashboard: Confirmed page transition to tournament-waiting');
+        }, 100);
       }}
       disableAutoTransition={false} // QR経由でも自動遷移を有効化
       hideBackButton={isQREntry} // QR経由の場合は戻るボタンを非表示

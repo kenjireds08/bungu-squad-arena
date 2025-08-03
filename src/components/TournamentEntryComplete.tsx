@@ -22,11 +22,18 @@ export const TournamentEntryComplete = ({ onClose, onViewTournament, disableAuto
   const currentTournament = getTournamentForMainDashboard(tournamentsData || []);
 
   useEffect(() => {
-    if (disableAutoTransition) return;
+    console.log('TournamentEntryComplete: useEffect called, disableAutoTransition=', disableAutoTransition);
+    
+    if (disableAutoTransition) {
+      console.log('TournamentEntryComplete: Auto transition disabled');
+      return;
+    }
     
     const timer = setInterval(() => {
       setCountdown((prev) => {
+        console.log('TournamentEntryComplete: Countdown tick, current value:', prev);
         if (prev <= 1) {
+          console.log('TournamentEntryComplete: Countdown reached 0, calling onViewTournament');
           clearInterval(timer);
           onViewTournament(); // 自動的に待機画面へ遷移
           return 0;
@@ -35,7 +42,10 @@ export const TournamentEntryComplete = ({ onClose, onViewTournament, disableAuto
       });
     }, 1000);
 
-    return () => clearInterval(timer);
+    return () => {
+      console.log('TournamentEntryComplete: Cleanup timer');
+      clearInterval(timer);
+    };
   }, [onViewTournament, disableAutoTransition]);
 
   return (
@@ -121,8 +131,7 @@ export const TournamentEntryComplete = ({ onClose, onViewTournament, disableAuto
                     <div>
                       <p className="font-medium">参加者状況</p>
                       <p className="text-sm text-muted-foreground">
-                        {currentTournament.participants}/20名
-                        <span className="ml-2 text-success">（あと{20 - currentTournament.participants}名参加可能）</span>
+                        現在の参加者: {currentTournament.participants}名
                       </p>
                     </div>
                   </div>
@@ -157,19 +166,24 @@ export const TournamentEntryComplete = ({ onClose, onViewTournament, disableAuto
           </CardContent>
         </Card>
 
-        {/* Character */}
-        <div className="text-center py-4">
-          <div className="flex justify-center mb-4">
-            <img 
-              src={tapeNinja} 
-              alt="Tape Ninja welcoming" 
-              className="w-20 h-20 object-contain animate-bounce-gentle"
-            />
-          </div>
-          <p className="text-sm text-muted-foreground">
-            テープ忍者：「参加ありがとうございます！待機画面で組み合わせを確認しましょう！」
-          </p>
-        </div>
+        {/* Manual navigation button */}
+        <Card className="border-primary/20 bg-primary/5 shadow-soft animate-slide-up">
+          <CardContent className="pt-4">
+            <div className="text-center space-y-3">
+              <p className="text-sm text-muted-foreground">
+                自動で画面が切り替わらない場合は、下のボタンをタップしてください
+              </p>
+              <Button 
+                onClick={onViewTournament}
+                variant="outline"
+                size="lg"
+                className="w-full"
+              >
+                待機画面に移動
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </main>
     </div>
   );
