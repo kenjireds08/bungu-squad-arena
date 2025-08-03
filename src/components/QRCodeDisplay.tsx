@@ -24,14 +24,9 @@ export const QRCodeDisplay = ({ tournamentId, tournamentName, onClose, isOpen }:
   const currentUserId = localStorage.getItem('userId');
   const isAdmin = localStorage.getItem('isAdmin') === 'true';
   
-  // Add user context to QR code URL to help with cross-browser/device issues
-  let entryUrl = `${window.location.origin}/tournament/${today}?from_qr=true`;
-  if (currentUserId) {
-    entryUrl += `&ref_user=${currentUserId}`;
-  }
-  if (isAdmin) {
-    entryUrl += `&admin=true`;
-  }
+  // Create clean tournament entry URL with tournament name
+  const encodedTournamentName = encodeURIComponent(tournamentName);
+  let entryUrl = `${window.location.origin}/tournament/${today}/${encodedTournamentName}?from_qr=true`;
   
   const handleCopyUrl = async () => {
     try {

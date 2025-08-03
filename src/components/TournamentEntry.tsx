@@ -20,11 +20,12 @@ interface Tournament {
 }
 
 export const TournamentEntry = () => {
-  const { tournamentId, date } = useParams<{ tournamentId?: string; date?: string }>();
+  const { tournamentId, date, tournamentName } = useParams<{ tournamentId?: string; date?: string; tournamentName?: string }>();
   const searchParams = new URLSearchParams(window.location.search);
   const isFromQR = searchParams.has('qr') || searchParams.has('from_qr'); // Check if accessed via QR code
-  const refUserId = searchParams.get('ref_user'); // User ID from QR code reference
-  const isAdminRef = searchParams.has('admin'); // Admin flag from QR code
+  
+  // Decode tournament name from URL if present
+  const decodedTournamentName = tournamentName ? decodeURIComponent(tournamentName) : null;
   const navigate = useNavigate();
   const { toast } = useToast();
   const [tournament, setTournament] = useState<Tournament | null>(null);
@@ -55,24 +56,16 @@ export const TournamentEntry = () => {
         // Check if user is logged in and tournament active
         // Use URL parameter if localStorage is not available (cross-browser/incognito issues)
         const localUserId = localStorage.getItem('userId');
-        const userId = localUserId || refUserId;
+        const userId = localUserId;
         let userIsActive = false;
         
         // Log current login state for debugging
         console.log('TournamentEntry: Current userId from localStorage:', localUserId);
-        console.log('TournamentEntry: refUserId from URL:', refUserId);
         console.log('TournamentEntry: Final userId:', userId);
         console.log('TournamentEntry: isFromQR:', isFromQR);
+        console.log('TournamentEntry: date:', date);
+        console.log('TournamentEntry: tournamentName:', decodedTournamentName);
         console.log('TournamentEntry: Current URL:', window.location.href);
-        
-        // If we have a user ID from QR reference but not in localStorage, set it
-        if (refUserId && !localUserId) {
-          localStorage.setItem('userId', refUserId);
-          if (isAdminRef) {
-            localStorage.setItem('isAdmin', 'true');
-          }
-          console.log('TournamentEntry: Set userId from QR reference:', refUserId);
-        }
         
         // Get active tournament data from API
         let activeTournament = null;
@@ -85,11 +78,24 @@ export const TournamentEntry = () => {
             const tournaments = await tournamentsResponse.json();
             console.log('All tournaments:', tournaments);
             
-            // Find today's active tournament
-            const today = new Date().toISOString().split('T')[0];
-            activeTournament = tournaments.find((t: any) => 
-              t.date === today && (t.status === 'active' || t.status === 'upcoming')
-            );
+            // Find tournament by date and name if provided, otherwise find today's active tournament
+            const targetDate = date || new Date().toISOString().split('T')[0];
+            
+            if (decodedTournamentName) {
+              // Find tournament by date and name
+              activeTournament = tournaments.find((t: any) => 
+                t.date === targetDate && 
+                t.name === decodedTournamentName &&
+                (t.status === 'active' || t.status === 'upcoming')
+              );
+              console.log('Found tournament by date and name:', activeTournament);
+            } else {
+              // Fallback: find tournament by date only
+              activeTournament = tournaments.find((t: any) => 
+                t.date === targetDate && (t.status === 'active' || t.status === 'upcoming')
+              );
+              console.log('Found tournament by date only:', activeTournament);
+            }
             console.log('Today\'s active tournament:', activeTournament);
           }
         } catch (error) {
