@@ -6,7 +6,10 @@ const crypto = require('crypto');
 let verificationTokens = new Map();
 
 module.exports = async function handler(req, res) {
+  console.log('=== AUTH HANDLER START ===');
   console.log('Auth handler called:', req.method, req.url);
+  console.log('Request body:', req.body);
+  console.log('Headers:', req.headers);
   
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -18,6 +21,12 @@ module.exports = async function handler(req, res) {
   }
 
   try {
+    // テスト用：すぐにレスポンスを返す
+    if (req.method === 'POST') {
+      console.log('POST request received');
+      // return res.status(200).json({ test: 'ok', body: req.body });
+    }
+    
     const { searchParams } = new URL(req.url, `http://${req.headers.host}`);
     const action = searchParams.get('action');
     console.log('Action:', action);
