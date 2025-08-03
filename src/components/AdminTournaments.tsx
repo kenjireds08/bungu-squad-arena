@@ -688,6 +688,7 @@ export const AdminTournaments = ({ onBack, initialView = 'list', selectedTournam
           <QRCodeDisplay
             tournamentId={qrTournament.id.toString()}
             tournamentName={qrTournament.name}
+            tournamentDate={qrTournament.date}
             onClose={handleCloseQR}
             isOpen={showQRCode}
           />

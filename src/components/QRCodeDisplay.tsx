@@ -9,24 +9,18 @@ import QRCode from 'react-qr-code';
 interface QRCodeDisplayProps {
   tournamentId: string;
   tournamentName: string;
+  tournamentDate: string;
   onClose: () => void;
   isOpen: boolean;
 }
 
-export const QRCodeDisplay = ({ tournamentId, tournamentName, onClose, isOpen }: QRCodeDisplayProps) => {
+export const QRCodeDisplay = ({ tournamentId, tournamentName, tournamentDate, onClose, isOpen }: QRCodeDisplayProps) => {
   const [copied, setCopied] = useState(false);
   
-  // Generate entry URL for the tournament
-  // Use date-based URL for proper tournament identification
-  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
-  
-  // Get current user info to include in QR code for better session handling
-  const currentUserId = localStorage.getItem('userId');
-  const isAdmin = localStorage.getItem('isAdmin') === 'true';
-  
-  // Create clean tournament entry URL with tournament name
+  // Generate entry URL for the tournament using tournament's actual date
+  // Create clean tournament entry URL with tournament name and date
   const encodedTournamentName = encodeURIComponent(tournamentName);
-  let entryUrl = `${window.location.origin}/tournament/${today}/${encodedTournamentName}?from_qr=true`;
+  let entryUrl = `${window.location.origin}/tournament/${tournamentDate}/${encodedTournamentName}?from_qr=true`;
   
   const handleCopyUrl = async () => {
     try {
