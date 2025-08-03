@@ -11,6 +11,14 @@ export const PWAInstallPrompt = ({ onClose }: PWAInstallPromptProps) => {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isIOS, setIsIOS] = useState(false);
 
+  // PWAアプリとして開いているかチェック
+  const isStandalone = 
+    window.matchMedia('(display-mode: standalone)').matches ||
+    (navigator as any).standalone === true;
+
+  // PWAアプリとして開いている場合は表示しない
+  if (isStandalone) return null;
+
   useEffect(() => {
     // Check if it's iOS
     const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
