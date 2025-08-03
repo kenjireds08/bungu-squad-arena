@@ -14,7 +14,7 @@ const transporter = nodemailer.createTransporter({
   }
 });
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   console.log('Auth handler called:', req.method, req.url);
   
   // CORS headers
@@ -209,7 +209,7 @@ async function verifyEmail(req, res) {
 }
 
 // トークン管理ユーティリティ（期限切れクリーンアップ用）
-export function cleanupExpiredTokens() {
+function cleanupExpiredTokens() {
   const now = new Date();
   let cleanedCount = 0;
   
@@ -223,3 +223,5 @@ export function cleanupExpiredTokens() {
   console.log('Cleaned up expired tokens:', cleanedCount);
   return cleanedCount;
 }
+
+module.exports.cleanupExpiredTokens = cleanupExpiredTokens;
