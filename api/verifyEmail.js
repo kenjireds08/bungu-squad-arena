@@ -1,43 +1,66 @@
+const { getVerificationData, removeVerificationToken } = require('./verificationTokens.js');
+
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    const { token, email } = req.query;
+    const { token } = req.query;
 
-    if (!token || !email) {
-      return res.status(400).json({ error: 'Token and email are required' });
+    if (!token) {
+      return res.status(400).redirect('/?error=invalid_token');
     }
 
-    // TODO: 実際の実装では、トークンの検証を行う
-    // 現在はシンプルにトークンの存在確認のみ
-    console.log('Verifying token:', token, 'for email:', email);
+    // トークンの検証
+    const verificationData = getVerificationData(token);
+    
+    if (!verificationData) {
+      return res.status(400).redirect('/?error=expired_token');
+    }
 
-    // 認証成功の場合
-    // 1. ユーザーアカウントを作成
-    // 2. 大会にエントリー
-    // 3. 待機画面にリダイレクト
+    console.log('Token verified for:', verificationData.email);
 
-    // ユーザー作成（仮実装）
+    // ユーザーアカウントを作成
     const newUser = {
-      email: decodeURIComponent(email),
-      nickname: `User_${Date.now()}`, // 実際には事前に保存されたニックネームを使用
+      nickname: verificationData.nickname,
+      email: verificationData.email,
+      current_rating: 1200,
       tournament_active: true,
-      rating: 1500
+      rating_change: 0,
+      games_played: 0,
+      wins: 0,
+      losses: 0,
+      last_played: new Date().toISOString().split('T')[0]
     };
 
-    // TODO: データベースに保存する処理
-    console.log('Creating user:', newUser);
+    // データベースに保存
+    const createResponse = await fetch(`${req.headers.origin}/api/rankings`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newUser)
+    });
 
-    // 成功ページへリダイレクト
+    if (!createResponse.ok) {
+      const errorData = await createResponse.json();
+      console.error('User creation failed:', errorData);
+      return res.status(500).redirect('/?error=creation_failed');
+    }
+
+    const createdUser = await createResponse.json();
+    console.log('User created successfully:', createdUser.id);
+
+    // 使用済みトークンを削除
+    removeVerificationToken(token);
+
+    // 成功: 待機画面にリダイレクト（ユーザーIDを含む）
     res.writeHead(302, {
-      Location: '/tournament-waiting?verified=true'
+      Location: `/tournament-waiting?verified=true&userId=${createdUser.id}&nickname=${encodeURIComponent(verificationData.nickname)}`
     });
     res.end();
 
   } catch (error) {
     console.error('Email verification error:', error);
-    res.status(500).json({ error: 'メール認証に失敗しました' });
+    res.status(500).redirect('/?error=verification_failed');
   }
 }

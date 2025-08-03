@@ -1,5 +1,6 @@
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
+const { storeVerificationToken } = require('./verificationTokens.js');
 
 // メール送信設定（環境変数を使用）
 const transporter = nodemailer.createTransporter({
@@ -75,11 +76,14 @@ export default async function handler(req, res) {
     // メール送信
     await transporter.sendMail(mailOptions);
 
-    // 認証トークンを一時保存（実際の実装では Redis や Database を使用）
-    // 今回はシンプルに環境変数やファイルに保存
-    console.log('Verification token generated:', verificationToken);
-    console.log('For email:', email);
-    console.log('Nickname:', nickname);
+    // 認証トークンをメモリに保存
+    storeVerificationToken(verificationToken, {
+      email,
+      nickname,
+      tournamentId,
+      tournamentDate,
+      tournamentTime
+    });
 
     res.status(200).json({ 
       success: true, 
