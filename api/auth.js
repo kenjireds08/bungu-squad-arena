@@ -74,6 +74,7 @@ async function sendVerificationEmail(req, res) {
     // Resend APIでメール送信
     const resend = new Resend(process.env.RESEND_API_KEY);
     
+    console.log('About to call resend.emails.send...');
     const emailResult = await resend.emails.send({
       from: 'BUNGU SQUAD <onboarding@resend.dev>',
       to: email,
@@ -116,7 +117,7 @@ async function sendVerificationEmail(req, res) {
       `
     });
     
-    console.log('Email sent successfully:', emailResult);
+    console.log('Email sent successfully:', JSON.stringify(emailResult, null, 2));
 
     // 認証トークンをメモリに保存
     verificationTokens.set(verificationToken, {
