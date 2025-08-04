@@ -173,6 +173,7 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
                 console.error('Rating fetch error for match:', match.id);
               }
               return match;
+            })
           );
           
           setMatches(matchesWithRating);
