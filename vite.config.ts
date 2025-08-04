@@ -3,13 +3,14 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 
 // https://vitejs.dev/config/
-export default defineConfig(async ({ mode }) => {
+export default defineConfig(({ mode }) => {
   const plugins = [react()];
   
   if (mode === 'development') {
-    const { componentTagger } = await import("lovable-tagger");
-    // @ts-ignore - componentTagger may return Plugin or Plugin[]
-    plugins.push(componentTagger());
+    import("lovable-tagger").then(({ componentTagger }) => {
+      // @ts-ignore - componentTagger may return Plugin or Plugin[]
+      plugins.push(componentTagger());
+    });
   }
 
   return {

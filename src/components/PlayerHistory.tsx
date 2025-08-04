@@ -362,7 +362,7 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
                 <div className="flex items-start justify-between mb-2">
                   <div className="space-y-1">
                     <h3 className="font-semibold text-foreground">
-                      {entry.tournament_name || 'BUNGU SQUAD大会'}
+                      {entry.tournament_date || 'BUNGU SQUAD大会'}
                     </h3>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Calendar className="h-3 w-3" />

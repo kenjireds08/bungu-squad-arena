@@ -51,7 +51,7 @@ export class NotificationManager {
         icon: '/favicon.ico',
         badge: '/favicon.ico',
         tag: 'bungu-squad',
-        renotify: true,
+        // renotify: true,
         requireInteraction: true,
         ...options
       });
@@ -105,10 +105,10 @@ export class NotificationManager {
       {
         body: `${matchNumber}試合目 vs ${opponentName}\n準備はよろしいですか？`,
         data: { action: 'match_start' },
-        actions: [
-          { action: 'start', title: '試合開始' },
-          { action: 'later', title: '後で' }
-        ]
+        // actions: [
+        //   { action: 'start', title: '試合開始' },
+        //   { action: 'later', title: '後で' }
+        // ]
       }
     );
   }
@@ -165,10 +165,10 @@ export class NotificationManager {
       {
         body: `${matchNumber}試合目 vs ${opponentName}\n試合を開始してください。`,
         data: { action: 'your_turn' },
-        actions: [
-          { action: 'start', title: '試合開始' },
-          { action: 'later', title: '後で' }
-        ]
+        // actions: [
+        //   { action: 'start', title: '試合開始' },
+        //   { action: 'later', title: '後で' }
+        // ]
       }
     );
   }

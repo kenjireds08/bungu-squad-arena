@@ -151,10 +151,10 @@ export const TournamentWaiting = ({ onClose, onViewRanking }: TournamentWaitingP
           <CardContent className="space-y-4">
             <div>
               <h3 className="font-bold text-lg mb-2">
-                {todaysTournament?.name || todaysTournament?.tournament_name || '大会情報取得中...'}
+                {(todaysTournament as any)?.tournament_name || (todaysTournament as any)?.name || '大会情報取得中...'}
               </h3>
               <p className="text-sm text-muted-foreground mb-2">
-                {todaysTournament?.date} {todaysTournament?.start_time && `${todaysTournament.start_time}〜`}
+                {todaysTournament?.date} {((todaysTournament as any)?.start_time || (todaysTournament as any)?.time) && `${(todaysTournament as any).start_time || (todaysTournament as any).time}〜`}
               </p>
               <Badge variant="outline">
                 参加者 {participantCount}名

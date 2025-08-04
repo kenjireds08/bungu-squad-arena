@@ -215,13 +215,13 @@ export const TournamentEntry = () => {
                     activeTournament.status === 'upcoming' ? '開催予定' : '終了'
           };
         } else {
-          console.error('No tournament found for date:', targetDate, 'time:', time);
+          console.error('No tournament found for date:', date, 'time:', time);
           // Show error state instead of fallback data
           setIsLoading(false);
           toast({
             variant: "destructive",
             title: "大会が見つかりません",
-            description: `指定された日付・時間の大会が見つかりませんでした。${targetDate} ${time || ''}`
+            description: `指定された日付・時間の大会が見つかりませんでした。${date} ${time || ''}`
           });
           return;
         }

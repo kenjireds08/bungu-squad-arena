@@ -103,7 +103,7 @@ export const PlayerStats = ({ onClose, currentUserId = "player_001" }: PlayerSta
                   const monthName = new Date(parseInt(year), parseInt(month) - 1).toLocaleDateString('ja-JP', { month: 'short' });
                   
                   // Calculate rating at end of month (approximate)
-                  const monthMatches = data.matches.sort((a, b) => new Date(a.match_start_time || a.created_at) - new Date(b.match_start_time || b.created_at));
+                  const monthMatches = (data as any).matches?.sort((a: any, b: any) => new Date(a.match_start_time || a.created_at).getTime() - new Date(b.match_start_time || b.created_at).getTime()) || [];
                   const lastMatch = monthMatches[monthMatches.length - 1];
                   let monthEndRating = currentUser.current_rating;
                   
@@ -118,8 +118,8 @@ export const PlayerStats = ({ onClose, currentUserId = "player_001" }: PlayerSta
                   
                   return {
                     month: monthName,
-                    games: data.games,
-                    wins: data.wins,
+                   games: (data as any).games || 0,
+                   wins: (data as any).wins || 0,
                     rating: monthEndRating
                   };
                 });

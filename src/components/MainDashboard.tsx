@@ -440,7 +440,7 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
                   }}
                 >
                   <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-lg">{nextTournament.tournament_name || nextTournament.name}</h3>
+                    <h3 className="font-semibold text-lg">{(nextTournament as any).tournament_name || (nextTournament as any).name}</h3>
                     <Info className="h-4 w-4 text-muted-foreground" />
                   </div>
                   <div className="space-y-1 text-sm text-muted-foreground">
