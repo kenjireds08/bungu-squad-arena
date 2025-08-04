@@ -1,5 +1,10 @@
 const SheetsService = require('./lib/sheets');
 
+// In-memory cache with 30 second TTL
+if (!globalThis.rankingsCache) {
+  globalThis.rankingsCache = { data: null, timestamp: 0, ttl: 30000 };
+}
+
 module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') {
     return res.status(200).json({ message: 'OK' });
@@ -9,8 +14,25 @@ module.exports = async function handler(req, res) {
     const sheetsService = new SheetsService();
 
     if (req.method === 'GET') {
-      // Get rankings
+      // Add caching to reduce API calls
+      res.setHeader('Cache-Control', 'public, s-maxage=15, stale-while-revalidate=60');
+      
+      // Check in-memory cache first
+      const now = Date.now();
+      const cache = globalThis.rankingsCache;
+      
+      if (cache.data && (now - cache.timestamp) < cache.ttl) {
+        console.log('Returning cached rankings data');
+        return res.status(200).json(cache.data);
+      }
+      
+      // Get rankings from API
       const rankings = await sheetsService.getRankings();
+      
+      // Update cache
+      cache.data = rankings;
+      cache.timestamp = now;
+      
       return res.status(200).json(rankings);
     }
 
@@ -43,6 +65,9 @@ module.exports = async function handler(req, res) {
 
       // Add player to Google Sheets
       await sheetsService.addPlayer(newPlayer);
+      
+      // Invalidate cache when new player is added
+      globalThis.rankingsCache.data = null;
 
       return res.status(201).json(newPlayer);
     }

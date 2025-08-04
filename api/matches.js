@@ -10,6 +10,9 @@ module.exports = async function handler(req, res) {
 
     switch (req.method) {
       case 'GET':
+        // Add caching to reduce API calls
+        res.setHeader('Cache-Control', 'public, s-maxage=10, stale-while-revalidate=30');
+        
         const { playerId, tournamentId } = req.query;
         
         if (tournamentId) {

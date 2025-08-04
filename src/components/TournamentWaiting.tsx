@@ -70,8 +70,8 @@ export const TournamentWaiting = ({ onClose, onViewRanking }: TournamentWaitingP
     if (todaysTournament?.id) {
       fetchTournamentMatches();
       
-      // Check for updates every 30 seconds
-      const interval = setInterval(fetchTournamentMatches, 30000);
+      // Check for updates every 60 seconds (reduced frequency)
+      const interval = setInterval(fetchTournamentMatches, 60000);
       return () => clearInterval(interval);
     }
   }, [todaysTournament?.id]);

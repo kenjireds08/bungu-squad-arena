@@ -9,6 +9,9 @@ module.exports = async function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
+      // Add caching to reduce API calls
+      res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=120');
+      
       const { action } = req.query;
       
       if (action === 'get-daily-archive') {

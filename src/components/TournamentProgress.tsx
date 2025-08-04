@@ -43,7 +43,7 @@ export const TournamentProgress = ({ onBack }: TournamentProgressProps) => {
 
   useEffect(() => {
     loadTournamentProgress();
-    const interval = setInterval(loadTournamentProgress, 30000); // Refresh every 30 seconds
+    const interval = setInterval(loadTournamentProgress, 90000); // Refresh every 90 seconds - reduced to minimize API calls
     return () => clearInterval(interval);
   }, []);
 
