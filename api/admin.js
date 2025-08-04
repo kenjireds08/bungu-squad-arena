@@ -34,7 +34,7 @@ async function handleInvalidateMatch(req, res) {
     
     // Version increment for real-time updates
     try {
-      const tournamentId = 'current'; // Default tournament ID
+      const tournamentId = req.body.tournamentId || 'current'; // Use provided tournament ID or default
       await kv.incr(`tour:${tournamentId}:v`);
       console.log(`Version incremented for tournament: ${tournamentId}`);
     } catch (e) {
@@ -87,7 +87,7 @@ async function handleEditCompletedMatch(req, res) {
     
     // Version increment for real-time updates
     try {
-      const tournamentId = 'current'; // Default tournament ID
+      const tournamentId = req.body.tournamentId || 'current'; // Use provided tournament ID or default
       await kv.incr(`tour:${tournamentId}:v`);
       console.log(`Version incremented for tournament: ${tournamentId}`);
     } catch (e) {

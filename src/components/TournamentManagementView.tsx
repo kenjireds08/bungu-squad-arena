@@ -362,7 +362,8 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           matchId: invalidateMatchId,
-          reason: '管理者により無効化（レーティング変化なし）'
+          reason: '管理者により無効化（レーティング変化なし）',
+          tournamentId
         }),
       });
 
@@ -401,7 +402,8 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
         body: JSON.stringify({
           matchId: editCompletedMatch.match_id,
           newWinnerId,
-          newGameType
+          newGameType,
+          tournamentId
         }),
       });
 
