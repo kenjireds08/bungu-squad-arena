@@ -115,14 +115,10 @@ class SheetsService {
 
         const rows = response.data.values || [];
         
-        // Auto-reset tournament participation flags for new day
-        try {
-          await this.autoResetOldTournamentParticipation();
-          console.log('Auto-reset check completed');
-        } catch (resetError) {
-          console.warn('Auto-reset failed, continuing with getPlayers:', resetError.message);
-          // Continue with getPlayers even if reset fails
-        }
+        // Auto-reset tournament participation flags for new day (fire-and-forget to avoid deadlock)
+        this.autoResetOldTournamentParticipation()
+          .then(() => console.log('Auto-reset check completed'))
+          .catch(resetError => console.warn('Auto-reset failed:', resetError.message));
         
         return rows.map((row, index) => ({
           id: row[0] || `player_${index + 1}`,
