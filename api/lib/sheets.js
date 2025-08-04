@@ -177,8 +177,9 @@ class SheetsService {
   }
 
   async getRankings() {
-    try {
-      const players = await this.getPlayers();
+    return cached('rankings', 15000, async () => {
+      try {
+        const players = await this.getPlayers();
       const sortedPlayers = players.sort((a, b) => b.current_rating - a.current_rating);
       
       // Calculate ranks with ties
@@ -219,6 +220,7 @@ class SheetsService {
       // Re-throw the error from getPlayers with proper context
       throw new Error(`Failed to get rankings: ${error.message}`);
     }
+    });
   }
 
   async getPlayer(id) {
