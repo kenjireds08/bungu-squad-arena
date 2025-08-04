@@ -150,7 +150,7 @@ export const Login = ({ onLoginSuccess, isNewPlayer = false }: LoginProps) => {
             </CardTitle>
             <CardDescription>
               {isSignUp 
-                ? 'ニックネームとメールアドレスで登録し、自動的に大会にエントリーします'
+                ? 'ニックネームとメールアドレスで登録後、メール認証を完了して大会にエントリーします。エントリー後はアプリをホーム画面に保存してご利用ください。'
                 : 'メールアドレスでログインしてください'
               }
             </CardDescription>
