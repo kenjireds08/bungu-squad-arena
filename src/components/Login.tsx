@@ -99,7 +99,7 @@ export const Login = ({ onLoginSuccess, isNewPlayer = false }: LoginProps) => {
         
         if (formData.password) {
           try {
-            const adminResponse = await fetch('/api/auth-admin', {
+            const adminResponse = await fetch('/api/auth?action=admin-login', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
