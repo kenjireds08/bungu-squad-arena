@@ -108,72 +108,73 @@ class SheetsService {
       await this.authenticate();
       
       try {
-      const response = await this.sheets.spreadsheets.values.get({
-        spreadsheetId: this.spreadsheetId,
-        range: 'Players!A2:Z1000'
-      });
-
-      const rows = response.data.values || [];
-      
-      // Auto-reset tournament participation flags for new day
-      // Temporarily disabled for debugging 500 errors
-      try {
-        // await this.autoResetOldTournamentParticipation();
-        console.log('Auto-reset temporarily disabled for debugging');
-      } catch (resetError) {
-        console.warn('Auto-reset failed, continuing with getPlayers:', resetError.message);
-        // Continue with getPlayers even if reset fails
-      }
-      
-      return rows.map((row, index) => ({
-        id: row[0] || `player_${index + 1}`,
-        nickname: row[1] || '',
-        email: row[2] || '',
-        current_rating: parseInt(row[3]) || 1500,
-        annual_wins: parseInt(row[4]) || 0,
-        annual_losses: parseInt(row[5]) || 0,
-        total_wins: parseInt(row[6]) || 0,
-        total_losses: parseInt(row[7]) || 0,
-        champion_badges: row[8] || '',
-        trump_rule_experienced: row[9] === 'TRUE',  // J列 (index 9)
-        first_trump_game_date: row[10] || '',       // K列 (index 10)  
-        cardplus_rule_experienced: row[11] === 'TRUE', // L列 (index 11)
-        first_cardplus_game_date: row[12] || '',    // M列 (index 12)
-        registration_date: row[13] || '',
-        profile_image_url: row[14] || '',
-        is_active: row[15] === 'true',
-        last_activity_date: row[16] || '',
-        player_status: row[17] || 'active',
-        notification_preferences: row[18] || '{}',
-        device_tokens: row[19] || '[]',
-        last_login: row[20] || '',
-        profile_image_uploaded: row[21] === 'true',
-        preferred_language: row[22] || 'ja',
-        tournament_active: row[23] === 'TRUE'
-      }));
-    } catch (error) {
-      console.error('Error fetching players:', error);
-      
-      // Handle specific Google Sheets API errors
-      if (error.code === 404) {
-        throw new Error('Players sheet not found. Please check if the sheet exists.');
-      } else if (error.code === 403) {
-        throw new Error('Permission denied. Please check Google Sheets API credentials.');
-      } else if (error.code === 429) {
-        console.warn('Rate limit hit in getPlayers, implementing backoff');
-        const rateLimitError = new Error('API rate limit exceeded. Please try again later.');
-        rateLimitError.code = 429;
-        throw rateLimitError;
-      } else {
-        console.error('Environment check:', {
-          hasServiceAccount: !!process.env.GOOGLE_SERVICE_ACCOUNT_KEY,
-          hasSheetId: !!process.env.GOOGLE_SHEETS_ID,
-          sheetId: process.env.GOOGLE_SHEETS_ID,
-          serviceAccountLength: process.env.GOOGLE_SERVICE_ACCOUNT_KEY?.length
+        const response = await this.sheets.spreadsheets.values.get({
+          spreadsheetId: this.spreadsheetId,
+          range: 'Players!A2:Z1000'
         });
-        throw new Error(`Failed to fetch players data: ${error.message}`);
+
+        const rows = response.data.values || [];
+        
+        // Auto-reset tournament participation flags for new day
+        // Temporarily disabled for debugging 500 errors
+        try {
+          // await this.autoResetOldTournamentParticipation();
+          console.log('Auto-reset temporarily disabled for debugging');
+        } catch (resetError) {
+          console.warn('Auto-reset failed, continuing with getPlayers:', resetError.message);
+          // Continue with getPlayers even if reset fails
+        }
+        
+        return rows.map((row, index) => ({
+          id: row[0] || `player_${index + 1}`,
+          nickname: row[1] || '',
+          email: row[2] || '',
+          current_rating: parseInt(row[3]) || 1500,
+          annual_wins: parseInt(row[4]) || 0,
+          annual_losses: parseInt(row[5]) || 0,
+          total_wins: parseInt(row[6]) || 0,
+          total_losses: parseInt(row[7]) || 0,
+          champion_badges: row[8] || '',
+          trump_rule_experienced: row[9] === 'TRUE',  // J列 (index 9)
+          first_trump_game_date: row[10] || '',       // K列 (index 10)  
+          cardplus_rule_experienced: row[11] === 'TRUE', // L列 (index 11)
+          first_cardplus_game_date: row[12] || '',    // M列 (index 12)
+          registration_date: row[13] || '',
+          profile_image_url: row[14] || '',
+          is_active: row[15] === 'true',
+          last_activity_date: row[16] || '',
+          player_status: row[17] || 'active',
+          notification_preferences: row[18] || '{}',
+          device_tokens: row[19] || '[]',
+          last_login: row[20] || '',
+          profile_image_uploaded: row[21] === 'true',
+          preferred_language: row[22] || 'ja',
+          tournament_active: row[23] === 'TRUE'
+        }));
+      } catch (error) {
+        console.error('Error fetching players:', error);
+        
+        // Handle specific Google Sheets API errors
+        if (error.code === 404) {
+          throw new Error('Players sheet not found. Please check if the sheet exists.');
+        } else if (error.code === 403) {
+          throw new Error('Permission denied. Please check Google Sheets API credentials.');
+        } else if (error.code === 429) {
+          console.warn('Rate limit hit in getPlayers, implementing backoff');
+          const rateLimitError = new Error('API rate limit exceeded. Please try again later.');
+          rateLimitError.code = 429;
+          throw rateLimitError;
+        } else {
+          console.error('Environment check:', {
+            hasServiceAccount: !!process.env.GOOGLE_SERVICE_ACCOUNT_KEY,
+            hasSheetId: !!process.env.GOOGLE_SHEETS_ID,
+            sheetId: process.env.GOOGLE_SHEETS_ID,
+            serviceAccountLength: process.env.GOOGLE_SERVICE_ACCOUNT_KEY?.length
+          });
+          throw new Error(`Failed to fetch players data: ${error.message}`);
+        }
       }
-    }
+    });
   }
 
   async getRankings() {
