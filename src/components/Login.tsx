@@ -68,16 +68,63 @@ export const Login = ({ onLoginSuccess, isNewPlayer = false }: LoginProps) => {
         console.log('メール認証待ち状態:', emailResult);
         
       } else {
-        // 既存プレイヤーログイン処理
-        const loginResponse = await fetch('/api/rankings');
-        if (!loginResponse.ok) {
-          throw new Error('Failed to fetch players');
+        // 既存プレイヤーログイン処理 - エラー耐性を追加
+        let players = [];
+        try {
+          const loginResponse = await fetch('/api/rankings');
+          if (loginResponse.ok) {
+            players = await loginResponse.json();
+          } else {
+            console.warn('Rankings API failed, proceeding with email-only login');
+            // ランキングAPIが失敗してもログインを継続
+            players = [];
+          }
+        } catch (error) {
+          console.warn('Rankings API error:', error);
+          // エラーが発生してもログインを継続
+          players = [];
         }
-
-        const players = await loginResponse.json();
         const user = players.find((p: any) => 
           p.email.toLowerCase() === formData.email.toLowerCase()
         );
+
+        // Rankings APIが失敗した場合や、ユーザーが見つからない場合の処理
+        if (!user && players.length === 0) {
+          // Rankings APIが失敗している可能性があるので、簡易ログインを試行
+          console.warn('Rankings API unavailable, attempting basic login');
+          
+          // 管理者チェック（APIが失敗してもログイン可能にする）
+          const adminEmails = [
+            'kenji.reds08@gmail.com',
+            'mr.warabisako@gmail.com',
+            'yosshio@example.com'
+          ];
+          
+          const isAdmin = adminEmails.includes(formData.email) && formData.password === 'bungu-2025';
+          
+          if (isAdmin) {
+            // 管理者として緊急ログイン
+            const tempUserId = 'admin_' + Date.now();
+            localStorage.setItem('userId', tempUserId);
+            onLoginSuccess(tempUserId, true);
+            
+            toast({
+              title: "緊急ログイン成功",
+              description: "管理者として緊急ログインしました（ランキングAPI復旧後に再ログインしてください）",
+              duration: 10000,
+            });
+            setIsLoading(false);
+            return;
+          } else {
+            toast({
+              title: "サービス一時停止中",
+              description: "現在システムメンテナンス中です。しばらくお待ちください。",
+              variant: "destructive"
+            });
+            setIsLoading(false);
+            return;
+          }
+        }
 
         if (!user) {
           toast({

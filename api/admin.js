@@ -21,6 +21,15 @@ async function handleInvalidateMatch(req, res) {
 
     console.log(`Match ${matchId} invalidated successfully`);
     
+    // Version increment for real-time updates
+    try {
+      await fetch(`${req.headers.origin || 'http://localhost:8080'}/api/version?id=current`, {
+        method: 'POST'
+      });
+    } catch (e) {
+      console.warn('Failed to increment version:', e);
+    }
+    
     return res.status(200).json({
       success: true,
       message: '試合を無効にしました',
@@ -64,6 +73,15 @@ async function handleEditCompletedMatch(req, res) {
     const result = await sheetsService.editCompletedMatch(matchId, newWinnerId, newGameType);
 
     console.log(`Match ${matchId} edited successfully`);
+    
+    // Version increment for real-time updates
+    try {
+      await fetch(`${req.headers.origin || 'http://localhost:8080'}/api/version?id=current`, {
+        method: 'POST'
+      });
+    } catch (e) {
+      console.warn('Failed to increment version:', e);
+    }
     
     return res.status(200).json({
       success: true,

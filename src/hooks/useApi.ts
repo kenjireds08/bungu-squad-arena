@@ -61,7 +61,7 @@ export const useRankings = () => {
     queryKey: ['rankings'],
     queryFn: api.getRankings,
     staleTime: 1000 * 30, // Emergency: Extended to 30 seconds
-    refetchInterval: 1000 * 60, // Emergency: Extended to 60 seconds to prevent rate limit
+    refetchInterval: false, // Using version-based polling instead
     retry: 1, // Reduce retry attempts
   });
 };
@@ -72,7 +72,7 @@ export const useTournaments = () => {
     queryKey: ['tournaments'],
     queryFn: api.getTournaments,
     staleTime: 1000 * 30, // Emergency: Extended to 30 seconds
-    refetchInterval: 1000 * 60, // Emergency: Extended to 60 seconds to prevent rate limit
+    refetchInterval: false, // Using version-based polling instead
     retry: 1, // Reduce retry attempts
   });
 };
@@ -154,7 +154,7 @@ export const usePendingMatchResults = () => {
     queryKey: ['pendingMatchResults'],
     queryFn: api.getPendingMatchResults,
     staleTime: 1000 * 30, // Emergency: Extended to 30 seconds
-    refetchInterval: 1000 * 60, // Emergency: Extended to 60 seconds to prevent rate limit
+    refetchInterval: false, // Using version-based polling instead
     retry: 1,
   });
 };

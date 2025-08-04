@@ -26,14 +26,26 @@ module.exports = async function handler(req, res) {
         return res.status(200).json(cache.data);
       }
       
-      // Get rankings from API
-      const rankings = await sheetsService.getRankings();
-      
-      // Update cache
-      cache.data = rankings;
-      cache.timestamp = now;
-      
-      return res.status(200).json(rankings);
+      // Get rankings from API with fallback
+      try {
+        const rankings = await sheetsService.getRankings();
+        
+        // Update cache
+        cache.data = rankings;
+        cache.timestamp = now;
+        
+        return res.status(200).json(rankings);
+      } catch (error) {
+        // If we have cached data, return it even if stale
+        if (cache.data) {
+          console.warn('Rankings API failed, returning stale cache:', error.message);
+          res.setHeader('X-From-Cache', 'stale');
+          res.setHeader('Cache-Control', 'public, s-maxage=1, stale-while-revalidate=30');
+          return res.status(200).json(cache.data);
+        }
+        // If no cache available, throw error to be handled by main catch block
+        throw error;
+      }
     }
 
     if (req.method === 'POST') {
