@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ArrowLeft, Plus, Calendar, MapPin, QrCode, Users, Settings, Shuffle, Edit, Trash2 } from 'lucide-react';
+import { ArrowLeft, Plus, Calendar, MapPin, QrCode, Users, Settings, Shuffle, Edit, Trash2, Square } from 'lucide-react';
 import { QRCodeDisplay } from './QRCodeDisplay';
 import { TournamentManagementView } from './TournamentManagementView';
 import { TournamentMatchmaking } from './TournamentMatchmaking';
@@ -216,6 +216,41 @@ export const AdminTournaments = ({ onBack, initialView = 'list', selectedTournam
   const handleShowResults = (tournament: any) => {
     setResultsTournament(tournament);
     setCurrentView('results');
+  };
+
+  const handleEndTournament = async (tournament: any) => {
+    const confirmed = confirm(`「${tournament.name}」を終了し、すべての参加者をリセットしますか？\n\nこの操作により：\n・全プレイヤーが非アクティブ状態になります\n・新しい大会への参加が可能になります\n\nこの操作は取り消せません。`);
+    
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/admin?action=reset-tournament-active', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      toast({
+        title: "大会終了完了",
+        description: `${tournament.name}を終了し、${result.resetCount || 0}名の参加者をリセットしました`,
+      });
+    } catch (error) {
+      console.error('Failed to end tournament:', error);
+      toast({
+        title: "エラー",
+        description: "大会終了処理に失敗しました。再度お試しください。",
+        variant: "destructive"
+      });
+    }
   };
 
   if (currentView === 'participants' && selectedTournament) {
@@ -498,6 +533,10 @@ export const AdminTournaments = ({ onBack, initialView = 'list', selectedTournam
                     <Button variant="outline" size="sm" onClick={() => handleEditTournament(tournament)}>
                       <Edit className="h-3 w-3" />
                       編集
+                    </Button>
+                    <Button variant="secondary" size="sm" onClick={() => handleEndTournament(tournament)} className="bg-orange-500 hover:bg-orange-600 text-white border-orange-500">
+                      <Square className="h-3 w-3" />
+                      大会終了
                     </Button>
                     <Button variant="destructive" size="sm" onClick={() => handleDeleteTournament(tournament.id, tournament.name)}>
                       <Trash2 className="h-3 w-3" />
