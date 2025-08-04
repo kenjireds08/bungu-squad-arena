@@ -28,21 +28,18 @@ class SheetsService {
 
   async autoResetOldTournamentParticipation() {
     try {
-      // Check if there are any active tournament players from previous days
-      const today = new Date().toLocaleDateString('sv-SE'); // Use local date YYYY-MM-DD
+      console.log('=== AUTO RESET CHECK START ===');
       
-      // Get current tournament data to check if there are any tournaments today
-      const tournamentsResponse = await this.sheets.spreadsheets.values.get({
-        spreadsheetId: this.spreadsheetId,
-        range: 'Tournaments!A2:Z1000'
-      });
-      
-      const tournamentRows = tournamentsResponse.data.values || [];
+      // Use Japan timezone to ensure consistency
+      const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' }); // YYYY-MM-DD format
+      console.log(`Today (Japan time): ${today}`);
       
       // Check if we have any active players first
       let activePlayers = [];
       try {
         activePlayers = await this.getActiveTournamentPlayers();
+        console.log(`Found ${activePlayers.length} active tournament players`);
+        
         if (activePlayers.length === 0) {
           console.log('No active tournament players, skipping reset');
           return;
@@ -52,26 +49,44 @@ class SheetsService {
         return;
       }
       
-      // Find the most recent tournament with active players
-      const lastActiveTournament = tournamentRows
-        .filter(row => row[2]) // Has date
-        .sort((a, b) => new Date(b[2]).getTime() - new Date(a[2]).getTime()) // Sort by date descending
-        .find(row => {
-          // Check if any active player participated in this tournament
-          return true; // For now, assume the last tournament is where they participated
-        });
+      // Get current tournament data to check dates
+      const tournamentsResponse = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'Tournaments!A2:Z1000'
+      });
       
-      if (lastActiveTournament && lastActiveTournament[2] !== today) {
-        // The last tournament was not today, so reset all tournament_active flags
-        console.log(`Last tournament was on ${lastActiveTournament[2]}, today is ${today}. Resetting all tournament_active flags`);
+      const tournamentRows = tournamentsResponse.data.values || [];
+      console.log(`Found ${tournamentRows.length} tournament records`);
+      
+      // Find the most recent tournament
+      const lastTournament = tournamentRows
+        .filter(row => row[2]) // Has date
+        .sort((a, b) => new Date(b[2]).getTime() - new Date(a[2]).getTime())[0]; // Most recent
+      
+      if (lastTournament) {
+        const lastTournamentDate = lastTournament[2];
+        console.log(`Last tournament date: ${lastTournamentDate}`);
+        
+        // Compare dates
+        if (lastTournamentDate !== today) {
+          console.log(`Last tournament (${lastTournamentDate}) was not today (${today}). Resetting all tournament_active flags`);
+          await this.resetAllTournamentActive();
+          console.log('✓ Auto-reset completed successfully');
+        } else {
+          console.log('Last tournament was today, keeping players active');
+        }
+      } else {
+        // No tournaments found but players are active - reset them
+        console.log('No tournament records found but players are active, resetting all tournament_active flags');
         await this.resetAllTournamentActive();
-      } else if (!lastActiveTournament) {
-        // No tournament found but players are active, reset them
-        console.log('No tournament found but players are active, resetting all tournament_active flags');
-        await this.resetAllTournamentActive();
+        console.log('✓ Auto-reset completed successfully');
       }
+      
+      console.log('=== AUTO RESET CHECK END ===');
     } catch (error) {
-      console.warn('Failed to auto-reset old tournament participation:', error.message);
+      console.error('=== AUTO RESET ERROR ===');
+      console.error('Failed to auto-reset old tournament participation:', error.message);
+      console.error('Error stack:', error.stack);
       // Don't throw error, just log warning to prevent breaking getPlayers
     }
   }
@@ -88,13 +103,12 @@ class SheetsService {
       const rows = response.data.values || [];
       
       // Auto-reset tournament participation flags for new day
-      // Temporarily disabled to prevent login issues
-      // try {
-      //   await this.autoResetOldTournamentParticipation();
-      // } catch (resetError) {
-      //   console.warn('Auto-reset failed, continuing with getPlayers:', resetError.message);
-      //   // Continue with getPlayers even if reset fails
-      // }
+      try {
+        await this.autoResetOldTournamentParticipation();
+      } catch (resetError) {
+        console.warn('Auto-reset failed, continuing with getPlayers:', resetError.message);
+        // Continue with getPlayers even if reset fails
+      }
       
       return rows.map((row, index) => ({
         id: row[0] || `player_${index + 1}`,
