@@ -94,13 +94,29 @@ export const Login = ({ onLoginSuccess, isNewPlayer = false }: LoginProps) => {
           return;
         }
 
-        // 管理者チェック - 簡単なローカルチェック（サーバ側でも再検証）
-        const adminEmails = [
-          'kenji.reds08@gmail.com',
-          'mr.warabisako@gmail.com',
-          'yosshio@example.com'
-        ];
-        const isAdmin = adminEmails.includes(formData.email) && formData.password === 'bungu-2025';
+        // 管理者認証 - パスワードがある場合はサーバ側で検証
+        let isAdmin = false;
+        
+        if (formData.password) {
+          try {
+            const adminResponse = await fetch('/api/auth-admin', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                email: formData.email,
+                password: formData.password
+              })
+            });
+            
+            if (adminResponse.ok) {
+              const adminResult = await adminResponse.json();
+              isAdmin = adminResult.isAdmin;
+              user = adminResult.user; // Use admin-validated user data
+            }
+          } catch (error) {
+            console.warn('Admin authentication failed:', error);
+          }
+        }
         
         if (isAdmin || !formData.password) {
           // 最終ログイン日時を更新
