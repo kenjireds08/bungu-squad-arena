@@ -83,7 +83,7 @@ async function sendVerificationEmail(req, res) {
     
     console.log('About to call resend.emails.send...');
     const emailResult = await resend.emails.send({
-      from: 'BUNGU SQUAD <onboarding@resend.dev>',
+      from: 'BUNGU SQUAD <noreply@ranking.bungu-squad.jp>',
       to: email, // 本来のメールアドレスに送信
       subject: 'BUNGU SQUAD - メール認証のお願い',
       html: `
