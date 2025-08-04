@@ -57,16 +57,16 @@ export const TournamentMatchesEditor = ({ onClose, tournamentId, tournamentName 
     for (const match of matchList) {
       if (match.status === 'approved' || match.status === 'completed') {
         try {
-          const response = await fetch(`/api/rating-history?matchId=${match.match_id}`);
-          if (response.ok) {
-            const ratingData = await response.json();
-            newRatingChanges.set(match.match_id, {
-              winner_rating_change: ratingData.winner_rating_change,
-              loser_rating_change: ratingData.loser_rating_change
-            });
-          }
+          // Rating history API temporarily disabled to prevent rate limit
+          console.log('Rating history fetch disabled for match:', match.match_id);
+          
+          // Set default rating changes (temporary measure)
+          newRatingChanges.set(match.match_id, {
+            winner_rating_change: 0,
+            loser_rating_change: 0
+          });
         } catch (error) {
-          console.warn(`Failed to fetch rating changes for ${match.match_id}:`, error);
+          console.warn(`Rating history disabled for ${match.match_id}:`, error);
         }
       }
     }

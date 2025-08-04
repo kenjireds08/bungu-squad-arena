@@ -47,18 +47,17 @@ export const TournamentResultsView = ({ onClose, tournament }: TournamentResults
           const matchesWithRating = await Promise.all(
             completedMatches.map(async (match: Match) => {
               try {
-                const ratingResponse = await fetch(`/api/rating-history?matchId=${match.match_id}`);
-                if (ratingResponse.ok) {
-                  const ratingData = await ratingResponse.json();
-                  // 勝者と敗者のレーティング変更を追加
-                  return {
-                    ...match,
-                    winner_rating_change: ratingData.winner_rating_change,
-                    loser_rating_change: ratingData.loser_rating_change
-                  };
-                }
+                // Rating history API temporarily disabled to prevent rate limit
+                console.log('Rating history fetch disabled for match:', match.match_id);
+                
+                // Return match without rating changes (temporary measure)
+                return {
+                  ...match,
+                  winner_rating_change: 0,
+                  loser_rating_change: 0
+                };
               } catch (error) {
-                console.error(`Failed to fetch rating data for match ${match.match_id}:`, error);
+                console.log('Rating history disabled, using default values');
               }
               return match;
             })

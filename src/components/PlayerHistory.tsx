@@ -160,41 +160,19 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
           const matchesWithRating = await Promise.all(
             validMatches.map(async (match: any) => {
               try {
-                const ratingResponse = await fetch(`/api/rating-history?matchId=${match.id}`);
-                if (ratingResponse.ok) {
-                  const ratingData = await ratingResponse.json();
-                  
-                  
-                  // HOTFIX: API returns inverted values (winner gets negative, loser gets positive)
-                  // So we swap them to get correct display
-                  const actualWinnerChange = ratingData.loser_rating_change;
-                  const actualLoserChange = ratingData.winner_rating_change;
-                  
-                  // Correctly assign rating changes based on who won
-                  let player1_rating_change = 0;
-                  let player2_rating_change = 0;
-                  
-                  if (match.winner_id === match.player1_id) {
-                    // Player1 won
-                    player1_rating_change = actualWinnerChange;
-                    player2_rating_change = actualLoserChange;
-                  } else {
-                    // Player2 won
-                    player1_rating_change = actualLoserChange;
-                    player2_rating_change = actualWinnerChange;
-                  }
-                  
-                  return {
-                    ...match,
-                    player1_rating_change,
-                    player2_rating_change
-                  };
-                }
+                // Rating history API temporarily disabled to prevent rate limit
+                console.log('Rating history fetch disabled for match:', match.id);
+                
+                // Return match without rating changes (temporary measure)
+                return {
+                  ...match,
+                  player1_rating_change: 0,
+                  player2_rating_change: 0
+                };
               } catch (error) {
                 console.error('Rating fetch error for match:', match.id);
               }
               return match;
-            })
           );
           
           setMatches(matchesWithRating);
