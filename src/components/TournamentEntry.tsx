@@ -495,7 +495,8 @@ export const TournamentEntry = () => {
                     <Mail className="h-8 w-8 text-blue-600 mx-auto mb-2" />
                     <h3 className="font-semibold text-blue-900">メール認証によるエントリー</h3>
                     <p className="text-sm text-blue-700 mt-1">
-                      不正防止のため、メール認証を行います
+                      入力されたメールアドレスに認証リンクを送信します。<br />
+                      メール内のリンクをクリックして大会エントリーを完了してください。
                     </p>
                   </div>
                   
