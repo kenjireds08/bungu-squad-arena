@@ -236,8 +236,8 @@ export const TournamentResultsView = ({ onClose, tournament }: TournamentResults
                         <div className="text-muted-foreground text-right">
                           <div>敗者: {loserName}</div>
                           {match.loser_rating_change && (
-                            <span className="text-sm text-muted-foreground">
-                              {match.loser_rating_change}ポイント
+                            <span className="text-sm text-red-600 font-medium">
+                              -{Math.abs(match.loser_rating_change)}ポイント
                             </span>
                           )}
                         </div>

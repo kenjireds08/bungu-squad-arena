@@ -7,7 +7,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { 
   ArrowLeft, Edit, Trash2, Plus, Save, Users, Spade, Plus as PlusIcon, 
   AlertCircle, RefreshCw, Trophy, Clock, Play, CheckCircle, 
-  Edit2, Timer, Shuffle, Settings
+  Edit2, Timer, Shuffle, Settings, X
 } from 'lucide-react';
 import { useRankings, useAdminDirectInput, useStartMatch } from '@/hooks/useApi';
 import { toast } from '@/components/ui/use-toast';
@@ -1130,6 +1130,57 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
                       <div className="text-xs text-gray-500">勝利として記録</div>
                     </div>
                     <Trophy className="h-6 w-6 text-green-600" />
+                  </div>
+                </Button>
+
+                {/* Invalidate Match Button */}
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="h-16 bg-white hover:bg-red-50 border-2 border-gray-200 hover:border-red-400 transition-all duration-200 shadow-sm hover:shadow-md"
+                  onClick={async () => {
+                    try {
+                      setIsSaving(true);
+                      
+                      const response = await fetch('/api/admin?action=invalidate-match', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          matchId: directInputMatch.match_id,
+                          reason: '管理者により無効化（試合中トラブル）'
+                        }),
+                      });
+
+                      if (response.ok) {
+                        toast({
+                          title: '無効化完了',
+                          description: '試合を無効にし、レーティング変化を取り消しました',
+                        });
+                        await fetchMatches();
+                        setDirectInputMatch(null);
+                      } else {
+                        throw new Error('Failed to invalidate match');
+                      }
+                    } catch (error) {
+                      console.error('Failed to invalidate match:', error);
+                      toast({
+                        title: 'エラー',
+                        description: '試合の無効化に失敗しました',
+                        variant: 'destructive',
+                      });
+                    } finally {
+                      setIsSaving(false);
+                    }
+                  }}
+                  disabled={adminDirectInputMutation.isPending || isSaving}
+                >
+                  <div className="flex items-center justify-center gap-4">
+                    <X className="h-6 w-6 text-red-600" />
+                    <div className="text-center">
+                      <div className="font-bold text-lg text-gray-800">無効試合</div>
+                      <div className="text-xs text-gray-500">この試合をキャンセル</div>
+                    </div>
+                    <X className="h-6 w-6 text-red-600" />
                   </div>
                 </Button>
               </div>

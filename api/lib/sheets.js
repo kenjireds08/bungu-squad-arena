@@ -2489,7 +2489,7 @@ class SheetsService {
           sheetName = 'TournamentMatches';
           statusColumn = 'I';  // match_status is actually in column I
           winnerColumn = 'J';  // winner_id is actually in column J
-          timestampColumn = 'L'; // assuming completed_at is in column L
+          timestampColumn = status === 'approved' ? 'N' : 'M'; // approved_at is in column N, completed_at is in column M
         } else {
           throw new Error('Match not found in TournamentMatches');
         }

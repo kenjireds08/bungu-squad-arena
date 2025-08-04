@@ -32,7 +32,7 @@ export const PlayerStats = ({ onClose, currentUserId = "player_001" }: PlayerSta
   const { data: rankings } = useRankings();
 
   useEffect(() => {
-    const const loadPlayerStats = async () => {
+    const loadPlayerStats = async () => {
       try {
         setIsLoading(true);
         
