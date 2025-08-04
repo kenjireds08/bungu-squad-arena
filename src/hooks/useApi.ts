@@ -96,13 +96,46 @@ export const useUpdatePlayerTournamentActive = () => {
 
 // Rankings hooks
 export const useRankings = () => {
-  return useQuery({
-    queryKey: ['rankings'],
-    queryFn: api.getRankings,
-    staleTime: 1000 * 30, // Emergency: Extended to 30 seconds
-    refetchInterval: false, // Using version-based polling instead
-    retry: 1, // Reduce retry attempts
+  // 緊急対応: rankings APIが504タイムアウトするため、players APIでソートして代用
+  const playersQuery = useQuery({
+    queryKey: ['players'],
+    queryFn: api.getPlayers,
+    staleTime: 1000 * 30,
+    refetchInterval: false,
+    retry: 1,
   });
+  
+  // playersをrankings形式にソート・変換
+  const rankings = playersQuery.data?.sort((a: any, b: any) => b.current_rating - a.current_rating).map((player: any, index: number, arr: any[]) => {
+    const rank = index + 1;
+    const sameRatingCount = arr.filter(p => p.current_rating === player.current_rating).length;
+    const isTied = sameRatingCount > 1;
+    
+    // Generate badges string from experience flags (matching getRankings logic)
+    let badges = player.champion_badges || '';
+    if (player.trump_rule_experienced && !badges.includes('♠️')) {
+      badges += badges ? ', ♠️' : '♠️';
+    }
+    if (player.cardplus_rule_experienced && !badges.includes('➕')) {
+      badges += badges ? ', ➕' : '➕';
+    }
+    
+    return {
+      ...player,
+      rank,
+      rankDisplay: isTied ? `${rank}位タイ` : `${rank}位`,
+      champion_badges: badges
+    };
+  });
+  
+  return {
+    data: rankings,
+    isLoading: playersQuery.isLoading,
+    error: playersQuery.error,
+    refetch: playersQuery.refetch,
+    isSuccess: playersQuery.isSuccess,
+    isError: playersQuery.isError,
+  };
 };
 
 // Tournaments hooks

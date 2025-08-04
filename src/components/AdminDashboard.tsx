@@ -24,7 +24,7 @@ import { AdminApprovals } from './AdminApprovals';
 import { AdminPlayers } from './AdminPlayers';
 import { TournamentProgress } from './TournamentProgress';
 import { DataExport } from './DataExport';
-import { useRankings, useTournaments, useVersionPolling, usePlayers } from '@/hooks/useApi';
+import { useRankings, useTournaments, useVersionPolling } from '@/hooks/useApi';
 
 interface AdminDashboardProps {
   onClose: () => void;
@@ -54,22 +54,8 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
   const [adminData, setAdminData] = useState<AdminData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTournamentId, setSelectedTournamentId] = useState<string | null>(null);
-  // 緊急対応: rankings APIが504でタイムアウトするため、players APIでソートして代用
-  const { data: players, isLoading: playersLoading } = usePlayers();
+  const { data: rankings, isLoading: rankingsLoading } = useRankings();
   const { data: tournaments, isLoading: tournamentsLoading } = useTournaments();
-  
-  // playersをrankings形式にソート・変換
-  const rankings = players?.sort((a, b) => b.current_rating - a.current_rating).map((player, index) => {
-    const rank = index + 1;
-    const sameRatingCount = players.filter(p => p.current_rating === player.current_rating).length;
-    const isTied = sameRatingCount > 1;
-    return {
-      ...player,
-      rank,
-      rankDisplay: isTied ? `${rank}位タイ` : `${rank}位`
-    };
-  });
-  const rankingsLoading = playersLoading;
   
   // Enable version-based polling for real-time updates
   useVersionPolling('current');
