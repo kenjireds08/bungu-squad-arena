@@ -32,7 +32,7 @@ export const PlayerStats = ({ onClose, currentUserId = "player_001" }: PlayerSta
   const { data: rankings } = useRankings();
 
   useEffect(() => {
-    const loadPlayerStats = async () => {
+    const const loadPlayerStats = async () => {
       try {
         setIsLoading(true);
         
@@ -40,6 +40,94 @@ export const PlayerStats = ({ onClose, currentUserId = "player_001" }: PlayerSta
         const currentUser = rankings?.find(player => player.id === currentUserId);
         
         if (currentUser) {
+          // Get player's match history for detailed stats
+          let matchHistory = [];
+          let averageOpponentRating = 1500;
+          let recentForm = [];
+          let monthlyStats = [];
+          
+          try {
+            const matchResponse = await fetch(`/api/matches?playerId=${currentUserId}`);
+            if (matchResponse.ok) {
+              const matches = await matchResponse.json();
+              matchHistory = matches.filter(m => m.match_status === 'approved');
+              
+              // Calculate average opponent rating
+              if (matchHistory.length > 0) {
+                const opponentRatings = await Promise.all(
+                  matchHistory.map(async (match) => {
+                    const opponentId = match.player1_id === currentUserId ? match.player2_id : match.player1_id;
+                    try {
+                      const playersResponse = await fetch('/api/rankings');
+                      if (playersResponse.ok) {
+                        const players = await playersResponse.json();
+                        const opponent = players.find(p => p.id === opponentId);
+                        return opponent?.current_rating || 1500;
+                      }
+                    } catch (error) {
+                      console.error('Error fetching opponent rating:', error);
+                    }
+                    return 1500;
+                  })
+                );
+                averageOpponentRating = Math.round(opponentRatings.reduce((sum, rating) => sum + rating, 0) / opponentRatings.length);
+              }
+              
+              // Calculate recent form (last 10 matches)
+              const recentMatches = matchHistory.slice(-10);
+              recentForm = recentMatches.map(match => match.winner_id === currentUserId ? 1 : 0);
+              
+              // Calculate monthly stats from match history
+              const matchesByMonth = {};
+              matchHistory.forEach(match => {
+                const matchDate = new Date(match.match_start_time || match.created_at);
+                const monthKey = `${matchDate.getFullYear()}-${String(matchDate.getMonth() + 1).padStart(2, '0')}`;
+                
+                if (!matchesByMonth[monthKey]) {
+                  matchesByMonth[monthKey] = { games: 0, wins: 0, matches: [] };
+                }
+                
+                matchesByMonth[monthKey].games++;
+                if (match.winner_id === currentUserId) {
+                  matchesByMonth[monthKey].wins++;
+                }
+                matchesByMonth[monthKey].matches.push(match);
+              });
+              
+              // Convert to monthly stats array
+              monthlyStats = Object.entries(matchesByMonth)
+                .sort(([a], [b]) => a.localeCompare(b))
+                .slice(-4) // Last 4 months
+                .map(([monthKey, data]) => {
+                  const [year, month] = monthKey.split('-');
+                  const monthName = new Date(parseInt(year), parseInt(month) - 1).toLocaleDateString('ja-JP', { month: 'short' });
+                  
+                  // Calculate rating at end of month (approximate)
+                  const monthMatches = data.matches.sort((a, b) => new Date(a.match_start_time || a.created_at) - new Date(b.match_start_time || b.created_at));
+                  const lastMatch = monthMatches[monthMatches.length - 1];
+                  let monthEndRating = currentUser.current_rating;
+                  
+                  // Try to get rating from match data
+                  if (lastMatch) {
+                    if (lastMatch.player1_id === currentUserId) {
+                      monthEndRating = lastMatch.player1_rating_after || currentUser.current_rating;
+                    } else if (lastMatch.player2_id === currentUserId) {
+                      monthEndRating = lastMatch.player2_rating_after || currentUser.current_rating;
+                    }
+                  }
+                  
+                  return {
+                    month: monthName,
+                    games: data.games,
+                    wins: data.wins,
+                    rating: monthEndRating
+                  };
+                });
+            }
+          } catch (error) {
+            console.error('Failed to load match history:', error);
+          }
+          
           // Calculate stats from available data
           const stats: PlayerStatsData = {
             currentRating: currentUser.current_rating,
@@ -48,14 +136,14 @@ export const PlayerStats = ({ onClose, currentUserId = "player_001" }: PlayerSta
             winRate: currentUser.total_games > 0 ? (currentUser.wins / currentUser.total_games) * 100 : 0,
             wins: currentUser.wins || 0,
             losses: (currentUser.total_games || 0) - (currentUser.wins || 0),
-            averageOpponentRating: 1585, // TODO: Calculate from match history
-            recentForm: [1, 1, 0, 1, 1, 1, 0, 1, 1, 0], // TODO: Get from match history
-            monthlyStats: [
-              { month: '4月', games: 8, wins: 6, rating: 1580 },
-              { month: '5月', games: 12, wins: 8, rating: 1620 },
-              { month: '6月', games: 15, wins: 10, rating: 1650 },
-              { month: '7月', games: 10, wins: 7, rating: currentUser.current_rating }
-            ] // TODO: Get from historical data
+            averageOpponentRating,
+            recentForm,
+            monthlyStats: monthlyStats.length > 0 ? monthlyStats : [
+              { month: '4月', games: 0, wins: 0, rating: currentUser.current_rating },
+              { month: '5月', games: 0, wins: 0, rating: currentUser.current_rating },
+              { month: '6月', games: 0, wins: 0, rating: currentUser.current_rating },
+              { month: '7月', games: 0, wins: 0, rating: currentUser.current_rating }
+            ]
           };
           
           setStatsData(stats);
@@ -65,7 +153,7 @@ export const PlayerStats = ({ onClose, currentUserId = "player_001" }: PlayerSta
       } finally {
         setIsLoading(false);
       }
-    };
+    };;
 
     if (rankings) {
       loadPlayerStats();
