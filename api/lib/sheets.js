@@ -2927,14 +2927,68 @@ class SheetsService {
       const actualRowNumber = matchRowIndex + 2;
       
       // 試合が完了状態でない場合はエラー
-      if (matchRow[5] !== 'completed') {
-        throw new Error('Only completed matches can be invalidated');
+      // I列(index 8) = status
+      if (matchRow[8] !== 'completed' && matchRow[8] !== 'approved') {
+        throw new Error('Only completed/approved matches can be invalidated');
       }
       
-      const player1Id = matchRow[2];
-      const player2Id = matchRow[3];
-      const player1RatingBefore = parseInt(matchRow[15]) || 1500;
-      const player2RatingBefore = parseInt(matchRow[16]) || 1500;
+      const player1Id = matchRow[3];  // D列 = player1_id
+      const player2Id = matchRow[5];  // F列 = player2_id
+      
+      // 現在のレーティングをRatingHistoryから取得する
+      let player1RatingBefore = 1500;
+      let player2RatingBefore = 1500;
+      
+      try {
+        // RatingHistoryから最新のレーティング変更前の値を取得
+        const historyResponse = await this.sheets.spreadsheets.values.get({
+          spreadsheetId: this.spreadsheetId,
+          range: 'RatingHistory!A2:I1000'
+        });
+        
+        const historyRows = historyResponse.data.values || [];
+        
+        // この試合に関連する履歴を探す
+        for (let i = historyRows.length - 1; i >= 0; i--) {
+          const row = historyRows[i];
+          if ((row[1] === player1Id && row[2] === player2Id) || 
+              (row[1] === player2Id && row[2] === player1Id)) {
+            // この試合の履歴が見つかった
+            if (row[1] === player1Id) {
+              player1RatingBefore = parseInt(row[3]) || 1500; // player_old_rating
+              player2RatingBefore = parseInt(row[5]) || 1500; // opponent_old_rating
+            } else {
+              player1RatingBefore = parseInt(row[5]) || 1500; // opponent_old_rating
+              player2RatingBefore = parseInt(row[3]) || 1500; // player_old_rating
+            }
+            console.log(`Found rating history: P1=${player1RatingBefore}, P2=${player2RatingBefore}`);
+            break;
+          }
+        }
+        
+        // 履歴が見つからない場合は、現在のレーティングから計算を逆算
+        if (player1RatingBefore === 1500 && player2RatingBefore === 1500) {
+          const players = await this.getPlayers();
+          const player1 = players.find(p => p.player_id === player1Id);
+          const player2 = players.find(p => p.player_id === player2Id);
+          
+          if (player1 && player2) {
+            // 勝者は+レーティング、敗者は-レーティングなので逆算
+            const winnerId = matchRow[9]; // J列 = winner_id
+            if (winnerId === player1Id) {
+              // Player1が勝者の場合、現在のレーティングから勝利分を引く
+              player1RatingBefore = Math.max(1200, (player1.current_rating || 1500) - 32);
+              player2RatingBefore = Math.min(2000, (player2.current_rating || 1500) + 32);
+            } else {
+              // Player2が勝者の場合
+              player1RatingBefore = Math.min(2000, (player1.current_rating || 1500) + 32);
+              player2RatingBefore = Math.max(1200, (player2.current_rating || 1500) - 32);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Could not fetch rating history:', err);
+      }
       
       // 2. プレイヤーのレーティングを元に戻す
       await this.updatePlayerRating(player1Id, player1RatingBefore);
@@ -2942,24 +2996,25 @@ class SheetsService {
       console.log(`Reverted ratings: ${player1Id} -> ${player1RatingBefore}, ${player2Id} -> ${player2RatingBefore}`);
       
       // 3. TournamentMatchesシートの試合ステータスを'invalidated'に変更
+      // I列 = status
       await this.sheets.spreadsheets.values.update({
         spreadsheetId: this.spreadsheetId,
-        range: `TournamentMatches!F${actualRowNumber}`,
+        range: `TournamentMatches!I${actualRowNumber}`,
         valueInputOption: 'USER_ENTERED',
         requestBody: {
           values: [['invalidated']]
         }
       });
       
-      // 4. 無効化理由を記録（notes列に追加）
-      const currentNotes = matchRow[21] || '';
-      const newNotes = currentNotes ? `${currentNotes}\n[無効化] ${reason}` : `[無効化] ${reason}`;
+      // 4. 無効化理由を記録（K列 = result_details に追加）
+      const currentDetails = matchRow[10] || '';
+      const newDetails = currentDetails ? `${currentDetails}\n[無効化] ${reason}` : `[無効化] ${reason}`;
       await this.sheets.spreadsheets.values.update({
         spreadsheetId: this.spreadsheetId,
-        range: `TournamentMatches!V${actualRowNumber}`,
+        range: `TournamentMatches!K${actualRowNumber}`,
         valueInputOption: 'USER_ENTERED',
         requestBody: {
-          values: [[newNotes]]
+          values: [[newDetails]]
         }
       });
       
@@ -3032,16 +3087,65 @@ class SheetsService {
       const actualRowNumber = matchRowIndex + 2;
       
       // 試合が完了状態でない場合はエラー
-      if (matchRow[5] !== 'completed' && matchRow[5] !== 'approved') {
+      // I列(index 8) = status
+      if (matchRow[8] !== 'completed' && matchRow[8] !== 'approved') {
         throw new Error('Only completed/approved matches can be edited');
       }
       
-      const player1Id = matchRow[2];
-      const player2Id = matchRow[3];
-      const oldWinnerId = matchRow[7];
-      const oldGameType = matchRow[6];
-      const player1RatingBefore = parseInt(matchRow[15]) || 1500;
-      const player2RatingBefore = parseInt(matchRow[16]) || 1500;
+      const player1Id = matchRow[3];  // D列 = player1_id
+      const player2Id = matchRow[5];  // F列 = player2_id
+      const oldWinnerId = matchRow[9]; // J列 = winner_id
+      const oldGameType = matchRow[7]; // H列 = game_type
+      
+      // RatingHistoryから過去のレーティングを取得
+      let player1RatingBefore = 1500;
+      let player2RatingBefore = 1500;
+      
+      try {
+        const historyResponse = await this.sheets.spreadsheets.values.get({
+          spreadsheetId: this.spreadsheetId,
+          range: 'RatingHistory!A2:I1000'
+        });
+        
+        const historyRows = historyResponse.data.values || [];
+        
+        // この試合に関連する最新の履歴を探す
+        for (let i = historyRows.length - 1; i >= 0; i--) {
+          const row = historyRows[i];
+          if ((row[1] === player1Id && row[2] === player2Id) || 
+              (row[1] === player2Id && row[2] === player1Id)) {
+            if (row[1] === player1Id) {
+              player1RatingBefore = parseInt(row[3]) || 1500;
+              player2RatingBefore = parseInt(row[5]) || 1500;
+            } else {
+              player1RatingBefore = parseInt(row[5]) || 1500;
+              player2RatingBefore = parseInt(row[3]) || 1500;
+            }
+            console.log(`Found rating history for match edit: P1=${player1RatingBefore}, P2=${player2RatingBefore}`);
+            break;
+          }
+        }
+        
+        // 履歴が見つからない場合は現在のレーティングから逆算
+        if (player1RatingBefore === 1500 && player2RatingBefore === 1500) {
+          const players = await this.getPlayers();
+          const player1 = players.find(p => p.player_id === player1Id);
+          const player2 = players.find(p => p.player_id === player2Id);
+          
+          if (player1 && player2) {
+            // 既存の勝者に基づいて逆算
+            if (oldWinnerId === player1Id) {
+              player1RatingBefore = Math.max(1200, (player1.current_rating || 1500) - 32);
+              player2RatingBefore = Math.min(2000, (player2.current_rating || 1500) + 32);
+            } else {
+              player1RatingBefore = Math.min(2000, (player1.current_rating || 1500) + 32);
+              player2RatingBefore = Math.max(1200, (player2.current_rating || 1500) - 32);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Could not fetch rating history for edit:', err);
+      }
       
       // 新しい敗者を決定
       const newLoserId = newWinnerId === player1Id ? player2Id : player1Id;
@@ -3057,35 +3161,27 @@ class SheetsService {
       console.log(`Applied new ratings: Winner ${newWinnerId}, Loser ${newLoserId}`);
       
       // 4. TournamentMatchesシートを更新
+      // 基本的な列構造に合わせて更新
       const updateData = [
-        matchRow[0], // match_id
-        matchRow[1], // tournament_id 
-        matchRow[2], // player1_id
-        matchRow[3], // player2_id
-        matchRow[4], // table_number
-        matchRow[5], // status (keep as is)
-        newGameType || oldGameType, // game_type (更新または既存値)
-        matchRow[7], // created_at
-        newWinnerId, // winner_id (更新)
-        newLoserId,  // loser_id (更新)
-        matchRow[10], // match_start_time
-        matchRow[11], // match_end_time
-        matchRow[12], // reported_by
-        matchRow[13], // reported_at
-        matchRow[14], // approved_by
-        matchRow[15], // approved_at
-        player1RatingBefore, // player1_rating_before
-        player2RatingBefore, // player2_rating_before
-        newRatingResult.player1NewRating, // player1_rating_after
-        newRatingResult.player2NewRating, // player2_rating_after
-        newRatingResult.player1, // player1_rating_change
-        newRatingResult.player2, // player2_rating_change
-        matchRow[22] || '' // notes
+        matchRow[0], // A: match_id
+        matchRow[1], // B: tournament_id 
+        matchRow[2], // C: match_number
+        matchRow[3], // D: player1_id
+        matchRow[4], // E: player1_name
+        matchRow[5], // F: player2_id
+        matchRow[6], // G: player2_name
+        newGameType || oldGameType, // H: game_type (更新)
+        matchRow[8], // I: status (keep as is)
+        newWinnerId, // J: winner_id (更新)
+        `[編集済] 勝者: ${newWinnerId}`, // K: result_details
+        matchRow[11], // L: created_at
+        matchRow[12], // M: completed_at
+        matchRow[13] || new Date().toISOString() // N: approved_at
       ];
       
       await this.sheets.spreadsheets.values.update({
         spreadsheetId: this.spreadsheetId,
-        range: `TournamentMatches!A${actualRowNumber}:W${actualRowNumber}`,
+        range: `TournamentMatches!A${actualRowNumber}:N${actualRowNumber}`,
         valueInputOption: 'USER_ENTERED',
         requestBody: {
           values: [updateData]
