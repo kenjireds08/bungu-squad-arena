@@ -26,7 +26,7 @@ module.exports = async function handler(req, res) {
           return res.status(400).json({ error: 'Player ID is required' });
         }
         
-        const { current_rating, email, updateLastLogin, updateTournamentActive } = req.body;
+        const { current_rating, email, nickname, profile_image_url, updateLastLogin, updateTournamentActive } = req.body;
         
         // Update rating if provided
         if (current_rating !== undefined) {
@@ -40,6 +40,18 @@ module.exports = async function handler(req, res) {
         // Update email if provided
         if (email !== undefined) {
           const result = await sheetsService.updatePlayerEmail(req.query.id, email);
+          return res.status(200).json(result);
+        }
+        
+        // Update nickname if provided
+        if (nickname !== undefined) {
+          const result = await sheetsService.updatePlayerNickname(req.query.id, nickname);
+          return res.status(200).json(result);
+        }
+        
+        // Update profile image if provided
+        if (profile_image_url !== undefined) {
+          const result = await sheetsService.updatePlayerProfileImage(req.query.id, profile_image_url);
           return res.status(200).json(result);
         }
         

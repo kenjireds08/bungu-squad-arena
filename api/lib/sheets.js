@@ -279,6 +279,74 @@ class SheetsService {
     }
   }
 
+  async updatePlayerNickname(playerId, nickname) {
+    await this.authenticate();
+    
+    try {
+      // First, find the player's row
+      const playersResponse = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'Players!A2:A1000'
+      });
+
+      const playerIds = playersResponse.data.values || [];
+      const rowIndex = playerIds.findIndex(row => row[0] === playerId);
+      
+      if (rowIndex === -1) {
+        throw new Error('Player not found');
+      }
+
+      // Update the nickname (column B = index 1)
+      await this.sheets.spreadsheets.values.update({
+        spreadsheetId: this.spreadsheetId,
+        range: `Players!B${rowIndex + 2}`,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+          values: [[nickname]]
+        }
+      });
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error updating player nickname:', error);
+      throw new Error('Failed to update player nickname');
+    }
+  }
+
+  async updatePlayerProfileImage(playerId, profileImageUrl) {
+    await this.authenticate();
+    
+    try {
+      // First, find the player's row
+      const playersResponse = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'Players!A2:A1000'
+      });
+
+      const playerIds = playersResponse.data.values || [];
+      const rowIndex = playerIds.findIndex(row => row[0] === playerId);
+      
+      if (rowIndex === -1) {
+        throw new Error('Player not found');
+      }
+
+      // Update the profile image URL (assuming it's in column L based on the documentation)
+      await this.sheets.spreadsheets.values.update({
+        spreadsheetId: this.spreadsheetId,
+        range: `Players!L${rowIndex + 2}`,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+          values: [[profileImageUrl]]
+        }
+      });
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error updating player profile image:', error);
+      throw new Error('Failed to update player profile image');
+    }
+  }
+
   async updateLastLogin(playerId) {
     await this.authenticate();
     

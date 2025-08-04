@@ -35,15 +35,75 @@ export const PlayerProfile = ({ onClose, currentUserId }: PlayerProfileProps) =>
   const [nickname, setNickname] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [isUpdatingLogin, setIsUpdatingLogin] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   // Update nickname when player data loads
   if (player && nickname !== player.nickname) {
     setNickname(player.nickname || '');
   }
 
-  const handleSave = () => {
-    // TODO: Save profile changes
-    setIsEditing(false);
+  const handleSave = async () => {
+    if (!player) return;
+    
+    setIsSaving(true);
+    try {
+      // Save nickname if changed
+      if (nickname !== player.nickname) {
+        const response = await fetch(`/api/players?id=${currentUserId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nickname })
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to update nickname');
+        }
+      }
+      
+      // Save profile image if selected
+      if (selectedImage) {
+        // For now, we'll use a placeholder URL. In production, you'd upload to a file service
+        const imageUrl = `https://via.placeholder.com/150?text=${encodeURIComponent(nickname)}`;
+        
+        const response = await fetch(`/api/players?id=${currentUserId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ profile_image_url: imageUrl })
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to update profile image');
+        }
+      }
+      
+      // Refresh player data
+      await refetch();
+      setIsEditing(false);
+      setSelectedImage(null);
+      setPreviewUrl(null);
+      
+    } catch (error) {
+      console.error('Failed to save profile:', error);
+      alert('プロフィールの保存に失敗しました');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setSelectedImage(file);
+      
+      // Create preview URL
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setPreviewUrl(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const updateLastLogin = async () => {
@@ -113,9 +173,9 @@ export const PlayerProfile = ({ onClose, currentUserId }: PlayerProfileProps) =>
               </div>
             </div>
             {isEditing ? (
-              <Button variant="fantasy" size="sm" onClick={handleSave}>
+              <Button variant="fantasy" size="sm" onClick={handleSave} disabled={isSaving}>
                 <Save className="h-4 w-4" />
-                保存
+                {isSaving ? '保存中...' : '保存'}
               </Button>
             ) : (
               <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
@@ -134,20 +194,32 @@ export const PlayerProfile = ({ onClose, currentUserId }: PlayerProfileProps) =>
               {/* Profile Image */}
               <div className="relative">
                 <div className="w-24 h-24 mx-auto bg-muted rounded-full flex items-center justify-center border-2 border-fantasy-frame">
-                  {player.profile_image_url ? (
+                  {previewUrl ? (
+                    <img src={previewUrl} alt="Profile Preview" className="w-full h-full rounded-full object-cover" />
+                  ) : player.profile_image_url ? (
                     <img src={player.profile_image_url} alt="Profile" className="w-full h-full rounded-full object-cover" />
                   ) : (
                     <User className="h-12 w-12 text-muted-foreground" />
                   )}
                 </div>
                 {isEditing && (
-                  <Button 
-                    variant="outline" 
-                    size="icon" 
-                    className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full"
-                  >
-                    <Camera className="h-4 w-4" />
-                  </Button>
+                  <>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageSelect}
+                      className="hidden"
+                      id="profile-image-input"
+                    />
+                    <Button 
+                      variant="outline" 
+                      size="icon" 
+                      className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full"
+                      onClick={() => document.getElementById('profile-image-input')?.click()}
+                    >
+                      <Camera className="h-4 w-4" />
+                    </Button>
+                  </>
                 )}
               </div>
 
