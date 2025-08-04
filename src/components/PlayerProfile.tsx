@@ -69,21 +69,29 @@ export const PlayerProfile = ({ onClose, currentUserId }: PlayerProfileProps) =>
       
       // Save profile image if selected
       if (selectedImage) {
-        // Convert image to base64 data URL for storage
-        const reader = new FileReader();
-        const imageDataUrl = await new Promise<string>((resolve) => {
-          reader.onload = (e) => resolve(e.target?.result as string);
-          reader.readAsDataURL(selectedImage);
-        });
+        // Compress and resize image before saving (more aggressive compression for Google Sheets)
+        const compressedImageUrl = await compressImage(selectedImage, 100, 100, 0.6);
+        
+        // Check compressed size (Google Sheets has limits on cell content)
+        if (compressedImageUrl.length > 50000) { // 50KB limit
+          throw new Error('画像が大きすぎます。より小さな画像を選択してください。');
+        }
         
         const response = await fetch(`/api/players?id=${currentUserId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ profile_image_url: imageDataUrl })
+          body: JSON.stringify({ profile_image_url: compressedImageUrl })
         });
         
         if (!response.ok) {
-          throw new Error('Failed to update profile image');
+          const errorData = await response.text();
+          console.error('Profile image update failed:', {
+            status: response.status,
+            statusText: response.statusText,
+            errorData,
+            imageSize: compressedImageUrl.length
+          });
+          throw new Error(`Failed to update profile image (${response.status}): ${errorData}`);
         }
       }
       
@@ -114,9 +122,49 @@ export const PlayerProfile = ({ onClose, currentUserId }: PlayerProfileProps) =>
     setIsEditing(false);
   };
 
+  // Image compression utility
+  const compressImage = (file: File, maxWidth: number, maxHeight: number, quality: number): Promise<string> => {
+    return new Promise((resolve) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d')!;
+      const img = new Image();
+      
+      img.onload = () => {
+        // Calculate dimensions
+        let { width, height } = img;
+        if (width > height) {
+          if (width > maxWidth) {
+            height = (height * maxWidth) / width;
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = (width * maxHeight) / height;
+            height = maxHeight;
+          }
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Draw and compress
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
   const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('画像サイズは5MB以下にしてください');
+        return;
+      }
+      
       setSelectedImage(file);
       
       // Create preview URL

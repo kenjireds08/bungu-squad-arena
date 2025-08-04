@@ -330,10 +330,10 @@ class SheetsService {
         throw new Error('Player not found');
       }
 
-      // Update the profile image URL (assuming it's in column L based on the documentation)
+      // Update the profile image URL (column O = index 14, as per spreadsheet documentation)
       await this.sheets.spreadsheets.values.update({
         spreadsheetId: this.spreadsheetId,
-        range: `Players!L${rowIndex + 2}`,
+        range: `Players!O${rowIndex + 2}`,
         valueInputOption: 'USER_ENTERED',
         requestBody: {
           values: [[profileImageUrl]]
@@ -342,8 +342,13 @@ class SheetsService {
 
       return { success: true };
     } catch (error) {
-      console.error('Error updating player profile image:', error);
-      throw new Error('Failed to update player profile image');
+      console.error('Error updating player profile image:', {
+        playerId,
+        imageSize: profileImageUrl?.length,
+        error: error.message,
+        stack: error.stack
+      });
+      throw new Error(`Failed to update player profile image: ${error.message}`);
     }
   }
 
