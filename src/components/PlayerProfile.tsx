@@ -38,10 +38,15 @@ export const PlayerProfile = ({ onClose, currentUserId }: PlayerProfileProps) =>
   const [isSaving, setIsSaving] = useState(false);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [initialNickname, setInitialNickname] = useState('');
 
-  // Update nickname when player data loads
-  if (player && nickname !== player.nickname) {
-    setNickname(player.nickname || '');
+  // Update nickname when player data loads (only initially)
+  if (player && initialNickname !== player.nickname) {
+    const playerNickname = player.nickname || '';
+    setInitialNickname(playerNickname);
+    if (nickname === '') {
+      setNickname(playerNickname);
+    }
   }
 
   const handleSave = async () => {
@@ -64,13 +69,17 @@ export const PlayerProfile = ({ onClose, currentUserId }: PlayerProfileProps) =>
       
       // Save profile image if selected
       if (selectedImage) {
-        // For now, we'll use a placeholder URL. In production, you'd upload to a file service
-        const imageUrl = `https://via.placeholder.com/150?text=${encodeURIComponent(nickname)}`;
+        // Convert image to base64 data URL for storage
+        const reader = new FileReader();
+        const imageDataUrl = await new Promise<string>((resolve) => {
+          reader.onload = (e) => resolve(e.target?.result as string);
+          reader.readAsDataURL(selectedImage);
+        });
         
         const response = await fetch(`/api/players?id=${currentUserId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ profile_image_url: imageUrl })
+          body: JSON.stringify({ profile_image_url: imageDataUrl })
         });
         
         if (!response.ok) {
@@ -80,9 +89,14 @@ export const PlayerProfile = ({ onClose, currentUserId }: PlayerProfileProps) =>
       
       // Refresh player data
       await refetch();
+      
+      // Reset editing state
       setIsEditing(false);
       setSelectedImage(null);
       setPreviewUrl(null);
+      
+      // Update initial nickname to new value to prevent reset
+      setInitialNickname(nickname);
       
     } catch (error) {
       console.error('Failed to save profile:', error);
@@ -90,6 +104,14 @@ export const PlayerProfile = ({ onClose, currentUserId }: PlayerProfileProps) =>
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleCancelEdit = () => {
+    // Reset to original values
+    setNickname(initialNickname);
+    setSelectedImage(null);
+    setPreviewUrl(null);
+    setIsEditing(false);
   };
 
   const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -173,10 +195,15 @@ export const PlayerProfile = ({ onClose, currentUserId }: PlayerProfileProps) =>
               </div>
             </div>
             {isEditing ? (
-              <Button variant="fantasy" size="sm" onClick={handleSave} disabled={isSaving}>
-                <Save className="h-4 w-4" />
-                {isSaving ? '保存中...' : '保存'}
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={handleCancelEdit} disabled={isSaving}>
+                  キャンセル
+                </Button>
+                <Button variant="fantasy" size="sm" onClick={handleSave} disabled={isSaving}>
+                  <Save className="h-4 w-4" />
+                  {isSaving ? '保存中...' : '保存'}
+                </Button>
+              </div>
             ) : (
               <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
                 編集
