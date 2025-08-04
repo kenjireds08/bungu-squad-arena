@@ -1,5 +1,16 @@
 const SheetsService = require('./lib/sheets');
 
+// Import Vercel KV with fallback
+let kv;
+try {
+  kv = require('@vercel/kv').kv;
+} catch (e) {
+  console.warn('Vercel KV not available in admin.js, using no-op fallback');
+  kv = {
+    incr: () => Promise.resolve(1)
+  };
+}
+
 // 無効試合処理（レーティング変化なし）
 async function handleInvalidateMatch(req, res) {
   if (req.method !== 'POST') {
@@ -23,9 +34,9 @@ async function handleInvalidateMatch(req, res) {
     
     // Version increment for real-time updates
     try {
-      await fetch(`${req.headers.origin || 'http://localhost:8080'}/api/version?id=current`, {
-        method: 'POST'
-      });
+      const tournamentId = 'current'; // Default tournament ID
+      await kv.incr(`tour:${tournamentId}:v`);
+      console.log(`Version incremented for tournament: ${tournamentId}`);
     } catch (e) {
       console.warn('Failed to increment version:', e);
     }
@@ -76,9 +87,9 @@ async function handleEditCompletedMatch(req, res) {
     
     // Version increment for real-time updates
     try {
-      await fetch(`${req.headers.origin || 'http://localhost:8080'}/api/version?id=current`, {
-        method: 'POST'
-      });
+      const tournamentId = 'current'; // Default tournament ID
+      await kv.incr(`tour:${tournamentId}:v`);
+      console.log(`Version incremented for tournament: ${tournamentId}`);
     } catch (e) {
       console.warn('Failed to increment version:', e);
     }

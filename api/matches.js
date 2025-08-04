@@ -1,5 +1,28 @@
 const SheetsService = require('./lib/sheets');
 
+// In-memory cache and deduplication for matches
+if (!globalThis.matchesCache) {
+  globalThis.matchesCache = { data: null, timestamp: 0, ttl: 30000 };
+}
+
+// In-flight request deduplication
+if (!globalThis.matchesInflight) {
+  globalThis.matchesInflight = new Map();
+}
+
+async function dedupedGetMatches(key, fn) {
+  if (globalThis.matchesInflight.has(key)) {
+    return globalThis.matchesInflight.get(key);
+  }
+  
+  const promise = fn().finally(() => {
+    setTimeout(() => globalThis.matchesInflight.delete(key), 5000);
+  });
+  
+  globalThis.matchesInflight.set(key, promise);
+  return promise;
+}
+
 module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') {
     return res.status(200).json({ message: 'OK' });
@@ -14,19 +37,47 @@ module.exports = async function handler(req, res) {
         res.setHeader('Cache-Control', 'public, s-maxage=10, stale-while-revalidate=30');
         
         const { playerId, tournamentId } = req.query;
+        const cacheKey = `matches_${tournamentId || playerId || 'all'}`;
         
-        if (tournamentId) {
-          // Get matches for specific tournament
-          const matches = await sheetsService.getTournamentMatches(tournamentId);
+        // Check cache first
+        const now = Date.now();
+        const cache = globalThis.matchesCache;
+        const cachedData = cache.data?.[cacheKey];
+        
+        if (cachedData && (now - cachedData.timestamp) < cache.ttl) {
+          console.log('Returning cached matches data for:', cacheKey);
+          return res.status(200).json(cachedData.data);
+        }
+        
+        // Use deduplication for API calls
+        try {
+          const matches = await dedupedGetMatches(cacheKey, async () => {
+            if (tournamentId) {
+              return await sheetsService.getTournamentMatches(tournamentId);
+            } else if (playerId) {
+              return await sheetsService.getMatchHistory(playerId);
+            } else {
+              return await sheetsService.getAllMatches();
+            }
+          });
+          
+          // Update cache
+          if (!cache.data) cache.data = {};
+          cache.data[cacheKey] = {
+            data: matches,
+            timestamp: now
+          };
+          
           return res.status(200).json(matches);
-        } else if (playerId) {
-          // Get match history for specific player
-          const matches = await sheetsService.getMatchHistory(playerId);
-          return res.status(200).json(matches);
-        } else {
-          // Get all matches
-          const matches = await sheetsService.getAllMatches();
-          return res.status(200).json(matches);
+        } catch (error) {
+          // Fallback to stale cache if available
+          if (cachedData) {
+            console.warn('Matches API failed, returning stale cache:', error.message);
+            res.setHeader('X-From-Cache', 'stale');
+            return res.status(200).json(cachedData.data);
+          }
+          // If no cache available, throw error to be handled by main catch block
+          throw error;
         }
 
       case 'POST':

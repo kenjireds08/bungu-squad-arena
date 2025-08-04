@@ -1,42 +1,26 @@
-// Global version counter (simple in-memory implementation)
-// In production, this would use Vercel KV or Edge Config
-if (!globalThis.versionCounters) {
-  globalThis.versionCounters = new Map();
-}
+// Version API using Vercel KV for persistence
+const { kv } = require('@vercel/kv');
 
 module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') {
     return res.status(200).json({ message: 'OK' });
   }
 
-  const { id } = req.query;
-  
-  if (!id) {
-    return res.status(400).json({ error: 'Missing id parameter' });
-  }
+  const id = (req.query.id || 'current').toString();
+  const key = `tour:${id}:v`;
 
-  const key = `tour:${id}:version`;
-  
   if (req.method === 'GET') {
-    // Get current version
-    const version = globalThis.versionCounters.get(key) || 0;
-    
-    // Ultra-light caching for version checks
+    const v = Number(await kv.get(key)) || 0;
     res.setHeader('Cache-Control', 'public, s-maxage=1, stale-while-revalidate=5');
-    
-    return res.status(200).json({ v: version });
+    return res.status(200).json({ v });
   }
   
   if (req.method === 'POST') {
-    // Increment version (called after successful operations)
-    const currentVersion = globalThis.versionCounters.get(key) || 0;
-    const newVersion = currentVersion + 1;
-    globalThis.versionCounters.set(key, newVersion);
-    
-    console.log(`Version incremented for ${key}: ${currentVersion} -> ${newVersion}`);
-    
-    return res.status(200).json({ v: newVersion });
+    const v = await kv.incr(key);
+    console.log(`Version incremented for ${key}: -> ${v}`);
+    return res.status(200).json({ v });
   }
-
-  return res.status(405).json({ error: 'Method not allowed' });
+  
+  res.setHeader('Allow', 'GET, POST');
+  return res.status(405).end('Method Not Allowed');
 };

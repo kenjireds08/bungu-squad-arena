@@ -1,5 +1,44 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useRef } from 'react';
 import { api, Player, Tournament, Match, MatchResult } from '@/lib/api';
+
+// Version-based polling hook for real-time updates
+export const useVersionPolling = (tournamentId: string = 'current') => {
+  const queryClient = useQueryClient();
+  const lastVersionRef = useRef(-1);
+
+  useEffect(() => {
+    const pollVersion = async () => {
+      try {
+        const response = await fetch(`/api/version?id=${tournamentId}`);
+        if (!response.ok) return;
+        
+        const { v } = await response.json();
+        
+        if (v !== lastVersionRef.current && lastVersionRef.current !== -1) {
+          console.log(`Version changed: ${lastVersionRef.current} -> ${v}, invalidating queries`);
+          
+          // Invalidate key queries when version changes
+          queryClient.invalidateQueries({ queryKey: ['matches', tournamentId] });
+          queryClient.invalidateQueries({ queryKey: ['tournaments'] });
+          queryClient.invalidateQueries({ queryKey: ['rankings'] });
+        }
+        
+        lastVersionRef.current = v;
+      } catch (error) {
+        console.warn('Version polling error:', error);
+      }
+    };
+
+    // Initial poll
+    pollVersion();
+    
+    // Poll every 1.5 seconds
+    const interval = setInterval(pollVersion, 1500);
+    
+    return () => clearInterval(interval);
+  }, [tournamentId, queryClient]);
+};
 
 // Players hooks
 export const usePlayers = () => {

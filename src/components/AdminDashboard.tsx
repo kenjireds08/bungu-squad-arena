@@ -24,7 +24,7 @@ import { AdminApprovals } from './AdminApprovals';
 import { AdminPlayers } from './AdminPlayers';
 import { TournamentProgress } from './TournamentProgress';
 import { DataExport } from './DataExport';
-import { useRankings, useTournaments } from '@/hooks/useApi';
+import { useRankings, useTournaments, useVersionPolling } from '@/hooks/useApi';
 
 interface AdminDashboardProps {
   onClose: () => void;
@@ -56,6 +56,9 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
   const [selectedTournamentId, setSelectedTournamentId] = useState<string | null>(null);
   const { data: rankings, isLoading: rankingsLoading } = useRankings();
   const { data: tournaments, isLoading: tournamentsLoading } = useTournaments();
+  
+  // Enable version-based polling for real-time updates
+  useVersionPolling('current');
 
   useEffect(() => {
     const loadAdminData = async () => {

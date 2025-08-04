@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Users, Clock, Play, CheckCircle, AlertCircle, Trophy, Spade, Plus, RefreshCw } from 'lucide-react';
-import { useRankings } from '@/hooks/useApi';
+import { useRankings, useVersionPolling } from '@/hooks/useApi';
 import { useNotifications } from '@/hooks/useNotifications';
 import { MatchInProgress } from './MatchInProgress';
 
@@ -41,6 +41,9 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [ratingChanges, setRatingChanges] = useState<Map<string, {winner_rating_change: number, loser_rating_change: number}>>(new Map());
   const { data: players } = useRankings();
+  
+  // Enable version-based polling for real-time updates
+  useVersionPolling(tournamentId || 'current');
 
   // Fetch rating changes for completed matches
   const fetchRatingChanges = async (matchList: Match[]) => {

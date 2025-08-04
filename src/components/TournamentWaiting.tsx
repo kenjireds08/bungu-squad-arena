@@ -14,7 +14,7 @@ import {
   AlertCircle,
   Loader2
 } from 'lucide-react';
-import { useTournaments, useRankings } from '@/hooks/useApi';
+import { useTournaments, useRankings, useVersionPolling } from '@/hooks/useApi';
 import { getCategorizedTournaments } from '@/utils/tournamentData';
 import { PlayerRanking } from './PlayerRanking';
 import { TournamentMatchesView } from './TournamentMatchesView';
@@ -32,6 +32,9 @@ export const TournamentWaiting = ({ onClose, onViewRanking }: TournamentWaitingP
   const [isLoadingMatches, setIsLoadingMatches] = useState(false);
   const { data: tournaments, isLoading: tournamentsLoading } = useTournaments();
   const { data: players, isLoading: playersLoading } = useRankings();
+  
+  // Enable version-based polling for real-time updates
+  useVersionPolling('current');
   
   // Get today's tournament and participants
   const today = new Date().toISOString().split('T')[0];
