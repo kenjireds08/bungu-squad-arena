@@ -1,4 +1,4 @@
-const { SheetsService } = require('./lib/sheets');
+const SheetsService = require('./lib/sheets');
 const crypto = require('crypto');
 
 const sheets = new SheetsService();
