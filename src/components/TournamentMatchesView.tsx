@@ -155,8 +155,8 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
 
   useEffect(() => {
     fetchMatches();
-    // Refresh every 90 seconds - reduced to minimize API calls
-    const interval = setInterval(fetchMatches, 90000);
+    // Refresh every 5 seconds for real-time updates
+    const interval = setInterval(fetchMatches, 5000);
     return () => clearInterval(interval);
   }, [tournamentId]);
 

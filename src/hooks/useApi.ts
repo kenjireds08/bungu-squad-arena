@@ -60,8 +60,8 @@ export const useRankings = () => {
   return useQuery({
     queryKey: ['rankings'],
     queryFn: api.getRankings,
-    staleTime: 1000 * 120, // 2 minutes
-    refetchInterval: 1000 * 120, // Auto-refetch every 2 minutes to reduce API calls
+    staleTime: 1000 * 5, // 5 seconds
+    refetchInterval: 1000 * 5, // Auto-refetch every 5 seconds for real-time updates
     retry: 1, // Reduce retry attempts
   });
 };
@@ -71,8 +71,8 @@ export const useTournaments = () => {
   return useQuery({
     queryKey: ['tournaments'],
     queryFn: api.getTournaments,
-    staleTime: 1000 * 180, // 3 minutes
-    refetchInterval: 1000 * 180, // Auto-refetch every 3 minutes to reduce API calls
+    staleTime: 1000 * 5, // 5 seconds
+    refetchInterval: 1000 * 5, // Auto-refetch every 5 seconds for real-time updates
     retry: 1, // Reduce retry attempts
   });
 };
@@ -153,8 +153,8 @@ export const usePendingMatchResults = () => {
   return useQuery({
     queryKey: ['pendingMatchResults'],
     queryFn: api.getPendingMatchResults,
-    staleTime: 1000 * 120, // 2 minutes
-    refetchInterval: 1000 * 120, // Auto-refetch every 2 minutes to reduce API calls
+    staleTime: 1000 * 5, // 5 seconds
+    refetchInterval: 1000 * 5, // Auto-refetch every 5 seconds for real-time updates
     retry: 1,
   });
 };
