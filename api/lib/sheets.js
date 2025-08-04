@@ -103,8 +103,10 @@ class SheetsService {
       const rows = response.data.values || [];
       
       // Auto-reset tournament participation flags for new day
+      // Temporarily disabled for debugging 500 errors
       try {
-        await this.autoResetOldTournamentParticipation();
+        // await this.autoResetOldTournamentParticipation();
+        console.log('Auto-reset temporarily disabled for debugging');
       } catch (resetError) {
         console.warn('Auto-reset failed, continuing with getPlayers:', resetError.message);
         // Continue with getPlayers even if reset fails
