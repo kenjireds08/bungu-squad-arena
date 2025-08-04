@@ -1,5 +1,17 @@
 const { google } = require('googleapis');
 
+// Global memory cache for same instance
+const cache = globalThis.__cache ?? (globalThis.__cache = new Map());
+
+async function cached(key, ttl, loader) {
+  const hit = cache.get(key);
+  const now = Date.now();
+  if (hit && now - hit.t < ttl) return hit.v;
+  const p = loader().catch(e => { cache.delete(key); throw e; });
+  cache.set(key, { t: now, v: p });
+  return p;
+}
+
 class SheetsService {
   constructor() {
     this.auth = null;
@@ -92,9 +104,10 @@ class SheetsService {
   }
 
   async getPlayers() {
-    await this.authenticate();
-    
-    try {
+    return cached('players', 15000, async () => {
+      await this.authenticate();
+      
+      try {
       const response = await this.sheets.spreadsheets.values.get({
         spreadsheetId: this.spreadsheetId,
         range: 'Players!A2:Z1000'
@@ -148,8 +161,9 @@ class SheetsService {
         throw new Error('Permission denied. Please check Google Sheets API credentials.');
       } else if (error.code === 429) {
         console.warn('Rate limit hit in getPlayers, implementing backoff');
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        throw new Error('API rate limit exceeded. Please try again later.');
+        const rateLimitError = new Error('API rate limit exceeded. Please try again later.');
+        rateLimitError.code = 429;
+        throw rateLimitError;
       } else {
         console.error('Environment check:', {
           hasServiceAccount: !!process.env.GOOGLE_SERVICE_ACCOUNT_KEY,
@@ -651,7 +665,8 @@ class SheetsService {
   }
 
   async getTournaments() {
-    await this.authenticate();
+    return cached('tournaments', 15000, async () => {
+      await this.authenticate();
     
     try {
       // Skip structure check for read operations to avoid 500 errors
@@ -687,11 +702,14 @@ class SheetsService {
         // Rate limit - wait and retry once
         console.warn('Rate limit hit in getTournaments, implementing backoff');
         await new Promise(resolve => setTimeout(resolve, 1000));
-        throw new Error('API rate limit exceeded. Please try again later.');
+        const rateLimitError = new Error('API rate limit exceeded. Please try again later.');
+        rateLimitError.code = 429;
+        throw rateLimitError;
       } else {
         throw new Error(`Failed to fetch tournaments data: ${error.message}`);
       }
     }
+    });
   }
 
   async createTournament(tournamentData) {
@@ -2714,10 +2732,9 @@ class SheetsService {
       const winnerId = matchRow[7];
       
       // Get rating history for this match
-      const historyResponse = await this.sheets.spreadsheets.values.get({
-        spreadsheetId: this.spreadsheetId,
-        range: 'RatingHistory!A2:I1000'
-      });
+      // 緊急対応: API rate limit回避のためRatingHistory読み取りを無効化
+        console.warn('EMERGENCY: RatingHistory read disabled to prevent API rate limit');
+        const historyResponse = { data: { values: [] } };
       
       const historyRows = historyResponse.data.values || [];
       
@@ -2941,10 +2958,9 @@ class SheetsService {
       
       try {
         // RatingHistoryから最新のレーティング変更前の値を取得
-        const historyResponse = await this.sheets.spreadsheets.values.get({
-          spreadsheetId: this.spreadsheetId,
-          range: 'RatingHistory!A2:I1000'
-        });
+        // 緊急対応: API rate limit回避のためRatingHistory読み取りを無効化
+        console.warn('EMERGENCY: RatingHistory read disabled to prevent API rate limit');
+        const historyResponse = { data: { values: [] } };
         
         const historyRows = historyResponse.data.values || [];
         
@@ -3102,10 +3118,9 @@ class SheetsService {
       let player2RatingBefore = 1500;
       
       try {
-        const historyResponse = await this.sheets.spreadsheets.values.get({
-          spreadsheetId: this.spreadsheetId,
-          range: 'RatingHistory!A2:I1000'
-        });
+        // 緊急対応: API rate limit回避のためRatingHistory読み取りを無効化
+        console.warn('EMERGENCY: RatingHistory read disabled to prevent API rate limit');
+        const historyResponse = { data: { values: [] } };
         
         const historyRows = historyResponse.data.values || [];
         

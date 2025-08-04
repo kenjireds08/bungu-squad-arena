@@ -10,6 +10,9 @@ module.exports = async function handler(req, res) {
 
     switch (req.method) {
       case 'GET':
+        // Add caching to reduce API calls
+        res.setHeader('Cache-Control', 'public, s-maxage=15, stale-while-revalidate=60');
+        
         if (req.query.id) {
           const player = await sheetsService.getPlayer(req.query.id);
           if (!player) {

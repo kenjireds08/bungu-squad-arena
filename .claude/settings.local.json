@@ -46,7 +46,8 @@
       "mcp__serena__find_file",
       "WebFetch(domain:resend.com)",
       "Bash(nslookup:*)",
-      "Bash(dig:*)"
+      "Bash(dig:*)",
+      "mcp__serena__read_memory"
     ],
     "deny": []
   }

@@ -29,6 +29,15 @@ async function handleInvalidateMatch(req, res) {
 
   } catch (error) {
     console.error('Invalidate match error:', error);
+    
+    // Handle rate limit errors properly
+    if (error.code === 429) {
+      res.setHeader('Retry-After', '15');
+      return res.status(429).json({ 
+        error: 'API rate limit exceeded. Please try again in 15 seconds.' 
+      });
+    }
+    
     return res.status(500).json({ 
       error: 'Failed to invalidate match: ' + error.message 
     });
@@ -64,6 +73,15 @@ async function handleEditCompletedMatch(req, res) {
 
   } catch (error) {
     console.error('Edit completed match error:', error);
+    
+    // Handle rate limit errors properly
+    if (error.code === 429) {
+      res.setHeader('Retry-After', '15');
+      return res.status(429).json({ 
+        error: 'API rate limit exceeded. Please try again in 15 seconds.' 
+      });
+    }
+    
     return res.status(500).json({ 
       error: 'Failed to edit completed match: ' + error.message 
     });

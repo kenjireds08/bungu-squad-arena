@@ -157,6 +157,15 @@ module.exports = async function handler(req, res) {
     }
   } catch (error) {
     console.error('API Error:', error);
+    
+    // Handle rate limit errors properly
+    if (error.code === 429) {
+      res.setHeader('Retry-After', '15');
+      return res.status(429).json({ 
+        error: 'API rate limit exceeded. Please try again in 15 seconds.' 
+      });
+    }
+    
     return res.status(500).json({ error: error.message || 'Internal server error' });
   }
 }
