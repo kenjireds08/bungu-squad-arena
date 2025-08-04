@@ -384,7 +384,7 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
                   <p className="text-lg font-medium text-foreground mb-2">{currentUser?.nickname || 'プレイヤー'}</p>
                 </div>
                 <h2 className="text-2xl font-bold text-foreground">
-                  {currentUser?.rankDisplay || `${getRankIcon(currentUser?.rank || 0)} 現在 ${currentUser?.rank || '-'}位`}
+                  {`${getRankIcon(currentUser?.rank || 0)} 現在 ${currentUser?.rank || '-'}位`}
                 </h2>
                 <div className="flex items-center justify-center">
                   <span className="text-xl font-semibold text-primary">
@@ -440,7 +440,7 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
                   }}
                 >
                   <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-lg">{nextTournament.name || nextTournament.tournament_name}</h3>
+                    <h3 className="font-semibold text-lg">{nextTournament.tournament_name || nextTournament.name}</h3>
                     <Info className="h-4 w-4 text-muted-foreground" />
                   </div>
                   <div className="space-y-1 text-sm text-muted-foreground">
@@ -570,7 +570,7 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">
-              {selectedTournamentForDetails?.name || selectedTournamentForDetails?.tournament_name}
+              {selectedTournamentForDetails?.tournament_name || selectedTournamentForDetails?.name}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 mt-4">

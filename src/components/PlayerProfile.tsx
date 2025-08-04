@@ -339,7 +339,7 @@ export const PlayerProfile = ({ onClose, currentUserId }: PlayerProfileProps) =>
                   <div className="text-2xl font-bold text-foreground">{(player.total_wins + player.total_losses)}</div>
                   <div className="text-sm text-muted-foreground">総対戦数</div>
                   <div className="text-xs text-muted-foreground flex items-center gap-1 justify-center">
-                    最終ログイン: {player.last_login ? formatDate(player.last_login) : '未設定'}
+                    最終ログイン: {player.last_login_date ? formatDate(player.last_login_date) : '未設定'}
                     <Button
                       variant="ghost"
                       size="sm"

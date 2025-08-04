@@ -125,7 +125,7 @@ export const PlayerRanking = ({ onClose }: PlayerRankingProps) => {
                   {/* Rank and Player Info */}
                   <div className="flex items-center gap-3">
                     <div className="text-xl font-bold w-12 text-center">
-                      {player.rankDisplay || getRankIcon(player.rank || index + 1)}
+                      {getRankIcon(player.rank || index + 1)}
                     </div>
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
@@ -133,8 +133,7 @@ export const PlayerRanking = ({ onClose }: PlayerRankingProps) => {
                           {player.nickname}
                         </span>
                         <div className="flex gap-1 items-center">
-                          {/* Debug output */}
-                          {console.log(`Player ${player.nickname} badges:`, player.champion_badges)}
+                           {/* Badges display */}
                           {player.champion_badges?.split(',').filter(Boolean).map((badge, badgeIndex) => (
                             <span 
                               key={badgeIndex} 

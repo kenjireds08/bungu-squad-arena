@@ -25,7 +25,7 @@ interface AdminTournamentsProps {
 
 
 export const AdminTournaments = ({ onBack, initialView = 'list', selectedTournamentId }: AdminTournamentsProps) => {
-  const [currentView, setCurrentView] = useState<'list' | 'create' | 'management' | 'participants' | 'management-progress' | 'results'>(initialView);
+  const [currentView, setCurrentView] = useState<'list' | 'create' | 'management' | 'participants' | 'management-progress' | 'results' | 'matchmaking'>(initialView);
   const [selectedTournament, setSelectedTournament] = useState<any>(null);
   const [showQRCode, setShowQRCode] = useState(false);
   const [activeParticipants, setActiveParticipants] = useState(0);

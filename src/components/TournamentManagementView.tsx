@@ -90,8 +90,8 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
 
   useEffect(() => {
     fetchMatches();
-    // Auto-refresh every 90 seconds - reduced to minimize API calls
-    const interval = setInterval(fetchMatches, 90000);
+    // Auto-refresh every 5 seconds for real-time updates
+    const interval = setInterval(fetchMatches, 5000);
     return () => clearInterval(interval);
   }, [tournamentId]);
 
@@ -145,11 +145,20 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
     return match.status === 'scheduled';
   };
 
-  // 管理者手動入力
+  // 管理者手動入力（即時反映）
   const handleAdminDirectInput = async (match: Match, winnerId: string) => {
     const loserId = winnerId === match.player1_id ? match.player2_id : match.player1_id;
     
     try {
+      // 楽観的更新：即座にUIを更新
+      setMatches(prevMatches => 
+        prevMatches.map(m => 
+          m.match_id === match.match_id 
+            ? { ...m, status: 'approved' as const, winner_id: winnerId }
+            : m
+        )
+      );
+      
       await adminDirectInputMutation.mutateAsync({
         matchId: match.match_id,
         winnerId,
@@ -161,9 +170,12 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
         description: "レーティングが更新され、次の試合に進行できます。",
       });
 
-      // 試合データを再取得
-      fetchMatches();
+      // 確実にサーバーから最新データを取得
+      await fetchMatches();
     } catch (error) {
+      // エラー時は楽観的更新を元に戻す
+      await fetchMatches();
+      
       toast({
         title: "エラーが発生しました",
         description: "試合結果の確定に失敗しました。",
@@ -180,9 +192,18 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
     }
   };
 
-  // 試合開始ハンドラー
+  // 試合開始ハンドラー（即時反映）
   const handleStartMatch = async (matchId: string) => {
     try {
+      // 楽観的更新：即座にUIを更新
+      setMatches(prevMatches => 
+        prevMatches.map(match => 
+          match.match_id === matchId 
+            ? { ...match, status: 'in_progress' as const }
+            : match
+        )
+      );
+      
       await startMatchMutation.mutateAsync(matchId);
       
       toast({
@@ -190,9 +211,14 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
         description: "試合が開始されました！",
       });
       
-      fetchMatches();
+      // 確実にサーバーから最新データを取得
+      await fetchMatches();
     } catch (error) {
       console.error('Start match failed:', error);
+      
+      // エラー時は楽観的更新を元に戻す
+      await fetchMatches();
+      
       toast({
         title: "エラー",
         description: "試合開始に失敗しました。",
@@ -437,7 +463,7 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
       </header>
 
       <main className="container mx-auto px-4 py-6">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'overview' | 'matches' | 'progress')} className="space-y-4">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="overview">概要</TabsTrigger>
             <TabsTrigger value="matches">試合管理</TabsTrigger>
