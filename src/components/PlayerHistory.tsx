@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, History, Trophy, Calendar, TrendingUp, TrendingDown, Loader2 } from 'lucide-react';
+import { ArrowLeft, History, Trophy, Calendar, TrendingUp, TrendingDown, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface PlayerHistoryProps {
   onClose: () => void;
@@ -45,6 +45,8 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
   const [tournamentArchive, setTournamentArchive] = useState<TournamentArchive[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [players, setPlayers] = useState<any[]>([]);
+  const [showAllTournaments, setShowAllTournaments] = useState(false);
+  const [showAllMatches, setShowAllMatches] = useState(false);
 
   useEffect(() => {
     if (currentUserId) {
@@ -353,48 +355,72 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
                 <p>大会参加履歴がありません</p>
               </div>
             ) : (
-              tournamentArchive.map((entry, index) => (
-              <div
-                key={`${entry.archive_id}-${index}`}
-                className="p-4 bg-muted/30 rounded-lg border border-fantasy-frame/20 animate-slide-up"
-                style={{ animationDelay: `${index * 100}ms` }}
-              >
-                <div className="flex items-start justify-between mb-2">
-                  <div className="space-y-1">
-                    <h3 className="font-semibold text-foreground">
-                      {entry.tournament_date || 'BUNGU SQUAD大会'}
-                    </h3>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Calendar className="h-3 w-3" />
-                      {formatDate(entry.tournament_date)}
+              <>
+                {tournamentArchive
+                  .slice(0, showAllTournaments ? tournamentArchive.length : 3)
+                  .map((entry, index) => (
+                  <div
+                    key={`${entry.archive_id}-${index}`}
+                    className="p-4 bg-muted/30 rounded-lg border border-fantasy-frame/20 animate-slide-up"
+                    style={{ animationDelay: `${index * 100}ms` }}
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="space-y-1">
+                        <h3 className="font-semibold text-foreground">
+                          {entry.tournament_date || 'BUNGU SQUAD大会'}
+                        </h3>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Calendar className="h-3 w-3" />
+                          {formatDate(entry.tournament_date)}
+                        </div>
+                      </div>
+                      <Badge variant="outline">
+                        参加
+                      </Badge>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-4 text-sm">
+                      <div className="text-center">
+                        <div className="font-semibold text-foreground">{entry.total_participants_that_day}名</div>
+                        <div className="text-muted-foreground">参加者</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="font-semibold text-foreground">
+                          {matches.filter(m => m.tournament_id === entry.archive_id).length}試合
+                        </div>
+                        <div className="text-muted-foreground">対戦数</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="font-semibold text-foreground">
+                          {matches.filter(m => m.tournament_id === entry.archive_id && m.winner_id === currentUserId).length}勝
+                          {matches.filter(m => m.tournament_id === entry.archive_id && m.winner_id !== currentUserId).length}敗
+                        </div>
+                        <div className="text-muted-foreground">成績</div>
+                      </div>
                     </div>
                   </div>
-                  <Badge variant="outline">
-                    参加
-                  </Badge>
-                </div>
+                ))}
                 
-                <div className="grid grid-cols-3 gap-4 text-sm">
-                  <div className="text-center">
-                    <div className="font-semibold text-foreground">{entry.total_participants_that_day}名</div>
-                    <div className="text-muted-foreground">参加者</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="font-semibold text-foreground">
-                      {matches.filter(m => m.tournament_id === entry.archive_id).length}試合
-                    </div>
-                    <div className="text-muted-foreground">対戦数</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="font-semibold text-foreground">
-                      {matches.filter(m => m.tournament_id === entry.archive_id && m.winner_id === currentUserId).length}勝
-                      {matches.filter(m => m.tournament_id === entry.archive_id && m.winner_id !== currentUserId).length}敗
-                    </div>
-                    <div className="text-muted-foreground">成績</div>
-                  </div>
-                </div>
-              </div>
-              ))
+                {tournamentArchive.length > 3 && (
+                  <Button
+                    variant="ghost"
+                    onClick={() => setShowAllTournaments(!showAllTournaments)}
+                    className="w-full mt-4 text-primary"
+                  >
+                    {showAllTournaments ? (
+                      <>
+                        <ChevronUp className="h-4 w-4 mr-2" />
+                        少なく表示
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown className="h-4 w-4 mr-2" />
+                        すべて表示 ({tournamentArchive.length - 3}件追加)
+                      </>
+                    )}
+                  </Button>
+                )}
+              </>
             )}
           </CardContent>
         </Card>
@@ -414,49 +440,73 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
                 <p>対戦記録がありません</p>
               </div>
             ) : (
-              matches.slice(0, 10).map((match, index) => (
-              <div
-                key={match.id}
-                className="p-3 bg-muted/20 rounded-lg border border-fantasy-frame/10 animate-slide-up"
-                style={{ animationDelay: `${(index + 3) * 100}ms` }}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-foreground">vs {getOpponentName(match)}</span>
-                    <Badge variant="outline" className="text-xs">
-                      {getGameTypeName(match.game_rule) === "トランプ" ? "♠️" : "➕"}
-                    </Badge>
+              <>
+                {matches
+                  .slice(0, showAllMatches ? matches.length : 5)
+                  .map((match, index) => (
+                  <div
+                    key={match.id}
+                    className="p-3 bg-muted/20 rounded-lg border border-fantasy-frame/10 animate-slide-up"
+                    style={{ animationDelay: `${(index + 3) * 100}ms` }}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-foreground">vs {getOpponentName(match)}</span>
+                        <Badge variant="outline" className="text-xs">
+                          {getGameTypeName(match.game_rule) === "トランプ" ? "♠️" : "➕"}
+                        </Badge>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {formatDateTime(match.match_start_time)}
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Badge 
+                          variant={getPlayerResult(match) === "勝ち" ? "default" : "destructive"}
+                          className={getPlayerResult(match) === "勝ち" ? "bg-success" : ""}
+                        >
+                          {getPlayerResult(match)}
+                        </Badge>
+                        <span className="text-sm text-muted-foreground">
+                          対戦相手レート: {getOpponentRating(match)}
+                        </span>
+                      </div>
+                      <div className={`font-semibold text-sm flex items-center gap-1 ${
+                        getPlayerRatingChange(match) > 0 ? 'text-success' : 'text-destructive'
+                      }`}>
+                        {getPlayerRatingChange(match) > 0 ? (
+                          <TrendingUp className="h-3 w-3" />
+                        ) : (
+                          <TrendingDown className="h-3 w-3" />
+                        )}
+                        {getPlayerRatingChange(match) > 0 ? '+' : ''}{getPlayerRatingChange(match)}
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-xs text-muted-foreground">
-                    {formatDateTime(match.match_start_time)}
-                  </div>
-                </div>
+                ))}
                 
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Badge 
-                      variant={getPlayerResult(match) === "勝ち" ? "default" : "destructive"}
-                      className={getPlayerResult(match) === "勝ち" ? "bg-success" : ""}
-                    >
-                      {getPlayerResult(match)}
-                    </Badge>
-                    <span className="text-sm text-muted-foreground">
-                      対戦相手レート: {getOpponentRating(match)}
-                    </span>
-                  </div>
-                  <div className={`font-semibold text-sm flex items-center gap-1 ${
-                    getPlayerRatingChange(match) > 0 ? 'text-success' : 'text-destructive'
-                  }`}>
-                    {getPlayerRatingChange(match) > 0 ? (
-                      <TrendingUp className="h-3 w-3" />
+                {matches.length > 5 && (
+                  <Button
+                    variant="ghost"
+                    onClick={() => setShowAllMatches(!showAllMatches)}
+                    className="w-full mt-4 text-primary"
+                  >
+                    {showAllMatches ? (
+                      <>
+                        <ChevronUp className="h-4 w-4 mr-2" />
+                        少なく表示
+                      </>
                     ) : (
-                      <TrendingDown className="h-3 w-3" />
+                      <>
+                        <ChevronDown className="h-4 w-4 mr-2" />
+                        もっと見る ({matches.length - 5}件追加)
+                      </>
                     )}
-                    {getPlayerRatingChange(match) > 0 ? '+' : ''}{getPlayerRatingChange(match)}
-                  </div>
-                </div>
-              </div>
-              ))
+                  </Button>
+                )}
+              </>
             )}
           </CardContent>
         </Card>
