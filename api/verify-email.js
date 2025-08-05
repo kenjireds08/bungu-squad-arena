@@ -40,6 +40,10 @@ module.exports = async function handler(req, res) {
     // プレイヤー情報をパース（型を確認してから）
     const playerData = (typeof raw === 'string') ? JSON.parse(raw) : raw;
     
+    // デバッグ: 取得したプレイヤーデータをログ出力
+    console.log('🔍 Retrieved player data from KV:', JSON.stringify(playerData, null, 2));
+    console.log('🔍 tournamentId check:', playerData.tournamentId, 'Type:', typeof playerData.tournamentId);
+    
     // Sheetsにプレイヤーを正式登録（email_verified=TRUE）
     await sheets.addPlayer(playerData);
     
