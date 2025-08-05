@@ -306,6 +306,8 @@ module.exports = async function handler(req, res) {
         return await handleRepairMatchMetadata(req, res);
       case 'renumber-matches':
         return await handleRenumberMatches(req, res);
+      case 'end-tournament':
+        return await handleEndTournament(req, res);
       default:
         return res.status(400).json({ error: 'Invalid action parameter' });
     }
@@ -418,6 +420,74 @@ async function handleRenumberMatches(req, res) {
     console.error('Renumber matches error:', error);
     return res.status(500).json({ 
       error: 'Failed to renumber matches: ' + error.message 
+    });
+  }
+}
+
+/**
+ * Handle end-tournament action
+ */
+async function handleEndTournament(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const { tournamentId, force } = req.body;
+
+  if (!tournamentId) {
+    return res.status(400).json({ error: 'Tournament ID is required' });
+  }
+
+  try {
+    const sheetsService = new SheetsService();
+    await sheetsService.authenticate();
+
+    // 1. End the tournament (update status to 'ended' and set ended_at)
+    await sheetsService.endTournament(tournamentId);
+    
+    // 2. Deactivate all tournament participants
+    const { deactivatedCount, playersDeactivated } = await sheetsService.deactivateTournamentParticipants(tournamentId);
+    
+    // 3. Optional: Repair approved matches metadata
+    try {
+      const matches = await sheetsService.getAllMatches();
+      const tournamentMatches = matches.filter(m => m.tournament_id === tournamentId);
+      
+      let repairedCount = 0;
+      for (const match of tournamentMatches) {
+        if (match.status === 'completed' || match.status === 'approved') {
+          await sheetsService.updateMatchStatus(match.match_id, 'approved');
+          repairedCount++;
+        }
+      }
+      console.log(`Repaired metadata for ${repairedCount} matches in tournament ${tournamentId}`);
+    } catch (repairError) {
+      console.warn('Failed to repair match metadata:', repairError);
+    }
+
+    // 4. Version increment for real-time updates
+    try {
+      await kv.incr('tournaments:v');
+      await kv.incr(`tour:${tournamentId}:v`);
+      console.log(`Version incremented for tournament: ${tournamentId}`);
+    } catch (e) {
+      console.warn('Failed to increment version:', e);
+    }
+
+    console.log(`Tournament ${tournamentId} ended successfully. Deactivated ${deactivatedCount} participants and ${playersDeactivated} players.`);
+    
+    return res.status(200).json({
+      success: true,
+      message: `大会を終了しました（参加者 ${deactivatedCount} 名をリセット）`,
+      deactivatedCount,
+      playersDeactivated,
+      newStatus: 'ended'
+    });
+
+  } catch (error) {
+    console.error('End tournament error:', error);
+    return res.status(500).json({ 
+      error: 'Failed to end tournament: ' + error.message 
     });
   }
 }

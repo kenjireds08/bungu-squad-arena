@@ -9,6 +9,7 @@ export interface Tournament {
   location: string;
   participants: number;
   status: string;
+  rawStatus?: string; // Raw status from API for filtering
   description?: string;
 }
 
@@ -28,7 +29,7 @@ export const getTournamentStatus = (date: string, time?: string) => {
 };
 
 // Convert API tournament data to internal format
-export const transformTournamentData = (apiTournament: ApiTournament): Tournament => {
+const transformTournamentData = (apiTournament: ApiTournament): Tournament => {
   return {
     id: apiTournament.id,
     name: apiTournament.tournament_name,
@@ -37,6 +38,7 @@ export const transformTournamentData = (apiTournament: ApiTournament): Tournamen
     location: apiTournament.location,
     participants: apiTournament.current_participants,
     status: getTournamentStatus(apiTournament.date),
+    rawStatus: apiTournament.status, // Add raw status from API
     description: apiTournament.description || ''
   };
 };
@@ -46,9 +48,9 @@ export const getCategorizedTournaments = (apiTournaments: ApiTournament[] = []) 
   const tournaments = apiTournaments.map(transformTournamentData);
 
   return {
-    active: tournaments.filter(t => t.status === '開催中'),
-    upcoming: tournaments.filter(t => t.status === '募集中'),
-    completed: tournaments.filter(t => t.status === '完了')
+    active: tournaments.filter(t => t.rawStatus === 'active'),
+    upcoming: tournaments.filter(t => t.rawStatus === 'upcoming'),
+    completed: tournaments.filter(t => t.rawStatus === 'completed' || t.rawStatus === 'ended')
   };
 };
 /**

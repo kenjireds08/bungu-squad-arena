@@ -219,18 +219,29 @@ export const AdminTournaments = ({ onBack, initialView = 'list', selectedTournam
   };
 
   const handleEndTournament = async (tournament: any) => {
-    const confirmed = confirm(`「${tournament.name}」を終了し、すべての参加者をリセットしますか？\n\nこの操作により：\n・全プレイヤーが非アクティブ状態になります\n・新しい大会への参加が可能になります\n\nこの操作は取り消せません。`);
+    const confirmed = confirm(`「${tournament.name}」を終了し、すべての参加者をリセットしますか？
+
+この操作により：
+・大会ステータスが「終了」になります
+・全プレイヤーが非アクティブ状態になります
+・「本日の大会」から「過去の大会」に移動します
+・試合結果は削除されません
+
+この操作は取り消せません。`);
     
     if (!confirmed) {
       return;
     }
 
     try {
-      const response = await fetch('/api/admin?action=reset-tournament-active', {
+      const response = await fetch('/api/admin?action=end-tournament', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          tournamentId: tournament.id
+        })
       });
 
       if (!response.ok) {
@@ -241,7 +252,7 @@ export const AdminTournaments = ({ onBack, initialView = 'list', selectedTournam
       
       toast({
         title: "大会終了完了",
-        description: `${tournament.name}を終了し、${result.resetCount || 0}名の参加者をリセットしました`,
+        description: result.message || `${tournament.name}を終了しました`,
       });
     } catch (error) {
       console.error('Failed to end tournament:', error);

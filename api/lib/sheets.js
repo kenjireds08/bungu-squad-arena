@@ -1692,6 +1692,121 @@ class SheetsService {
     }
   }
 
+  // End tournament and update status
+  async endTournament(tournamentId) {
+    await this.authenticate();
+    
+    try {
+      const { headers, idx } = await this._getHeaders('Tournaments!1:1');
+      
+      const resp = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId, 
+        range: 'Tournaments!A:Z'
+      });
+      const rows = resp.data.values || [];
+
+      let hit = -1;
+      for (let i = 1; i < rows.length; i++) {
+        if ((rows[i][idx('id')] || '') === tournamentId) { 
+          hit = i; 
+          break; 
+        }
+      }
+      if (hit < 0) throw new Error(`Tournament ${tournamentId} not found`);
+
+      // Update tournament status to 'ended' and set ended_at timestamp
+      const now = new Date().toISOString();
+      if (idx('status') >= 0) rows[hit][idx('status')] = 'ended';
+      if (idx('ended_at') >= 0) rows[hit][idx('ended_at')] = now;
+
+      await this.sheets.spreadsheets.values.update({
+        spreadsheetId: this.spreadsheetId,
+        range: 'Tournaments!A:Z',
+        valueInputOption: 'USER_ENTERED',
+        requestBody: { values: rows }
+      });
+
+      console.log(`Tournament ${tournamentId} ended at ${now}`);
+      return { success: true, endedAt: now };
+    } catch (error) {
+      console.error('Error ending tournament:', error);
+      throw new Error(`Failed to end tournament: ${error.message}`);
+    }
+  }
+
+  // Deactivate all participants for a tournament
+  async deactivateTournamentParticipants(tournamentId) {
+    await this.authenticate();
+    
+    try {
+      // Deactivate in TournamentParticipants sheet
+      const { headers: participantHeaders, idx: participantIdx } = await this._getHeaders('TournamentParticipants!1:1');
+      
+      const participantResp = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'TournamentParticipants!A:Z'
+      });
+      const participantRows = participantResp.data.values || [];
+      
+      let participantDeactivated = 0;
+      for (let i = 1; i < participantRows.length; i++) {
+        if (participantRows[i][participantIdx('tournament_id')] === tournamentId) {
+          if (participantIdx('status') >= 0) {
+            participantRows[i][participantIdx('status')] = 'inactive';
+            participantDeactivated++;
+          }
+        }
+      }
+      
+      if (participantDeactivated > 0) {
+        await this.sheets.spreadsheets.values.update({
+          spreadsheetId: this.spreadsheetId,
+          range: 'TournamentParticipants!A:Z',
+          valueInputOption: 'USER_ENTERED',
+          requestBody: { values: participantRows }
+        });
+      }
+
+      // Also deactivate in Players sheet (tournament_active = false)
+      const { headers: playerHeaders, idx: playerIdx } = await this._getHeaders('Players!1:1');
+      
+      const playerResp = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'Players!A:Z'
+      });
+      const playerRows = playerResp.data.values || [];
+      
+      let playerDeactivated = 0;
+      for (let i = 1; i < playerRows.length; i++) {
+        if (playerRows[i][playerIdx('tournament_active')] === 'true' || playerRows[i][playerIdx('tournament_active')] === true) {
+          if (playerIdx('tournament_active') >= 0) {
+            playerRows[i][playerIdx('tournament_active')] = 'false';
+            playerDeactivated++;
+          }
+        }
+      }
+      
+      if (playerDeactivated > 0) {
+        await this.sheets.spreadsheets.values.update({
+          spreadsheetId: this.spreadsheetId,
+          range: 'Players!A:Z',
+          valueInputOption: 'USER_ENTERED',
+          requestBody: { values: playerRows }
+        });
+      }
+
+      console.log(`Deactivated ${participantDeactivated} tournament participants and ${playerDeactivated} players for tournament ${tournamentId}`);
+      return { 
+        success: true, 
+        deactivatedCount: participantDeactivated,
+        playersDeactivated: playerDeactivated
+      };
+    } catch (error) {
+      console.error('Error deactivating tournament participants:', error);
+      throw new Error(`Failed to deactivate participants: ${error.message}`);
+    }
+  }
+
   /**
    * Admin direct match result input
    */
