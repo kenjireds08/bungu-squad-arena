@@ -146,9 +146,9 @@ export const api = {
 
   // Match Results (Player reporting and Admin approval)
   submitMatchResult: (resultData: { matchId: string; playerId: string; result: 'win' | 'lose'; opponentId: string }): Promise<{ success: boolean; resultId: string; message: string }> =>
-    apiCall('/matchResults', {
+    apiCall('/matches', {
       method: 'POST',
-      body: JSON.stringify(resultData),
+      body: JSON.stringify({ ...resultData, action: 'submitResult' }),
     }),
 
   getPendingMatchResults: (): Promise<Array<{
@@ -162,22 +162,22 @@ export const api = {
     playerName: string;
     opponentName: string;
   }>> =>
-    apiCall('/matchResults'),
+    apiCall('/matches?action=pendingResults'),
 
   approveMatchResult: (resultId: string, approved: boolean): Promise<{ success: boolean; message: string }> =>
-    apiCall('/matchResults', {
+    apiCall('/matches?action=approve', {
       method: 'PUT',
       body: JSON.stringify({ resultId, approved }),
     }),
 
   adminDirectInput: (matchData: { matchId: string; winnerId: string; loserId: string }): Promise<{ success: boolean; message: string; ratingUpdate: any }> =>
-    apiCall('/matchResults', {
-      method: 'PATCH',
-      body: JSON.stringify(matchData),
+    apiCall('/matches', {
+      method: 'POST',
+      body: JSON.stringify({ ...matchData, action: 'adminDirectInput' }),
     }),
 
   startMatch: (matchId: string): Promise<{ success: boolean; message: string }> =>
-    apiCall('/matchResults', {
+    apiCall('/matches', {
       method: 'POST',
       body: JSON.stringify({ matchId, action: 'start' }),
     }),

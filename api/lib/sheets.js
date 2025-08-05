@@ -38,6 +38,169 @@ class SheetsService {
     }
   }
 
+  /**
+   * Create TournamentMatches sheet if it doesn't exist
+   */
+  async createTournamentMatchesSheet() {
+    try {
+      // Check if sheet exists
+      const sheetResponse = await this.sheets.spreadsheets.get({
+        spreadsheetId: this.spreadsheetId,
+      });
+      
+      const sheetExists = sheetResponse.data.sheets.some(sheet => 
+        sheet.properties.title === 'TournamentMatches'
+      );
+      
+      if (sheetExists) return;
+      
+      // Create the sheet with headers
+      await this.sheets.spreadsheets.batchUpdate({
+        spreadsheetId: this.spreadsheetId,
+        requestBody: {
+          requests: [{
+            addSheet: {
+              properties: {
+                title: 'TournamentMatches',
+                gridProperties: {
+                  rowCount: 1000,
+                  columnCount: 20
+                }
+              }
+            }
+          }]
+        }
+      });
+      
+      // Add headers
+      const headers = [
+        'match_id', 'tournament_id', 'round', 'player1_id', 'player1_name', 
+        'player2_id', 'player2_name', 'game_type', 'status', 'winner_id', 
+        'result_details', 'created_at', 'completed_at', 'approved_at'
+      ];
+      
+      await this.sheets.spreadsheets.values.update({
+        spreadsheetId: this.spreadsheetId,
+        range: 'TournamentMatches!A1:N1',
+        valueInputOption: 'USER_ENTERED',
+        requestBody: { values: [headers] }
+      });
+      
+      console.log('TournamentMatches sheet created with headers');
+    } catch (error) {
+      console.warn('Error creating TournamentMatches sheet:', error);
+      // Don't throw - sheet might already exist
+    }
+  }
+
+  /**
+   * Create MatchResults sheet if it doesn't exist
+   */
+  async createMatchResultsSheet() {
+    try {
+      // Check if sheet exists
+      const sheetResponse = await this.sheets.spreadsheets.get({
+        spreadsheetId: this.spreadsheetId,
+      });
+      
+      const sheetExists = sheetResponse.data.sheets.some(sheet => 
+        sheet.properties.title === 'MatchResults'
+      );
+      
+      if (sheetExists) return;
+      
+      // Create the sheet with headers
+      await this.sheets.spreadsheets.batchUpdate({
+        spreadsheetId: this.spreadsheetId,
+        requestBody: {
+          requests: [{
+            addSheet: {
+              properties: {
+                title: 'MatchResults',
+                gridProperties: {
+                  rowCount: 1000,
+                  columnCount: 10
+                }
+              }
+            }
+          }]
+        }
+      });
+      
+      // Add headers
+      const headers = [
+        'result_id', 'match_id', 'player_id', 'opponent_id', 'result', 
+        'status', 'timestamp', 'approved_by', 'approved_at'
+      ];
+      
+      await this.sheets.spreadsheets.values.update({
+        spreadsheetId: this.spreadsheetId,
+        range: 'MatchResults!A1:I1',
+        valueInputOption: 'USER_ENTERED',
+        requestBody: { values: [headers] }
+      });
+      
+      console.log('MatchResults sheet created with headers');
+    } catch (error) {
+      console.warn('Error creating MatchResults sheet:', error);
+      // Don't throw - sheet might already exist
+    }
+  }
+
+  /**
+   * Create TournamentDailyArchive sheet if it doesn't exist
+   */
+  async createTournamentDailyArchiveSheet() {
+    try {
+      // Check if sheet exists
+      const sheetResponse = await this.sheets.spreadsheets.get({
+        spreadsheetId: this.spreadsheetId,
+      });
+      
+      const sheetExists = sheetResponse.data.sheets.some(sheet => 
+        sheet.properties.title === 'TournamentDailyArchive'
+      );
+      
+      if (sheetExists) return;
+      
+      // Create the sheet with headers
+      await this.sheets.spreadsheets.batchUpdate({
+        spreadsheetId: this.spreadsheetId,
+        requestBody: {
+          requests: [{
+            addSheet: {
+              properties: {
+                title: 'TournamentDailyArchive',
+                gridProperties: {
+                  rowCount: 1000,
+                  columnCount: 10
+                }
+              }
+            }
+          }]
+        }
+      });
+      
+      // Add headers
+      const headers = [
+        'archive_id', 'tournament_date', 'player_id', 'player_nickname', 
+        'entry_timestamp', 'total_participants_that_day', 'created_at'
+      ];
+      
+      await this.sheets.spreadsheets.values.update({
+        spreadsheetId: this.spreadsheetId,
+        range: 'TournamentDailyArchive!A1:G1',
+        valueInputOption: 'USER_ENTERED',
+        requestBody: { values: [headers] }
+      });
+      
+      console.log('TournamentDailyArchive sheet created with headers');
+    } catch (error) {
+      console.warn('Error creating TournamentDailyArchive sheet:', error);
+      // Don't throw - sheet might already exist
+    }
+  }
+
   async autoResetOldTournamentParticipation() {
     try {
       console.log('=== AUTO RESET CHECK START ===');
@@ -1005,12 +1168,15 @@ class SheetsService {
       const values = matches.map(match => [
         `${tournamentId}_${match.id}`,    // A: match_id (tournament_id + match_id)
         tournamentId,                      // B: tournament_id
-        match.player1.id,                 // C: player1_id
-        match.player2.id,                 // D: player2_id
-        '',                              // E: table_number
-        'scheduled',                      // F: match_status
-        match.gameType,                   // G: game_type ⭐NEW
-        timestamp                        // H: created_at
+        'player_00',                       // C: round (default)
+        match.player1.id,                 // D: player1_id
+        match.player1.name,               // E: player1_name
+        match.player2.id,                 // F: player2_id
+        match.player2.name,               // G: player2_name
+        match.gameType,                   // H: game_type
+        'scheduled',                      // I: status
+        '',                               // J: winner_id (empty until match completed)
+        timestamp                         // K: created_at
       ]);
 
       await this.sheets.spreadsheets.values.append({
@@ -1086,8 +1252,8 @@ class SheetsService {
                 player1_id: row[3] || '',
                 player1_name: row[4] || '',
                 player2_id: row[5] || '',
-                player2_name: row[6] || '',
-                game_type: row[7] || 'trump',
+                player2_name: row[7] || '',
+            game_type: row[6] || 'trump',
                 status: row[8] || 'scheduled',
                 winner_id: row[9] || '',
                 created_at: row[10] || ''
@@ -1138,2208 +1304,17 @@ class SheetsService {
       const matchId = `match_${Date.now()}`;
       
       const values = [[
-        matchId,
-        matchData.tournament_id || '',
-        matchData.player1_id,
-        matchData.player2_id,
-        matchData.winner_id || '',
-        matchData.loser_id || '',
-        matchData.game_type || matchData.game_rule || 'trump',
-        timestamp,
-        matchData.match_end_time || '',
-        'completed',
-        matchData.reported_by || '',
-        timestamp,
-        matchData.approved_by || '',
-        matchData.approved_at || '',
-        matchData.player1_rating_before || 0,
-        matchData.player2_rating_before || 0,
-        matchData.player1_rating_after || 0,
-        matchData.player2_rating_after || 0,
-        matchData.player1_rating_change || 0,
-        matchData.player2_rating_change || 0,
-        false, // is_proxy_input
-        '', // proxy_reason
-        '', // proxy_reason_detail
-        '', // proxy_input_by
-        true, // notification_sent
-        matchData.is_first_time_rule || false,
-        matchData.table_number || '',
-        timestamp, // notification_sent_at
-        0, // reminder_sent_count
-        '', // last_reminder_sent_at
-        'elo', // rating_calculation_method
-        matchData.notes || '',
-        matchData.weather_condition || '',
-        'web' // device_used
-      ]];
-
-      await this.sheets.spreadsheets.values.append({
-        spreadsheetId: this.spreadsheetId,
-        range: 'MatchResults!A:AH',
-        valueInputOption: 'RAW',
-        resource: { values }
-      });
-
-      // Only update ratings if this is not an invalid match
-      const isInvalidMatch = matchData.player1_rating_change === 0 && matchData.player2_rating_change === 0 && 
-                            matchData.player1_rating_after === matchData.player1_rating_before && 
-                            matchData.player2_rating_after === matchData.player2_rating_before;
-      
-      if (!isInvalidMatch) {
-        if (matchData.player1_rating_after) {
-          await this.updatePlayerRating(matchData.player1_id, matchData.player1_rating_after);
-        }
-        if (matchData.player2_rating_after) {
-          await this.updatePlayerRating(matchData.player2_id, matchData.player2_rating_after);
-        }
-      }
-
-      return { success: true, matchId };
-    } catch (error) {
-      console.error('Error adding match result:', error);
-      throw new Error('Failed to add match result');
-    }
-  }
-
-  async updatePlayerRuleExperience(playerId, gameType) {
-    await this.authenticate();
-    
-    try {
-      // First, find the player's row
-      const playersResponse = await this.sheets.spreadsheets.values.get({
-        spreadsheetId: this.spreadsheetId,
-        range: 'Players!A2:A1000'
-      });
-
-      const playerIds = playersResponse.data.values || [];
-      const rowIndex = playerIds.findIndex(row => row[0] === playerId);
-      
-      if (rowIndex === -1) {
-        throw new Error('Player not found');
-      }
-
-      const actualRowNumber = rowIndex + 2;
-      const timestamp = new Date().toISOString();
-      
-      if (gameType === 'trump') {
-        // Update trump_rule_experienced (column J) and first_trump_game_date (column K)
-        await this.sheets.spreadsheets.values.batchUpdate({
-          spreadsheetId: this.spreadsheetId,
-          requestBody: {
-            valueInputOption: 'USER_ENTERED',
-            data: [
-              {
-                range: `Players!J${actualRowNumber}`,
-                values: [['TRUE']]
-              },
-              {
-                range: `Players!K${actualRowNumber}`,
-                values: [[timestamp]]
-              }
-            ]
-          }
-        });
-      } else if (gameType === 'cardplus') {
-        // Update cardplus_rule_experienced (column L) and first_cardplus_game_date (column M)
-        await this.sheets.spreadsheets.values.batchUpdate({
-          spreadsheetId: this.spreadsheetId,
-          requestBody: {
-            valueInputOption: 'USER_ENTERED',
-            data: [
-              {
-                range: `Players!L${actualRowNumber}`,
-                values: [['TRUE']]
-              },
-              {
-                range: `Players!M${actualRowNumber}`,
-                values: [[timestamp]]
-              }
-            ]
-          }
-        });
-      }
-
-      console.log(`Updated ${gameType} rule experience for player: ${playerId}`);
-      return { success: true, playerId, gameType };
-    } catch (error) {
-      console.error('Error updating player rule experience:', error);
-      throw new Error('Failed to update player rule experience');
-    }
-  }
-
-  async updateMatchResult(matchId, updateData) {
-    await this.authenticate();
-    
-    try {
-      // Find the match row
-      const response = await this.sheets.spreadsheets.values.get({
-        spreadsheetId: this.spreadsheetId,
-        range: 'TournamentMatches!A2:N1000'
-      });
-
-      const rows = response.data.values || [];
-      const matchRowIndex = rows.findIndex(row => row[0] === matchId);
-      
-      if (matchRowIndex === -1) {
-        throw new Error('Match not found');
-      }
-
-      const actualRowNumber = matchRowIndex + 2;
-      const timestamp = new Date().toISOString();
-      
-      // Update match status and results
-      const updatePromises = [];
-      
-      if (updateData.winner_id !== undefined) {
-        updatePromises.push(
-          this.sheets.spreadsheets.values.update({
-            spreadsheetId: this.spreadsheetId,
-            range: `TournamentMatches!J${actualRowNumber}`,
-            valueInputOption: 'USER_ENTERED',
-            requestBody: { values: [[updateData.winner_id]] }
-          })
-        );
-      }
-      
-      if (updateData.status !== undefined) {
-        updatePromises.push(
-          this.sheets.spreadsheets.values.update({
-            spreadsheetId: this.spreadsheetId,
-            range: `TournamentMatches!I${actualRowNumber}`,
-            valueInputOption: 'USER_ENTERED',
-            requestBody: { values: [[updateData.status]] }
-          })
-        );
-      }
-      
-      if (updateData.result_details !== undefined) {
-        updatePromises.push(
-          this.sheets.spreadsheets.values.update({
-            spreadsheetId: this.spreadsheetId,
-            range: `TournamentMatches!K${actualRowNumber}`,
-            valueInputOption: 'USER_ENTERED',
-            requestBody: { values: [[updateData.result_details]] }
-          })
-        );
-      }
-      
-      // Update completed_at timestamp when match is completed
-      if (updateData.status === 'completed') {
-        updatePromises.push(
-          this.sheets.spreadsheets.values.update({
-            spreadsheetId: this.spreadsheetId,
-            range: `TournamentMatches!M${actualRowNumber}`,
-            valueInputOption: 'USER_ENTERED',
-            requestBody: { values: [[timestamp]] }
-          })
-        );
-      }
-      
-      // Update approved_at timestamp when match is approved
-      if (updateData.status === 'approved') {
-        updatePromises.push(
-          this.sheets.spreadsheets.values.update({
-            spreadsheetId: this.spreadsheetId,
-            range: `TournamentMatches!N${actualRowNumber}`,
-            valueInputOption: 'USER_ENTERED',
-            requestBody: { values: [[timestamp]] }
-          })
-        );
-      }
-
-      await Promise.all(updatePromises);
-
-      // If match is completed, update rule experience for both players
-      if (updateData.status === 'completed') {
-        const match = rows[matchRowIndex];
-        const gameType = match[7]; // game_type column
-        const player1Id = match[3];
-        const player2Id = match[5];
-        
-        // Update rule experience for both players
-        await Promise.all([
-          this.updatePlayerRuleExperience(player1Id, gameType),
-          this.updatePlayerRuleExperience(player2Id, gameType)
-        ]);
-      }
-
-      console.log(`Match updated: ${matchId}`);
-      return { success: true, matchId };
-    } catch (error) {
-      console.error('Error updating match result:', error);
-      throw new Error(`Failed to update match result: ${error.message}`);
-    }
-  }
-
-  async getMatchHistory(playerId = null) {
-    await this.authenticate();
-    
-    try {
-      const response = await this.sheets.spreadsheets.values.get({
-        spreadsheetId: this.spreadsheetId,
-        range: 'TournamentMatches!A2:N1000'
-      });
-
-      const rows = response.data.values || [];
-      let matches = rows.map(row => {
-        try {
-          return {
-            id: row[0] || '',                    // match_id
-            tournament_id: row[1] || '',         // tournament_id  
-            match_number: row[2] || '',          // match_number
-            player1_id: row[3] || '',            // player1_id
-            player1_name: row[4] || '',          // player1_name
-            player2_id: row[5] || '',            // player2_id
-            player2_name: row[6] || '',          // player2_name
-            game_rule: row[7] || '',             // game_rule
-            game_type: row[7] || 'trump',        // game_typeとしても利用
-            match_status: row[8] || '',          // status
-            winner_id: row[9] || '',             // winner_id
-            result_details: row[10] || '',       // result_details
-            match_start_time: row[11] || '',     // created_at
-            match_end_time: row[12] || '',       // completed_at
-            approved_at: row[13] || ''           // approved_at
-          };
-        } catch (error) {
-          console.error('Error processing match row:', error, row);
-          return null;
-        }
-      }).filter(match => match !== null);
-
-      if (playerId) {
-        matches = matches.filter(match => 
-          match && (match.player1_id === playerId || match.player2_id === playerId)
-        );
-      }
-
-      return matches.sort((a, b) => new Date(b.match_start_time) - new Date(a.match_start_time));
-    } catch (error) {
-      console.error('Error fetching match history:', error);
-      throw new Error('Failed to fetch match history');
-    }
-  }
-
-  async getAllMatches() {
-    return this.getMatchHistory();
-  }
-
-
-  calculateEloRating(player1Rating, player2Rating, result, player1Matches = 0) {
-    const K = player1Matches < 10 ? 40 : player1Matches < 30 ? 20 : 10;
-    
-    const expectedScore = 1 / (1 + Math.pow(10, (player2Rating - player1Rating) / 400));
-    const actualScore = result === 'win' ? 1 : result === 'draw' ? 0.5 : 0;
-    
-    const ratingChange = Math.round(K * (actualScore - expectedScore));
-    
-    return {
-      player1NewRating: player1Rating + ratingChange,
-      player2NewRating: player2Rating - ratingChange,
-      player1: ratingChange,
-      player2: -ratingChange
-    };
-  }
-
-  async createTournamentMatchesSheet() {
-    await this.authenticate();
-    
-    try {
-      // Get spreadsheet metadata to check if sheet exists
-      const spreadsheet = await this.sheets.spreadsheets.get({
-        spreadsheetId: this.spreadsheetId
-      });
-
-      // Check if TournamentMatches sheet already exists
-      const sheetExists = spreadsheet.data.sheets.some(
-        sheet => sheet.properties.title === 'TournamentMatches'
-      );
-
-      if (sheetExists) {
-        console.log('TournamentMatches sheet already exists');
-        return { success: true, message: 'Sheet already exists' };
-      }
-
-      // Create the sheet
-      await this.sheets.spreadsheets.batchUpdate({
-        spreadsheetId: this.spreadsheetId,
-        requestBody: {
-          requests: [{
-            addSheet: {
-              properties: {
-                title: 'TournamentMatches',
-                gridProperties: {
-                  rowCount: 1000,
-                  columnCount: 27 // A-X columns (with game_type)
-                }
-              }
-            }
-          }]
-        }
-      });
-
-      // Add headers
-      const headers = [
-        'match_id',           // A
-        'tournament_id',      // B
-        'player1_id',         // C
-        'player2_id',         // D
-        'table_number',       // E
-        'match_status',       // F
-        'game_type',          // G 👈★ NEW
-        'created_at',         // H
-        'winner_id',          // I
-        'loser_id',           // J
-        'match_start_time',   // K
-        'match_end_time',     // L
-        'reported_by',        // M
-        'reported_at',        // N
-        'approved_by',        // O
-        'approved_at',        // P
-        'player1_rating_before', // Q
-        'player2_rating_before', // R
-        'player1_rating_after',  // S
-        'player2_rating_after',  // T
-        'player1_rating_change', // U
-        'player2_rating_change', // V
-        'notes',              // W
-        'created_by'          // X
-      ];
-
-      await this.sheets.spreadsheets.values.update({
-        spreadsheetId: this.spreadsheetId,
-        range: 'TournamentMatches!A1:X1',
-        valueInputOption: 'USER_ENTERED',
-        requestBody: {
-          values: [headers]
-        }
-      });
-
-      console.log('TournamentMatches sheet created successfully');
-      return { 
-        success: true, 
-        message: 'TournamentMatches sheet created with headers',
-        sheetName: 'TournamentMatches',
-        columnCount: headers.length
-      };
-    } catch (error) {
-      console.error('Error creating TournamentMatches sheet:', error);
-      throw new Error(`Failed to create TournamentMatches sheet: ${error.message}`);
-    }
-  }
-
-
-
-
-  async getPendingMatchResults() {
-    await this.authenticate();
-    
-    try {
-      const response = await this.sheets.spreadsheets.values.get({
-        spreadsheetId: this.spreadsheetId,
-        range: 'TournamentMatches!A:X'
-      });
-
-      const rows = response.data.values || [];
-      if (rows.length <= 1) return []; // No data rows (only header)
-
-      // Filter for pending approval matches
-      const pendingMatches = rows.slice(1).filter(row => row[5] === 'pending_approval');
-
-      // Get player details for each match
-      const players = await this.getPlayers();
-      
-      const pendingResults = pendingMatches.map(row => ({
-        match_id: row[0],
-        tournament_id: row[1],
-        player1_id: row[2],
-        player2_id: row[3],
-        player1_name: players.find(p => p.id === row[2])?.nickname || 'Unknown',
-        player2_name: players.find(p => p.id === row[3])?.nickname || 'Unknown',
-        table_number: parseInt(row[4]) || 0,
-        match_status: row[5],
-        created_at: row[6],
-        winner_id: row[7],
-        loser_id: row[8],
-        match_start_time: row[9],
-        match_end_time: row[10],
-        reported_by: row[11],
-        reported_at: row[12],
-        player1_rating_before: parseInt(row[15]) || 0,
-        player2_rating_before: parseInt(row[16]) || 0,
-        notes: row[21] || ''
-      }));
-
-      return pendingResults.sort((a, b) => new Date(b.reported_at) - new Date(a.reported_at));
-    } catch (error) {
-      console.error('Error getting pending match results:', error);
-      throw new Error(`Failed to get pending match results: ${error.message}`);
-    }
-  }
-
-  async approveMatchResult(approvalData) {
-    await this.authenticate();
-    
-    try {
-      const { match_id, action, approved_by, approved_at } = approvalData;
-      
-      // Get the match details
-      const matchesResponse = await this.sheets.spreadsheets.values.get({
-        spreadsheetId: this.spreadsheetId,
-        range: 'TournamentMatches!A:X'
-      });
-
-      const matchRows = matchesResponse.data.values || [];
-      const matchRowIndex = matchRows.findIndex(row => row[0] === match_id);
-      
-      if (matchRowIndex === -1) {
-        throw new Error('Match not found');
-      }
-
-      const matchRow = matchRows[matchRowIndex];
-      
-      if (action === 'approve') {
-        // Calculate new ratings using ELO system
-        const player1_id = matchRow[2];
-        const player2_id = matchRow[3];
-        const winner_id = matchRow[7];
-        const player1_rating_before = parseInt(matchRow[15]) || 1500;
-        const player2_rating_before = parseInt(matchRow[16]) || 1500;
-        
-        // Determine who won for ELO calculation
-        const player1Won = winner_id === player1_id;
-        const eloResult = this.calculateEloRating(
-          player1_rating_before,
-          player2_rating_before,
-          player1Won ? 'win' : 'loss'
-        );
-
-        // Update match with approval and new ratings
-        const updateRange = `TournamentMatches!F${matchRowIndex + 1}:U${matchRowIndex + 1}`;
-        await this.sheets.spreadsheets.values.update({
-          spreadsheetId: this.spreadsheetId,
-          range: updateRange,
-          valueInputOption: 'USER_ENTERED',
-          requestBody: {
-            values: [[
-              'completed',                    // F: match_status
-              matchRow[6],                    // G: created_at (keep original)
-              matchRow[7],                    // H: winner_id (keep)
-              matchRow[8],                    // I: loser_id (keep)
-              matchRow[9],                    // J: match_start_time (keep)
-              matchRow[10],                   // K: match_end_time (keep)
-              matchRow[11],                   // L: reported_by (keep)
-              matchRow[12],                   // M: reported_at (keep)
-              approved_by,                    // N: approved_by
-              approved_at,                    // O: approved_at
-              player1_rating_before,          // P: player1_rating_before (keep)
-              player2_rating_before,          // Q: player2_rating_before (keep)
-              eloResult.player1NewRating,     // R: player1_rating_after
-              eloResult.player2NewRating,     // S: player2_rating_after
-              eloResult.player1,              // T: player1_rating_change
-              eloResult.player2               // U: player2_rating_change
-            ]]
-          }
-        });
-
-        // Update player ratings in Players sheet
-        await this.updatePlayerRating(player1_id, eloResult.player1NewRating);
-        await this.updatePlayerRating(player2_id, eloResult.player2NewRating);
-
-        // Update game experience and badges for both players
-        const gameType = matchRow[6] || 'basic'; // game_type = column G // game_type is in column G
-        if (gameType && gameType !== 'basic') {
-          console.log(`Updating game experience and badges for match approval: Player1 ${player1_id}, Player2 ${player2_id}, GameType: ${gameType}`);
-          await this.updatePlayerGameExperience(player1_id, gameType);
-          await this.updatePlayerGameExperience(player2_id, gameType);
-          await this.updatePlayerBadges(player1_id);
-          await this.updatePlayerBadges(player2_id);
-        }
-
-        // Add to MatchResults sheet for historical record
-        await this.addMatchResult({
-          tournament_id: matchRow[1],
-          player1_id,
-          player2_id,
-          winner_id,
-          loser_id: matchRow[8],
-          game_rule: gameType,
-          match_end_time: approved_at,
-          reported_by: matchRow[11],
-          approved_by,
-          approved_at,
-          player1_rating_before,
-          player2_rating_before,
-          player1_rating_after: eloResult.player1NewRating,
-          player2_rating_after: eloResult.player2NewRating,
-          player1_rating_change: eloResult.player1,
-          player2_rating_change: eloResult.player2,
-          table_number: matchRow[4],
-          notes: matchRow[21] || ''
-        });
-
-        console.log(`Match ${match_id} approved and ratings updated`);
-        
-        // Check if this was the last match and handle tournament completion
-        const tournamentProgress = await this.checkTournamentProgress(matchRow[1]);
-        
-        return { 
-          success: true, 
-          match_id,
-          status: 'completed',
-          player1_new_rating: eloResult.player1NewRating,
-          player2_new_rating: eloResult.player2NewRating,
-          rating_changes: {
-            player1: eloResult.player1,
-            player2: eloResult.player2
-          },
-          tournament_progress: tournamentProgress
-        };
-
-      } else if (action === 'reject') {
-        // Update match status to rejected
-        const updateRange = `TournamentMatches!F${matchRowIndex + 1}:O${matchRowIndex + 1}`;
-        await this.sheets.spreadsheets.values.update({
-          spreadsheetId: this.spreadsheetId,
-          range: updateRange,
-          valueInputOption: 'USER_ENTERED',
-          requestBody: {
-            values: [[
-              'rejected',    // F: match_status
-              matchRow[6],   // G: created_at (keep)
-              '',            // H: winner_id (clear)
-              '',            // I: loser_id (clear)
-              matchRow[9],   // J: match_start_time (keep)
-              matchRow[10],  // K: match_end_time (keep)
-              matchRow[11],  // L: reported_by (keep)
-              matchRow[12],  // M: reported_at (keep)
-              approved_by,   // N: approved_by
-              approved_at    // O: approved_at
-            ]]
-          }
-        });
-
-        console.log(`Match ${match_id} rejected`);
-        return { 
-          success: true, 
-          match_id,
-          status: 'rejected'
-        };
-      }
-    } catch (error) {
-      console.error('Error approving match result:', error);
-      throw new Error(`Failed to approve match result: ${error.message}`);
-    }
-  }
-
-  async checkTournamentProgress(tournamentId) {
-    await this.authenticate();
-    
-    try {
-      // Get all matches for this tournament
-      const allMatches = await this.getTournamentMatches(tournamentId);
-      
-      if (allMatches.length === 0) {
-        return { 
-          status: 'no_matches',
-          completed_matches: 0,
-          total_matches: 0,
-          next_matches: []
-        };
-      }
-
-      // Count completed matches
-      const completedMatches = allMatches.filter(match => match.status === 'completed').length;
-      const totalMatches = allMatches.length;
-      
-      // Find next available matches (scheduled status)
-      const nextMatches = allMatches.filter(match => match.status === 'scheduled');
-      
-      // Check if tournament is completed
-      const isCompleted = completedMatches === totalMatches;
-      
-      if (isCompleted) {
-        // Tournament is completed, trigger completion process
-        await this.completeTournament(tournamentId);
-        return {
-          status: 'completed',
-          completed_matches: completedMatches,
-          total_matches: totalMatches,
-          next_matches: []
-        };
-      }
-      
-      return {
-        status: 'in_progress',
-        completed_matches: completedMatches,
-        total_matches: totalMatches,
-        next_matches: nextMatches.slice(0, 2) // Return next 2 available matches
-      };
-      
-    } catch (error) {
-      console.error('Error checking tournament progress:', error);
-      throw new Error(`Failed to check tournament progress: ${error.message}`);
-    }
-  }
-
-  async completeTournament(tournamentId) {
-    await this.authenticate();
-    
-    try {
-      // Update tournament status to completed
-      const tournamentsResponse = await this.sheets.spreadsheets.values.get({
-        spreadsheetId: this.spreadsheetId,
-        range: 'Tournaments!A:M'
-      });
-
-      const tournamentRows = tournamentsResponse.data.values || [];
-      const tournamentRowIndex = tournamentRows.findIndex(row => row[0] === tournamentId);
-      
-      if (tournamentRowIndex !== -1) {
-        await this.sheets.spreadsheets.values.update({
-          spreadsheetId: this.spreadsheetId,
-          range: `Tournaments!I${tournamentRowIndex + 1}`, // Status column
-          valueInputOption: 'USER_ENTERED',
-          requestBody: {
-            values: [['completed']]
-          }
-        });
-
-        // Set completion timestamp
-        await this.sheets.spreadsheets.values.update({
-          spreadsheetId: this.spreadsheetId,
-          range: `Tournaments!M${tournamentRowIndex + 1}`, // Completed_at column
-          valueInputOption: 'USER_ENTERED',
-          requestBody: {
-            values: [[new Date().toISOString()]]
-          }
-        });
-
-        console.log(`Tournament ${tournamentId} marked as completed`);
-      }
-      
-      return { success: true, tournament_id: tournamentId, status: 'completed' };
-    } catch (error) {
-      console.error('Error completing tournament:', error);
-      throw new Error(`Failed to complete tournament: ${error.message}`);
-    }
-  }
-
-  async addPlayer(playerData) {
-    await this.authenticate();
-    
-    try {
-      // Prepare the row data according to Players sheet structure
-      const playerRow = [
-        playerData.id,                           // A: id
-        playerData.nickname,                     // B: nickname
-        playerData.email,                        // C: email
-        playerData.current_rating,               // D: current_rating
-        0,                                       // E: annual_wins
-        0,                                       // F: annual_losses
-        0,                                       // G: total_wins
-        0,                                       // H: total_losses
-        '',                                      // I: champion_badges
-        'FALSE',                                 // J: trump_rule_experienced
-        '',                                      // K: first_trump_game_date
-        'FALSE',                                 // L: cardplus_rule_experienced
-        '',                                      // M: first_cardplus_game_date
-        playerData.registration_date || playerData.created_at || '', // N: registration_date
-        '',                                      // O: profile_image_url
-        'TRUE',                                  // P: is_active
-        '',                                      // Q: last_activity_date
-        'active',                                // R: player_status
-        '{}',                                    // S: notification_preferences
-        '[]',                                    // T: device_tokens
-        playerData.last_login || playerData.created_at || '', // U: last_login
-        'FALSE',                                 // V: profile_image_uploaded
-        'ja',                                    // W: preferred_language
-        playerData.tournament_active ? 'TRUE' : 'FALSE'  // X: tournament_active
-      ];
-
-      // Find the next empty row
-      const response = await this.sheets.spreadsheets.values.get({
-        spreadsheetId: this.spreadsheetId,
-        range: 'Players!A:A'
-      });
-
-      const rows = response.data.values || [];
-      const nextRow = rows.length + 1;
-      const range = `Players!A${nextRow}:X${nextRow}`;
-
-      // Add the new player
-      await this.sheets.spreadsheets.values.update({
-        spreadsheetId: this.spreadsheetId,
-        range: range,
-        valueInputOption: 'USER_ENTERED',
-        requestBody: {
-          values: [playerRow]
-        }
-      });
-
-      console.log(`New player added: ${playerData.nickname} (${playerData.id})`);
-      return { success: true, playerId: playerData.id, row: nextRow };
-
-    } catch (error) {
-      console.error('Error adding player:', error);
-      throw new Error(`Failed to add player: ${error.message}`);
-    }
-  }
-
-  async deletePlayer(playerId) {
-    await this.authenticate();
-    
-    try {
-      console.log('Deleting player:', playerId);
-      
-      // First, find the player's row
-      const playersResponse = await this.sheets.spreadsheets.values.get({
-        spreadsheetId: this.spreadsheetId,
-        range: 'Players!A2:A1000'
-      });
-
-      const playerIds = playersResponse.data.values || [];
-      const rowIndex = playerIds.findIndex(row => row[0] === playerId);
-      
-      if (rowIndex === -1) {
-        console.error('Player not found with ID:', playerId);
-        throw new Error('Player not found');
-      }
-
-      const actualRowNumber = rowIndex + 2; // +2 because array is 0-indexed and we skip header
-      console.log('Deleting player from row:', actualRowNumber);
-
-      // Get the Players sheet ID
-      const spreadsheet = await this.sheets.spreadsheets.get({
-        spreadsheetId: this.spreadsheetId
-      });
-
-      const playersSheet = spreadsheet.data.sheets.find(
-        sheet => sheet.properties.title === 'Players'
-      );
-
-      if (!playersSheet) {
-        throw new Error('Players sheet not found');
-      }
-
-      const sheetId = playersSheet.properties.sheetId;
-
-      // Delete the row
-      await this.sheets.spreadsheets.batchUpdate({
-        spreadsheetId: this.spreadsheetId,
-        requestBody: {
-          requests: [{
-            deleteDimension: {
-              range: {
-                sheetId: sheetId,
-                dimension: 'ROWS',
-                startIndex: actualRowNumber - 1, // 0-indexed for batch update
-                endIndex: actualRowNumber
-              }
-            }
-          }]
-        }
-      });
-
-      console.log('Player deleted successfully:', playerId);
-      return { success: true, playerId };
-    } catch (error) {
-      console.error('Error deleting player:', error);
-      throw new Error('Failed to delete player: ' + error.message);
-    }
-  }
-
-  async createTournamentDailyArchiveSheet() {
-    await this.authenticate();
-    
-    try {
-      // Check if the sheet already exists
-      const spreadsheet = await this.sheets.spreadsheets.get({
-        spreadsheetId: this.spreadsheetId
-      });
-
-      const existingSheet = spreadsheet.data.sheets.find(
-        sheet => sheet.properties.title === 'TournamentDailyArchive'
-      );
-
-      if (existingSheet) {
-        console.log('TournamentDailyArchive sheet already exists');
-        return { success: true, message: 'Sheet already exists', sheetId: existingSheet.properties.sheetId };
-      }
-
-      // Create the new sheet
-      const response = await this.sheets.spreadsheets.batchUpdate({
-        spreadsheetId: this.spreadsheetId,
-        requestBody: {
-          requests: [
-            {
-              addSheet: {
-                properties: {
-                  title: 'TournamentDailyArchive',
-                  gridProperties: {
-                    rowCount: 1000,
-                    columnCount: 10
-                  }
-                }
-              }
-            }
-          ]
-        }
-      });
-
-      const sheetId = response.data.replies[0].addSheet.properties.sheetId;
-
-      // Add headers
-      const headers = [
-        'archive_id',
-        'tournament_date', 
-        'player_id',
-        'player_nickname',
-        'entry_timestamp',
-        'total_participants_that_day',
-        'created_at'
-      ];
-
-      await this.sheets.spreadsheets.values.update({
-        spreadsheetId: this.spreadsheetId,
-        range: 'TournamentDailyArchive!A1:G1',
-        valueInputOption: 'USER_ENTERED',
-        requestBody: {
-          values: [headers]
-        }
-      });
-
-      console.log('TournamentDailyArchive sheet created successfully');
-      return { success: true, message: 'Sheet created successfully', sheetId };
-
-    } catch (error) {
-      console.error('Error creating TournamentDailyArchive sheet:', error);
-      throw new Error('Failed to create TournamentDailyArchive sheet: ' + error.message);
-    }
-  }
-
-  async deleteMatch(matchId) {
-    await this.authenticate();
-    
-    try {
-      // First check if the match exists and hasn't started
-      const matchesResponse = await this.sheets.spreadsheets.values.get({
-        spreadsheetId: this.spreadsheetId,
-        range: 'TournamentMatches!A2:Z1000'
-      });
-
-      const matches = matchesResponse.data.values || [];
-      const matchIndex = matches.findIndex(row => row[0] === matchId);
-      
-      if (matchIndex === -1) {
-        throw new Error('Match not found');
-      }
-
-      const match = matches[matchIndex];
-      const matchStatus = match[9]; // status column
-      
-      // Only allow deletion of scheduled matches
-      if (matchStatus !== 'scheduled') {
-        throw new Error('Cannot delete match that has already started');
-      }
-
-      // Delete the match by clearing the row
-      const rowNumber = matchIndex + 2; // +2 because of header row and 0-indexing
-      await this.sheets.spreadsheets.values.clear({
-        spreadsheetId: this.spreadsheetId,
-        range: `TournamentMatches!A${rowNumber}:Z${rowNumber}`
-      });
-
-      console.log(`Match deleted: ${matchId}`);
-      return { success: true, matchId };
-    } catch (error) {
-      console.error('Error deleting match:', error);
-      throw new Error(`Failed to delete match: ${error.message}`);
-    }
-  }
-
-  // Match Results Management
-  async submitMatchResult(resultData) {
-    await this.authenticate();
-    
-    try {
-      const resultId = `result_${Date.now()}_${resultData.playerId}`;
-      
-      // Ensure MatchResults sheet exists
-      await this.createMatchResultsSheet();
-      
-      // Add match result record
-      await this.sheets.spreadsheets.values.append({
-        spreadsheetId: this.spreadsheetId,
-        range: 'MatchResults!A:H',
-        valueInputOption: 'USER_ENTERED',
-        requestBody: {
-          values: [[
-            resultId,
-            resultData.matchId,
-            resultData.playerId,
-            resultData.opponentId,
-            resultData.result,
-            resultData.timestamp,
-            resultData.status,
-            '' // admin_notes
-          ]]
-        }
-      });
-      
-      return resultId;
-    } catch (error) {
-      console.error('Error submitting match result:', error);
-      throw new Error('Failed to submit match result');
-    }
-  }
-
-  async getPendingMatchResults() {
-    await this.authenticate();
-    
-    try {
-      const response = await this.sheets.spreadsheets.values.get({
-        spreadsheetId: this.spreadsheetId,
-        range: 'MatchResults!A2:H1000'
-      });
-      
-      const rows = response.data.values || [];
-      const pendingResults = rows
-        .filter(row => row[6] === 'pending_approval') // status column
-        .map(row => ({
-          resultId: row[0],
-          matchId: row[1],
-          playerId: row[2],
-          opponentId: row[3],
-          result: row[4],
-          timestamp: row[5],
-          status: row[6],
-          adminNotes: row[7] || ''
-        }));
-      
-      // Skip player name resolution to avoid recursive API calls and 500 errors
-      // Player names should be resolved on the frontend side
-      
-      // Return raw results without player name resolution
-      return pendingResults;
-    } catch (error) {
-      console.error('Error getting pending match results:', error);
-      throw new Error('Failed to get pending match results');
-    }
-  }
-
-  async approveMatchResult(resultId, approved) {
-    await this.authenticate();
-    
-    try {
-      // Find the result row
-      const response = await this.sheets.spreadsheets.values.get({
-        spreadsheetId: this.spreadsheetId,
-        range: 'MatchResults!A2:H1000'
-      });
-      
-      const rows = response.data.values || [];
-      const resultRowIndex = rows.findIndex(row => row[0] === resultId);
-      
-      if (resultRowIndex === -1) {
-        throw new Error('Match result not found');
-      }
-      
-      const resultRow = rows[resultRowIndex];
-      const actualRowNumber = resultRowIndex + 2; // +2 because array is 0-indexed and we skip header
-      const newStatus = approved ? 'approved' : 'rejected';
-      
-      let ratingUpdateResult = null;
-      
-      if (approved) {
-        // Update player ratings based on match result
-        const playerId = resultRow[2];
-        const opponentId = resultRow[3];
-        const result = resultRow[4]; // 'win' or 'lose'
-        const gameRule = resultRow[6]; // game_rule is typically in column G
-        
-        ratingUpdateResult = await this.updatePlayersRating(playerId, opponentId, result);
-        
-        // Update game experience and badges for both players if it's not basic rule
-        if (gameRule && gameRule !== 'basic') {
-          console.log(`Updating game experience and badges for result approval: Player ${playerId}, Opponent ${opponentId}, GameRule: ${gameRule}`);
-          await this.updatePlayerGameExperience(playerId, gameRule);
-          await this.updatePlayerGameExperience(opponentId, gameRule);
-          await this.updatePlayerBadges(playerId);
-          await this.updatePlayerBadges(opponentId);
-        }
-      }
-      
-      // Update status
-      await this.sheets.spreadsheets.values.update({
-        spreadsheetId: this.spreadsheetId,
-        range: `MatchResults!G${actualRowNumber}`,
-        valueInputOption: 'USER_ENTERED',
-        requestBody: { values: [[newStatus]] }
-      });
-      
-      return {
-        success: true,
-        resultId,
-        status: newStatus,
-        message: approved ? '試合結果を承認しました' : '試合結果を却下しました',
-        ratingUpdate: ratingUpdateResult
-      };
-    } catch (error) {
-      console.error('Error approving match result:', error);
-      throw new Error('Failed to approve match result');
-    }
-  }
-
-  async updatePlayersRating(playerId, opponentId, result) {
-    const RatingCalculator = require('./rating');
-    const calculator = new RatingCalculator();
-    
-    try {
-      // Get both players' current ratings
-      const players = await this.getPlayers();
-      const player = players.find(p => p.id === playerId);
-      const opponent = players.find(p => p.id === opponentId);
-      
-      if (!player || !opponent) {
-        throw new Error('Player not found');
-      }
-      
-      // Determine winner and loser
-      const isPlayerWinner = result === 'win';
-      const winnerRating = isPlayerWinner ? player.current_rating : opponent.current_rating;
-      const loserRating = isPlayerWinner ? opponent.current_rating : player.current_rating;
-      
-      // Calculate new ratings
-      const ratingChanges = calculator.calculateBothPlayersRating(winnerRating, loserRating);
-      
-      // Prepare rating updates
-      const playerNewRating = isPlayerWinner ? ratingChanges.winner.newRating : ratingChanges.loser.newRating;
-      const opponentNewRating = isPlayerWinner ? ratingChanges.loser.newRating : ratingChanges.winner.newRating;
-      
-      // Update both players' ratings
-      await this.updatePlayerRatingAndStats(playerId, playerNewRating, result === 'win');
-      await this.updatePlayerRatingAndStats(opponentId, opponentNewRating, result === 'lose');
-      
-      // Record rating history
-      await this.recordRatingHistory({
-        playerId,
-        opponentId,
-        playerOldRating: player.current_rating,
-        playerNewRating,
-        opponentOldRating: opponent.current_rating,
-        opponentNewRating,
-        result,
-        timestamp: new Date().toISOString()
-      });
-      
-      return {
-        player: {
-          id: playerId,
-          name: player.nickname,
-          oldRating: player.current_rating,
-          newRating: playerNewRating,
-          ratingChange: playerNewRating - player.current_rating
-        },
-        opponent: {
-          id: opponentId,
-          name: opponent.nickname,
-          oldRating: opponent.current_rating,
-          newRating: opponentNewRating,
-          ratingChange: opponentNewRating - opponent.current_rating
-        }
-      };
-    } catch (error) {
-      console.error('Error updating players rating:', error);
-      throw new Error('Failed to update players rating');
-    }
-  }
-
-  async updatePlayerRatingAndStats(playerId, newRating, isWin) {
-    await this.authenticate();
-    
-    try {
-      // Get players data
-      const response = await this.sheets.spreadsheets.values.get({
-        spreadsheetId: this.spreadsheetId,
-        range: 'Players!A2:Z1000'
-      });
-      
-      const rows = response.data.values || [];
-      const playerRowIndex = rows.findIndex(row => row[0] === playerId);
-      
-      if (playerRowIndex === -1) {
-        throw new Error('Player not found');
-      }
-      
-      const actualRowNumber = playerRowIndex + 2;
-      const playerRow = rows[playerRowIndex];
-      
-      // Current stats
-      const currentWins = parseInt(playerRow[4]) || 0;
-      const currentLosses = parseInt(playerRow[5]) || 0;
-      const totalWins = parseInt(playerRow[6]) || 0;
-      const totalLosses = parseInt(playerRow[7]) || 0;
-      
-      // New stats
-      const newAnnualWins = isWin ? currentWins + 1 : currentWins;
-      const newAnnualLosses = isWin ? currentLosses : currentLosses + 1;
-      const newTotalWins = isWin ? totalWins + 1 : totalWins;
-      const newTotalLosses = isWin ? totalLosses : totalLosses + 1;
-      
-      // Update multiple fields
-      const updates = [
-        {
-          range: `Players!D${actualRowNumber}`, // current_rating
-          values: [[newRating]]
-        },
-        {
-          range: `Players!E${actualRowNumber}`, // annual_wins
-          values: [[newAnnualWins]]
-        },
-        {
-          range: `Players!F${actualRowNumber}`, // annual_losses
-          values: [[newAnnualLosses]]
-        },
-        {
-          range: `Players!G${actualRowNumber}`, // total_wins
-          values: [[newTotalWins]]
-        },
-        {
-          range: `Players!H${actualRowNumber}`, // total_losses
-          values: [[newTotalLosses]]
-        },
-        {
-          range: `Players!Q${actualRowNumber}`, // last_activity_date
-          values: [[new Date().toLocaleDateString('sv-SE')]]
-        }
-      ];
-      
-      // Execute all updates
-      await Promise.all(updates.map(update => 
-        this.sheets.spreadsheets.values.update({
-          spreadsheetId: this.spreadsheetId,
-          range: update.range,
-          valueInputOption: 'USER_ENTERED',
-          requestBody: { values: update.values }
-        })
-      ));
-      
-      return { success: true };
-    } catch (error) {
-      console.error('Error updating player rating and stats:', error);
-      throw new Error('Failed to update player rating and stats');
-    }
-  }
-
-  async recordRatingHistory(historyData) {
-    await this.authenticate();
-    
-    try {
-      // Ensure RatingHistory sheet exists
-      await this.createRatingHistorySheet();
-      
-      // Record the rating change
-      await this.sheets.spreadsheets.values.append({
-        spreadsheetId: this.spreadsheetId,
-        range: 'RatingHistory!A:H',
-        valueInputOption: 'USER_ENTERED',
-        requestBody: {
-          values: [[
-            `history_${Date.now()}`,
-            historyData.playerId,
-            historyData.opponentId,
-            historyData.playerOldRating,
-            historyData.playerNewRating,
-            historyData.opponentOldRating,
-            historyData.opponentNewRating,
-            historyData.result,
-            historyData.timestamp
-          ]]
-        }
-      });
-    } catch (error) {
-      console.error('Error recording rating history:', error);
-      // Don't throw error here - rating history is not critical
-    }
-  }
-
-  async createRatingHistorySheet() {
-    await this.authenticate();
-    
-    try {
-      // Check if RatingHistory sheet exists
-      const spreadsheet = await this.sheets.spreadsheets.get({
-        spreadsheetId: this.spreadsheetId
-      });
-      
-      const sheetExists = spreadsheet.data.sheets.some(sheet => 
-        sheet.properties.title === 'RatingHistory'
-      );
-      
-      if (!sheetExists) {
-        // Create RatingHistory sheet
-        await this.sheets.spreadsheets.batchUpdate({
-          spreadsheetId: this.spreadsheetId,
-          requestBody: {
-            requests: [{
-              addSheet: {
-                properties: {
-                  title: 'RatingHistory',
-                  gridProperties: {
-                    rowCount: 1000,
-                    columnCount: 9
-                  }
-                }
-              }
-            }]
-          }
-        });
-        
-        // Add headers
-        await this.sheets.spreadsheets.values.update({
-          spreadsheetId: this.spreadsheetId,
-          range: 'RatingHistory!A1:I1',
-          valueInputOption: 'USER_ENTERED',
-          requestBody: {
-            values: [[
-              'history_id',
-              'player_id',
-              'opponent_id',
-              'player_old_rating',
-              'player_new_rating',
-              'opponent_old_rating',
-              'opponent_new_rating',
-              'result',
-              'timestamp'
-            ]]
-          }
-        });
-      }
-    } catch (error) {
-      console.error('Error creating RatingHistory sheet:', error);
-      throw new Error('Failed to create RatingHistory sheet');
-    }
-  }
-
-  async adminDirectMatchResult(resultData) {
-    await this.authenticate();
-    
-    try {
-      const { matchId, winnerId, loserId, timestamp } = resultData;
-      
-      // Get player names for proper updates
-      const players = await this.getPlayers();
-      const playerMap = new Map(players.map(p => [p.id, p.nickname]));
-      const winnerName = playerMap.get(winnerId) || winnerId;
-      const loserName = playerMap.get(loserId) || loserId;
-      
-      // First update the TournamentMatches sheet with correct player names
-      try {
-        const response = await this.sheets.spreadsheets.values.get({
-          spreadsheetId: this.spreadsheetId,
-          range: 'TournamentMatches!A2:X1000'
-        });
-        
-        const rows = response.data.values || [];
-        const matchRowIndex = rows.findIndex(row => row[0] === matchId);
-        
-        if (matchRowIndex !== -1) {
-          const actualRowNumber = matchRowIndex + 2;
-          
-          // Determine which player is player1 and which is player2
-          const player1Id = rows[matchRowIndex][3];
-          const player2Id = rows[matchRowIndex][5];
-          
-          if (player1Id !== winnerId && player1Id !== loserId) {
-            // Update player1 info if it's incorrect
-            await this.sheets.spreadsheets.values.update({
-              spreadsheetId: this.spreadsheetId,
-              range: `TournamentMatches!D${actualRowNumber}:E${actualRowNumber}`,
-              valueInputOption: 'USER_ENTERED',
-              requestBody: { values: [[winnerId, winnerName]] }
-            });
-          }
-          
-          if (player2Id !== winnerId && player2Id !== loserId) {
-            // Update player2 info if it's incorrect
-            await this.sheets.spreadsheets.values.update({
-              spreadsheetId: this.spreadsheetId,
-              range: `TournamentMatches!F${actualRowNumber}:G${actualRowNumber}`,
-              valueInputOption: 'USER_ENTERED',
-              requestBody: { values: [[loserId, loserName]] }
-            });
-          }
-        }
-      } catch (updateError) {
-        console.warn('Could not update player names in TournamentMatches:', updateError);
-      }
-      
-      // Create result records for both players (already approved)
-      const winnerResultId = `admin_${Date.now()}_${winnerId}`;
-      const loserResultId = `admin_${Date.now()}_${loserId}`;
-      
-      // Ensure MatchResults sheet exists
-      await this.createMatchResultsSheet();
-      
-      // Add both result records as approved
-      await this.sheets.spreadsheets.values.append({
-        spreadsheetId: this.spreadsheetId,
-        range: 'MatchResults!A:H',
-        valueInputOption: 'USER_ENTERED',
-        requestBody: {
-          values: [
-            [
-              winnerResultId,
-              matchId,
-              winnerId,
-              loserId,
-              'win',
-              timestamp,
-              'approved',
-              'Admin direct input'
-            ],
-            [
-              loserResultId,
-              matchId,
-              loserId,
-              winnerId,
-              'lose',
-              timestamp,
-              'approved',
-              'Admin direct input'
-            ]
-          ]
-        }
-      });
-      
-      // Get match details to know the game type
-      const matchResponse = await this.sheets.spreadsheets.values.get({
-        spreadsheetId: this.spreadsheetId,
-        range: 'TournamentMatches!A2:N1000'
-      });
-      const matchRows = matchResponse.data.values || [];
-      const matchRow = matchRows.find(row => row[0] === matchId);
-      const gameType = matchRow ? matchRow[6] : null; // game_type is in column G
-      
-      // Update game rule experience for both players
-      if (gameType) {
-        console.log(`Updating game experience: Winner ${winnerId}, Loser ${loserId}, GameType: ${gameType}`);
-        await this.updatePlayerGameExperience(winnerId, gameType);
-        await this.updatePlayerGameExperience(loserId, gameType);
-        
-        // Update badges after game experience update
-        console.log(`Updating badges for Winner ${winnerId} and Loser ${loserId}`);
-        await this.updatePlayerBadges(winnerId);
-        await this.updatePlayerBadges(loserId);
-      } else {
-        console.warn(`No game type found for match ${matchId}`);
-      }
-      
-      // Update player ratings immediately
-      const ratingUpdateResult = await this.updatePlayersRating(winnerId, loserId, 'win');
-      
-      // Update match status to approved (admin direct input is immediately approved)
-      await this.updateMatchStatus(matchId, 'approved', winnerId);
-      
-      return {
-        success: true,
-        winnerResultId,
-        loserResultId,
-        ratingUpdate: ratingUpdateResult
-      };
-    } catch (error) {
-      console.error('Error with admin direct match result:', error);
-      throw new Error('Failed to process admin direct match result');
-    }
-  }
-
-  async updateMatchStatus(matchId, status, winnerId = null) {
-    await this.authenticate();
-    
-    try {
-      // Try TournamentMatches first, then fallback to Matches sheet
-      let response, sheetName, statusColumn, winnerColumn, timestampColumn;
-      
-      try {
-        response = await this.sheets.spreadsheets.values.get({
-          spreadsheetId: this.spreadsheetId,
-          range: 'TournamentMatches!A2:Z1000'
-        });
-        
-        const rows = response.data.values || [];
-        const matchRowIndex = rows.findIndex(row => row[0] === matchId);
-        
-        if (matchRowIndex !== -1) {
-          sheetName = 'TournamentMatches';
-          statusColumn = 'I';  // match_status is actually in column I
-          winnerColumn = 'J';  // winner_id is actually in column J
-          timestampColumn = status === 'approved' ? 'N' : 'M'; // approved_at is in column N, completed_at is in column M
-        } else {
-          throw new Error('Match not found in TournamentMatches');
-        }
-      } catch (tournamentError) {
-        // Fallback to Matches sheet
-        response = await this.sheets.spreadsheets.values.get({
-          spreadsheetId: this.spreadsheetId,
-          range: 'TournamentMatches!A2:X1000'
-        });
-        
-        const rows = response.data.values || [];
-        const matchRowIndex = rows.findIndex((row, index) => 
-          index > 0 && row[0] === matchId
-        );
-        
-        if (matchRowIndex === -1) {
-          throw new Error('Match not found in either TournamentMatches or Matches sheet');
-        }
-        
-        sheetName = 'Matches';
-        statusColumn = 'I'; // Status column in Matches sheet
-        winnerColumn = 'J'; // Winner column in Matches sheet  
-        timestampColumn = 'K'; // Timestamp column in Matches sheet
-      }
-      
-      const rows = response.data.values || [];
-      const matchRowIndex = rows.findIndex((row, index) => {
-        if (sheetName === 'TournamentMatches') {
-          return row[0] === matchId;
-        } else {
-          return index > 0 && row[0] === matchId;
-        }
-      });
-      
-      const actualRowNumber = sheetName === 'TournamentMatches' ? matchRowIndex + 2 : matchRowIndex + 1;
-      
-      // Update status
-      await this.sheets.spreadsheets.values.update({
-        spreadsheetId: this.spreadsheetId,
-        range: `${sheetName}!${statusColumn}${actualRowNumber}`,
-        valueInputOption: 'USER_ENTERED',
-        requestBody: { values: [[status]] }
-      });
-      
-      // Update winner if provided
-      if (winnerId) {
-        await this.sheets.spreadsheets.values.update({
-          spreadsheetId: this.spreadsheetId,
-          range: `${sheetName}!${winnerColumn}${actualRowNumber}`,
-          valueInputOption: 'USER_ENTERED',
-          requestBody: { values: [[winnerId]] }
-        });
-      }
-      
-      // Update completed timestamp
-      if (status === 'completed' || status === 'approved') {
-        await this.sheets.spreadsheets.values.update({
-          spreadsheetId: this.spreadsheetId,
-          range: `${sheetName}!${timestampColumn}${actualRowNumber}`,
-          valueInputOption: 'USER_ENTERED',
-          requestBody: { values: [[new Date().toISOString()]] }
-        });
-      }
-      
-      console.log(`Updated match ${matchId} status to '${status}' in ${sheetName} sheet`);
-      return { success: true };
-    } catch (error) {
-      console.error('Error updating match status:', error);
-      throw new Error('Failed to update match status');
-    }
-  }
-
-  async createMatchResultsSheet() {
-    await this.authenticate();
-    
-    try {
-      // Check if MatchResults sheet exists
-      const spreadsheet = await this.sheets.spreadsheets.get({
-        spreadsheetId: this.spreadsheetId
-      });
-      
-      const sheetExists = spreadsheet.data.sheets.some(sheet => 
-        sheet.properties.title === 'MatchResults'
-      );
-      
-      if (!sheetExists) {
-        // Create MatchResults sheet
-        await this.sheets.spreadsheets.batchUpdate({
-          spreadsheetId: this.spreadsheetId,
-          requestBody: {
-            requests: [{
-              addSheet: {
-                properties: {
-                  title: 'MatchResults',
-                  gridProperties: {
-                    rowCount: 1000,
-                    columnCount: 8
-                  }
-                }
-              }
-            }]
-          }
-        });
-        
-        // Add headers
-        await this.sheets.spreadsheets.values.update({
-          spreadsheetId: this.spreadsheetId,
-          range: 'MatchResults!A1:H1',
-          valueInputOption: 'USER_ENTERED',
-          requestBody: {
-            values: [[
-              'result_id',
-              'match_id', 
-              'player_id',
-              'opponent_id',
-              'result',
-              'timestamp',
-              'status',
-              'admin_notes'
-            ]]
-          }
-        });
-      }
-    } catch (error) {
-      console.error('Error creating MatchResults sheet:', error);
-      throw new Error('Failed to create MatchResults sheet');
-    }
-  }
-
-  async getRatingHistoryForMatch(matchId) {
-    await this.authenticate();
-    
-    try {
-      // Get match details to find the players involved
-      const matchesResponse = await this.sheets.spreadsheets.values.get({
-        spreadsheetId: this.spreadsheetId,
-        range: 'TournamentMatches!A2:N1000'
-      });
-      
-      const matchRows = matchesResponse.data.values || [];
-      const matchRow = matchRows.find(row => row[0] === matchId);
-      
-      if (!matchRow) {
-        throw new Error('Match not found');
-      }
-      
-      const player1Id = matchRow[3];
-      const player2Id = matchRow[5];
-      const winnerId = matchRow[7];
-      
-      // Get rating history for this match
-      // 緊急対応: API rate limit回避のためRatingHistory読み取りを無効化
-        console.warn('EMERGENCY: RatingHistory read disabled to prevent API rate limit');
-        const historyResponse = { data: { values: [] } };
-      
-      const historyRows = historyResponse.data.values || [];
-      
-      // Find rating changes for both players related to this match
-      // We'll look for entries with matching player IDs and approximate timestamp
-      const matchTimestamp = matchRow[12] || matchRow[13]; // completed_at or approved_at
-      
-      let winnerRatingChange = null;
-      let loserRatingChange = null;
-      
-      for (const row of historyRows) {
-        const historyPlayerId = row[1];
-        const historyOpponentId = row[2];
-        const playerOldRating = parseInt(row[3]);
-        const playerNewRating = parseInt(row[4]);
-        const opponentOldRating = parseInt(row[5]);
-        const opponentNewRating = parseInt(row[6]);
-        const result = row[7];
-        const timestamp = row[8];
-        
-        // Check if this history entry matches our match
-        if ((historyPlayerId === player1Id && historyOpponentId === player2Id) ||
-            (historyPlayerId === player2Id && historyOpponentId === player1Id)) {
-          
-          // Determine winner and loser rating changes
-          if (historyPlayerId === winnerId) {
-            // This player is the winner
-            winnerRatingChange = playerNewRating - playerOldRating;
-            loserRatingChange = opponentNewRating - opponentOldRating;
-          } else {
-            // The opponent is the winner
-            winnerRatingChange = opponentNewRating - opponentOldRating;
-            loserRatingChange = playerNewRating - playerOldRating;
-          }
-          break;
-        }
-      }
-      
-      return {
-        match_id: matchId,
-        winner_rating_change: winnerRatingChange,
-        loser_rating_change: loserRatingChange
-      };
-      
-    } catch (error) {
-      console.error('Error getting rating history for match:', error);
-      throw new Error('Failed to get rating history');
-    }
-  }
-
-  async updatePlayerGameExperience(playerId, gameType) {
-    await this.authenticate();
-    
-    console.log(`updatePlayerGameExperience called: playerId=${playerId}, gameType=${gameType}`);
-    
-    try {
-      // Get all players to find the target player
-      const response = await this.sheets.spreadsheets.values.get({
-        spreadsheetId: this.spreadsheetId,
-        range: 'Players!A2:Z1000'
-      });
-      
-      const rows = response.data.values || [];
-      const playerRowIndex = rows.findIndex(row => row[0] === playerId);
-      
-      if (playerRowIndex === -1) {
-        console.warn(`Player ${playerId} not found for game experience update. Available players:`, rows.map(row => row[0]).filter(Boolean));
-        return;
-      }
-      
-      const actualRowNumber = playerRowIndex + 2;
-      const currentDate = new Date().toISOString().split('T')[0];
-      
-      // Get current champion_badges (I列)
-      const currentBadges = rows[playerRowIndex][8] || ''; // I列は8番目のインデックス
-      
-      if (gameType === 'trump') {
-        // Check if trump badge already exists
-        if (!currentBadges.includes('♠️')) {
-          // Add trump badge to champion_badges
-          const newBadges = currentBadges ? `${currentBadges}, ♠️` : '♠️';
-          
-          // Update champion_badges (column I) and first_trump_game_date (column K)
-          await this.sheets.spreadsheets.values.batchUpdate({
-            spreadsheetId: this.spreadsheetId,
-            requestBody: {
-              valueInputOption: 'USER_ENTERED',
-              data: [
-                {
-                  range: `Players!I${actualRowNumber}`,
-                  values: [[newBadges]]
-                },
-                {
-                  range: `Players!J${actualRowNumber}`, // trump_rule_experienced フラグも更新
-                  values: [['TRUE']]
-                },
-                {
-                  range: `Players!K${actualRowNumber}`,
-                  values: [[currentDate]]
-                }
-              ]
-            }
-          });
-          console.log(`Added trump badge to player ${playerId}: "${newBadges}"`);
-        } else {
-          console.log(`Player ${playerId} already has trump badge`);
-        }
-      } else if (gameType === 'cardplus') {
-        // Check if cardplus badge already exists
-        if (!currentBadges.includes('➕') && !currentBadges.includes('+')) {
-          // Add cardplus badge to champion_badges
-          const newBadges = currentBadges ? `${currentBadges}, ➕` : '➕';
-          
-          // Update champion_badges (column I) and first_cardplus_game_date (column M)
-          await this.sheets.spreadsheets.values.batchUpdate({
-            spreadsheetId: this.spreadsheetId,
-            requestBody: {
-              valueInputOption: 'USER_ENTERED',
-              data: [
-                {
-                  range: `Players!I${actualRowNumber}`,
-                  values: [[newBadges]]
-                },
-                {
-                  range: `Players!L${actualRowNumber}`, // cardplus_rule_experienced フラグも更新
-                  values: [['TRUE']]
-                },
-                {
-                  range: `Players!M${actualRowNumber}`,
-                  values: [[currentDate]]
-                }
-              ]
-            }
-          });
-          console.log(`Added cardplus badge to player ${playerId}: "${newBadges}"`);
-        } else {
-          console.log(`Player ${playerId} already has cardplus badge`);
-        }
-      }
-    } catch (error) {
-      console.error('Error updating player game experience:', error);
-      // Don't throw error to prevent blocking the match result process
-    }
-  }
-
-  async updatePlayerBadges(playerId) {
-    await this.authenticate();
-    
-    console.log(`updatePlayerBadges called: playerId=${playerId}`);
-    
-    try {
-      // Get player data to check game experience
-      const response = await this.sheets.spreadsheets.values.get({
-        spreadsheetId: this.spreadsheetId,
-        range: 'Players!A2:Z1000'
-      });
-      
-      const rows = response.data.values || [];
-      const playerRowIndex = rows.findIndex(row => row[0] === playerId);
-      
-      if (playerRowIndex === -1) {
-        console.warn(`Player ${playerId} not found for badge update`);
-        return;
-      }
-      
-      const playerRow = rows[playerRowIndex];
-      const actualRowNumber = playerRowIndex + 2;
-      
-      // Get current badge string (column I)
-      let currentBadges = playerRow[8] || '';
-      
-      // Check trump experience (column J) and add ♠️ badge if experienced
-      const trumpExperienced = playerRow[9] === 'TRUE';
-      if (trumpExperienced && !currentBadges.includes('♠️')) {
-        currentBadges += '♠️';
-        console.log(`Added trump badge ♠️ to player ${playerId}`);
-      }
-      
-      // Check cardplus experience (column L) and add ➕ badge if experienced  
-      const cardplusExperienced = playerRow[11] === 'TRUE';
-      if (cardplusExperienced && !currentBadges.includes('➕')) {
-        currentBadges += '➕';
-        console.log(`Added cardplus badge ➕ to player ${playerId}`);
-      }
-      
-      // Update badges if changed
-      if (currentBadges !== (playerRow[8] || '')) {
-        await this.sheets.spreadsheets.values.update({
-          spreadsheetId: this.spreadsheetId,
-          range: `Players!I${actualRowNumber}`,
-          valueInputOption: 'USER_ENTERED',
-          requestBody: {
-            values: [[currentBadges]]
-          }
-        });
-        console.log(`Updated badges for player ${playerId}: ${currentBadges}`);
-      }
-      
-    } catch (error) {
-      console.error('Error updating player badges:', error);
-      // Don't throw error to prevent blocking processes
-    }
-  }
-
-  // 試合を無効にする（レーティング変化を取り消し）
-  async invalidateMatch(matchId, reason = '管理者により無効化') {
-    await this.authenticate();
-    
-    try {
-      console.log(`Invalidating match ${matchId} with reason: ${reason}`);
-      
-      // 1. TournamentMatchesシートから該当試合を取得
-      const matchResponse = await this.sheets.spreadsheets.values.get({
-        spreadsheetId: this.spreadsheetId,
-        range: 'TournamentMatches!A2:Z1000'
-      });
-      
-      const matchRows = matchResponse.data.values || [];
-      const matchRowIndex = matchRows.findIndex(row => row[0] === matchId);
-      
-      if (matchRowIndex === -1) {
-        throw new Error(`Match ${matchId} not found`);
-      }
-      
-      const matchRow = matchRows[matchRowIndex];
-      const actualRowNumber = matchRowIndex + 2;
-      
-      // 試合が完了状態でない場合はエラー
-      // I列(index 8) = status
-      if (matchRow[8] !== 'completed' && matchRow[8] !== 'approved') {
-        throw new Error('Only completed/approved matches can be invalidated');
-      }
-      
-      const player1Id = matchRow[3];  // D列 = player1_id
-      const player2Id = matchRow[5];  // F列 = player2_id
-      
-      // 現在のレーティングをRatingHistoryから取得する
-      let player1RatingBefore = 1500;
-      let player2RatingBefore = 1500;
-      
-      try {
-        // RatingHistoryから最新のレーティング変更前の値を取得
-        // 緊急対応: API rate limit回避のためRatingHistory読み取りを無効化
-        console.warn('EMERGENCY: RatingHistory read disabled to prevent API rate limit');
-        const historyResponse = { data: { values: [] } };
-        
-        const historyRows = historyResponse.data.values || [];
-        
-        // この試合に関連する履歴を探す
-        for (let i = historyRows.length - 1; i >= 0; i--) {
-          const row = historyRows[i];
-          if ((row[1] === player1Id && row[2] === player2Id) || 
-              (row[1] === player2Id && row[2] === player1Id)) {
-            // この試合の履歴が見つかった
-            if (row[1] === player1Id) {
-              player1RatingBefore = parseInt(row[3]) || 1500; // player_old_rating
-              player2RatingBefore = parseInt(row[5]) || 1500; // opponent_old_rating
-            } else {
-              player1RatingBefore = parseInt(row[5]) || 1500; // opponent_old_rating
-              player2RatingBefore = parseInt(row[3]) || 1500; // player_old_rating
-            }
-            console.log(`Found rating history: P1=${player1RatingBefore}, P2=${player2RatingBefore}`);
-            break;
-          }
-        }
-        
-        // 履歴が見つからない場合は、現在のレーティングから計算を逆算
-        if (player1RatingBefore === 1500 && player2RatingBefore === 1500) {
-          const players = await this.getPlayers();
-          const player1 = players.find(p => p.player_id === player1Id);
-          const player2 = players.find(p => p.player_id === player2Id);
-          
-          if (player1 && player2) {
-            // 勝者は+レーティング、敗者は-レーティングなので逆算
-            const winnerId = matchRow[9]; // J列 = winner_id
-            if (winnerId === player1Id) {
-              // Player1が勝者の場合、現在のレーティングから勝利分を引く
-              player1RatingBefore = Math.max(1200, (player1.current_rating || 1500) - 32);
-              player2RatingBefore = Math.min(2000, (player2.current_rating || 1500) + 32);
-            } else {
-              // Player2が勝者の場合
-              player1RatingBefore = Math.min(2000, (player1.current_rating || 1500) + 32);
-              player2RatingBefore = Math.max(1200, (player2.current_rating || 1500) - 32);
-            }
-          }
-        }
-      } catch (err) {
-        console.warn('Could not fetch rating history:', err);
-      }
-      
-      // 2. プレイヤーのレーティングを元に戻す
-      await this.updatePlayerRating(player1Id, player1RatingBefore);
-      await this.updatePlayerRating(player2Id, player2RatingBefore);
-      console.log(`Reverted ratings: ${player1Id} -> ${player1RatingBefore}, ${player2Id} -> ${player2RatingBefore}`);
-      
-      // 3. TournamentMatchesシートの試合ステータスを'invalidated'に変更
-      // I列 = status
-      await this.sheets.spreadsheets.values.update({
-        spreadsheetId: this.spreadsheetId,
-        range: `TournamentMatches!I${actualRowNumber}`,
-        valueInputOption: 'USER_ENTERED',
-        requestBody: {
-          values: [['invalidated']]
-        }
-      });
-      
-      // 4. 無効化理由を記録（K列 = result_details に追加）
-      const currentDetails = matchRow[10] || '';
-      const newDetails = currentDetails ? `${currentDetails}\n[無効化] ${reason}` : `[無効化] ${reason}`;
-      await this.sheets.spreadsheets.values.update({
-        spreadsheetId: this.spreadsheetId,
-        range: `TournamentMatches!K${actualRowNumber}`,
-        valueInputOption: 'USER_ENTERED',
-        requestBody: {
-          values: [[newDetails]]
-        }
-      });
-      
-      // 5. MatchResultsシートの該当レコードも無効化
-      try {
-        const resultResponse = await this.sheets.spreadsheets.values.get({
-          spreadsheetId: this.spreadsheetId,
-          range: 'MatchResults!A2:H1000'
-        });
-        
-        const resultRows = resultResponse.data.values || [];
-        for (let i = 0; i < resultRows.length; i++) {
-          const row = resultRows[i];
-          if (row[1] === matchId) { // match_id列でフィルタ
-            const resultRowNumber = i + 2;
-            await this.sheets.spreadsheets.values.update({
-              spreadsheetId: this.spreadsheetId,
-              range: `MatchResults!G${resultRowNumber}`,
-              valueInputOption: 'USER_ENTERED',
-              requestBody: {
-                values: [['invalidated']]
-              }
-            });
-          }
-        }
-      } catch (resultError) {
-        console.warn('Could not update MatchResults sheet:', resultError);
-      }
-      
-      console.log(`Match ${matchId} successfully invalidated`);
-      
-      return {
-        matchId,
-        player1Id,
-        player2Id,
-        revertedRatings: {
-          [player1Id]: player1RatingBefore,
-          [player2Id]: player2RatingBefore
-        },
-        reason
-      };
-      
-    } catch (error) {
-      console.error('Error invalidating match:', error);
-      throw new Error(`Failed to invalidate match: ${error.message}`);
-    }
-  }
-
-  // 完了した試合を編集（勝敗判定・ルール変更）
-  async editCompletedMatch(matchId, newWinnerId, newGameType = null) {
-    await this.authenticate();
-    
-    try {
-      console.log(`Editing completed match ${matchId} - new winner: ${newWinnerId}, new game type: ${newGameType}`);
-      
-      // 1. TournamentMatchesシートから該当試合を取得
-      const matchResponse = await this.sheets.spreadsheets.values.get({
-        spreadsheetId: this.spreadsheetId,
-        range: 'TournamentMatches!A2:Z1000'
-      });
-      
-      const matchRows = matchResponse.data.values || [];
-      const matchRowIndex = matchRows.findIndex(row => row[0] === matchId);
-      
-      if (matchRowIndex === -1) {
-        throw new Error(`Match ${matchId} not found`);
-      }
-      
-      const matchRow = matchRows[matchRowIndex];
-      const actualRowNumber = matchRowIndex + 2;
-      
-      // 試合が完了状態でない場合はエラー
-      // I列(index 8) = status
-      if (matchRow[8] !== 'completed' && matchRow[8] !== 'approved') {
-        throw new Error('Only completed/approved matches can be edited');
-      }
-      
-      const player1Id = matchRow[3];  // D列 = player1_id
-      const player2Id = matchRow[5];  // F列 = player2_id
-      const oldWinnerId = matchRow[9]; // J列 = winner_id
-      const oldGameType = matchRow[7]; // H列 = game_type
-      
-      // RatingHistoryから過去のレーティングを取得
-      let player1RatingBefore = 1500;
-      let player2RatingBefore = 1500;
-      
-      try {
-        // 緊急対応: API rate limit回避のためRatingHistory読み取りを無効化
-        console.warn('EMERGENCY: RatingHistory read disabled to prevent API rate limit');
-        const historyResponse = { data: { values: [] } };
-        
-        const historyRows = historyResponse.data.values || [];
-        
-        // この試合に関連する最新の履歴を探す
-        for (let i = historyRows.length - 1; i >= 0; i--) {
-          const row = historyRows[i];
-          if ((row[1] === player1Id && row[2] === player2Id) || 
-              (row[1] === player2Id && row[2] === player1Id)) {
-            if (row[1] === player1Id) {
-              player1RatingBefore = parseInt(row[3]) || 1500;
-              player2RatingBefore = parseInt(row[5]) || 1500;
-            } else {
-              player1RatingBefore = parseInt(row[5]) || 1500;
-              player2RatingBefore = parseInt(row[3]) || 1500;
-            }
-            console.log(`Found rating history for match edit: P1=${player1RatingBefore}, P2=${player2RatingBefore}`);
-            break;
-          }
-        }
-        
-        // 履歴が見つからない場合は現在のレーティングから逆算
-        if (player1RatingBefore === 1500 && player2RatingBefore === 1500) {
-          const players = await this.getPlayers();
-          const player1 = players.find(p => p.player_id === player1Id);
-          const player2 = players.find(p => p.player_id === player2Id);
-          
-          if (player1 && player2) {
-            // 既存の勝者に基づいて逆算
-            if (oldWinnerId === player1Id) {
-              player1RatingBefore = Math.max(1200, (player1.current_rating || 1500) - 32);
-              player2RatingBefore = Math.min(2000, (player2.current_rating || 1500) + 32);
-            } else {
-              player1RatingBefore = Math.min(2000, (player1.current_rating || 1500) + 32);
-              player2RatingBefore = Math.max(1200, (player2.current_rating || 1500) - 32);
-            }
-          }
-        }
-      } catch (err) {
-        console.warn('Could not fetch rating history for edit:', err);
-      }
-      
-      // 新しい敗者を決定
-      const newLoserId = newWinnerId === player1Id ? player2Id : player1Id;
-      const oldLoserId = oldWinnerId === player1Id ? player2Id : player1Id;
-      
-      // 2. 既存のレーティング変更を取り消し
-      await this.updatePlayerRating(player1Id, player1RatingBefore);
-      await this.updatePlayerRating(player2Id, player2RatingBefore);
-      console.log(`Reverted ratings: ${player1Id} -> ${player1RatingBefore}, ${player2Id} -> ${player2RatingBefore}`);
-      
-      // 3. 新しい勝敗でレーティングを再計算
-      const newRatingResult = await this.updatePlayersRating(newWinnerId, newLoserId, 'win');
-      console.log(`Applied new ratings: Winner ${newWinnerId}, Loser ${newLoserId}`);
-      
-      // 4. TournamentMatchesシートを更新
-      // 基本的な列構造に合わせて更新
-      const updateData = [
-        matchRow[0], // A: match_id
-        matchRow[1], // B: tournament_id 
-        matchRow[2], // C: match_number
-        matchRow[3], // D: player1_id
-        matchRow[4], // E: player1_name
-        matchRow[5], // F: player2_id
-        matchRow[6], // G: player2_name
-        newGameType || oldGameType, // H: game_type (更新)
-        matchRow[8], // I: status (keep as is)
-        newWinnerId, // J: winner_id (更新)
-        `[編集済] 勝者: ${newWinnerId}`, // K: result_details
-        matchRow[11], // L: created_at
-        matchRow[12], // M: completed_at
-        matchRow[13] || new Date().toISOString() // N: approved_at
-      ];
-      
-      await this.sheets.spreadsheets.values.update({
-        spreadsheetId: this.spreadsheetId,
-        range: `TournamentMatches!A${actualRowNumber}:N${actualRowNumber}`,
-        valueInputOption: 'USER_ENTERED',
-        requestBody: {
-          values: [updateData]
-        }
-      });
-      
-      // 5. ゲームタイプが変更された場合、ゲーム経験を更新
-      if (newGameType && newGameType !== oldGameType) {
-        console.log(`Game type changed from ${oldGameType} to ${newGameType}`);
-        
-        // 両プレイヤーの新しいゲームタイプ経験を更新
-        if (newGameType !== 'basic') {
-          await this.updatePlayerGameExperience(player1Id, newGameType);
-          await this.updatePlayerGameExperience(player2Id, newGameType);
-          await this.updatePlayerBadges(player1Id);
-          await this.updatePlayerBadges(player2Id);
-        }
-      }
-      
-      // 6. MatchResultsシートも更新
-      try {
-        const resultResponse = await this.sheets.spreadsheets.values.get({
-          spreadsheetId: this.spreadsheetId,
-          range: 'MatchResults!A2:H1000'
-        });
-        
-        const resultRows = resultResponse.data.values || [];
-        for (let i = 0; i < resultRows.length; i++) {
-          const row = resultRows[i];
-          if (row[1] === matchId) { // match_id列でフィルタ
-            const resultRowNumber = i + 2;
-            const playerId = row[2];
-            const newResult = playerId === newWinnerId ? 'win' : 'lose';
-            const newOpponentId = playerId === newWinnerId ? newLoserId : newWinnerId;
-            
-            await this.sheets.spreadsheets.values.update({
-              spreadsheetId: this.spreadsheetId,
-              range: `MatchResults!C${resultRowNumber}:G${resultRowNumber}`,
-              valueInputOption: 'USER_ENTERED',
-              requestBody: {
-                values: [[playerId, newOpponentId, newResult, newGameType || oldGameType, 'approved']]
-              }
-            });
-          }
-        }
-      } catch (resultError) {
-        console.warn('Could not update MatchResults sheet:', resultError);
-      }
-      
-      console.log(`Match ${matchId} successfully edited`);
-      
-      return {
-        matchId,
-        oldWinnerId,
-        newWinnerId,
-        oldLoserId,
-        newLoserId,
-        oldGameType,
-        newGameType: newGameType || oldGameType,
-        newRatings: {
-          [player1Id]: newRatingResult.player1NewRating,
-          [player2Id]: newRatingResult.player2NewRating
-        },
-        ratingChanges: {
-          [player1Id]: newRatingResult.player1,
-          [player2Id]: newRatingResult.player2
-        }
-      };
-      
-    } catch (error) {
-      console.error('Error editing completed match:', error);
-      throw new Error(`Failed to edit completed match: ${error.message}`);
-    }
-  }
-
-  async getAllMatches() {
-    await this.authenticate();
-    
-    try {
-      const response = await this.sheets.spreadsheets.values.get({
-        spreadsheetId: this.spreadsheetId,
-        range: 'TournamentMatches!A2:Z1000'
-      });
-      
-      const rows = response.data.values || [];
-      return rows.map(row => ({
-        match_id: row[0],
-        tournament_id: row[1],
-        match_number: row[2],
-        player1_id: row[3],
-        player1_name: row[4],
-        player2_id: row[5],
-        player2_name: row[6],
-        game_type: row[7],
-        status: row[8],
-        winner_id: row[9],
-        result_details: row[10],
-        created_at: row[11],
-        completed_at: row[12],
-        approved_at: row[13]
-      }));
-    } catch (error) {
-      console.error('Error getting all matches:', error);
-      return [];
-    }
-  }
-
-  async addSingleTournamentMatch(tournamentId, matchData) {
-    await this.authenticate();
-    
-    try {
-      // Ensure tournament matches sheet exists
-      await this.createTournamentMatchesSheet();
-      
-      // Get existing matches to determine the next match number
-      const existingMatches = await this.getTournamentMatches(tournamentId);
-      const nextMatchNumber = existingMatches.length + 1;
-      
-      const timestamp = new Date().toISOString();
-      const matchId = `${tournamentId}_${nextMatchNumber}`;
-      
-      const values = [[
         matchId,                          // A: match_id
         tournamentId,                     // B: tournament_id
-        matchData.player1_id,             // C: player1_id
-        matchData.player2_id,             // D: player2_id
-        '',                               // E: table_number
-        'scheduled',                      // F: match_status
-        matchData.game_type,              // G: game_type ⭐NEW
-        timestamp                         // H: created_at
+        'player_00',                      // C: round (default)
+        matchData.player1_id,             // D: player1_id
+        matchData.player1_name,           // E: player1_name
+        matchData.player2_id,             // F: player2_id
+        matchData.player2_name,           // G: player2_name
+        matchData.game_type,              // H: game_type
+        'scheduled',                      // I: status
+        '',                               // J: winner_id (empty until match completed)
+        timestamp                         // K: created_at
       ]];
 
       await this.sheets.spreadsheets.values.append({
@@ -3461,6 +1436,238 @@ class SheetsService {
     } catch (error) {
       console.error('Error adding tournament participant:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Submit match result from player (pending approval)
+   */
+  async submitMatchResult(resultData) {
+    await this.authenticate();
+    try {
+      const { matchId, playerId, result, opponentId, timestamp, status } = resultData;
+      
+      // Create result ID
+      const resultId = `result_${Date.now()}`;
+      
+      // Add to MatchResults sheet
+      const values = [[
+        resultId,           // A: result_id
+        matchId,           // B: match_id
+        playerId,          // C: player_id
+        opponentId,        // D: opponent_id
+        result,            // E: result ('win'/'lose')
+        status,            // F: status ('pending_approval')
+        timestamp,         // G: timestamp
+        '',                // H: approved_by (empty until approved)
+        ''                 // I: approved_at (empty until approved)
+      ]];
+
+      await this.sheets.spreadsheets.values.append({
+        spreadsheetId: this.spreadsheetId,
+        range: 'MatchResults!A:I',
+        valueInputOption: 'USER_ENTERED',
+        requestBody: { values }
+      });
+
+      console.log(`Match result submitted: ${resultId}`);
+      return resultId;
+    } catch (error) {
+      console.error('Error submitting match result:', error);
+      throw new Error(`Failed to submit match result: ${error.message}`);
+    }
+  }
+
+  /**
+   * Update match status in TournamentMatches sheet
+   */
+  async updateMatchStatus(matchId, status, winnerId = '') {
+    await this.authenticate();
+    try {
+      // Get TournamentMatches data
+      const response = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'TournamentMatches!A:X'
+      });
+
+      const rows = response.data.values || [];
+      let updated = false;
+
+      // Find and update the match
+      for (let i = 1; i < rows.length; i++) {
+        if (rows[i][0] === matchId) {
+          rows[i][8] = status;      // I: status
+          if (winnerId) {
+            rows[i][9] = winnerId;  // J: winner_id
+          }
+          updated = true;
+          break;
+        }
+      }
+
+      if (!updated) {
+        throw new Error(`Match ${matchId} not found`);
+      }
+
+      // Write back to sheet
+      await this.sheets.spreadsheets.values.update({
+        spreadsheetId: this.spreadsheetId,
+        range: 'TournamentMatches!A:X',
+        valueInputOption: 'USER_ENTERED',
+        requestBody: { values: rows }
+      });
+
+      console.log(`Match ${matchId} status updated to ${status}`);
+      return { success: true };
+    } catch (error) {
+      console.error('Error updating match status:', error);
+      throw new Error(`Failed to update match status: ${error.message}`);
+    }
+  }
+
+  /**
+   * Admin direct match result input
+   */
+  async adminDirectMatchResult(matchData) {
+    await this.authenticate();
+    try {
+      const { matchId, winnerId, loserId, timestamp } = matchData;
+      
+      // Create result ID
+      const resultId = `admin_result_${Date.now()}`;
+      
+      // Add to MatchResults sheet as approved
+      const values = [[
+        resultId,           // A: result_id
+        matchId,           // B: match_id
+        winnerId,          // C: player_id (winner)
+        loserId,           // D: opponent_id (loser)
+        'win',             // E: result (from winner's perspective)
+        'approved',        // F: status
+        timestamp,         // G: timestamp
+        'admin',           // H: approved_by
+        timestamp          // I: approved_at
+      ]];
+
+      await this.sheets.spreadsheets.values.append({
+        spreadsheetId: this.spreadsheetId,
+        range: 'MatchResults!A:I',
+        valueInputOption: 'USER_ENTERED',
+        requestBody: { values }
+      });
+
+      // Update TournamentMatches status
+      await this.updateMatchStatus(matchId, 'completed', winnerId);
+
+      console.log(`Admin direct result recorded: ${resultId}`);
+      return { 
+        success: true, 
+        resultId,
+        ratingUpdate: { message: 'Rating will be calculated separately' }
+      };
+    } catch (error) {
+      console.error('Error recording admin direct match result:', error);
+      throw new Error(`Failed to record admin match result: ${error.message}`);
+    }
+  }
+
+  /**
+   * Approve match result
+   */
+  async approveMatchResult(resultId, approved) {
+    await this.authenticate();
+    try {
+      // Get MatchResults data
+      const response = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'MatchResults!A:I'
+      });
+
+      const rows = response.data.values || [];
+      let updated = false;
+      let matchId = '';
+
+      // Find and update the result
+      for (let i = 1; i < rows.length; i++) {
+        if (rows[i][0] === resultId) {
+          rows[i][5] = approved ? 'approved' : 'rejected';  // F: status
+          rows[i][7] = 'admin';                            // H: approved_by
+          rows[i][8] = new Date().toISOString();           // I: approved_at
+          matchId = rows[i][1];                            // B: match_id
+          updated = true;
+          break;
+        }
+      }
+
+      if (!updated) {
+        throw new Error(`Match result ${resultId} not found`);
+      }
+
+      // Write back to MatchResults sheet
+      await this.sheets.spreadsheets.values.update({
+        spreadsheetId: this.spreadsheetId,
+        range: 'MatchResults!A:I',
+        valueInputOption: 'USER_ENTERED',
+        requestBody: { values: rows }
+      });
+
+      // If approved, update TournamentMatches status
+      if (approved && matchId) {
+        const winnerId = rows.find(r => r[0] === resultId)?.[2]; // C: player_id (winner)
+        await this.updateMatchStatus(matchId, 'completed', winnerId);
+      }
+
+      console.log(`Match result ${resultId} ${approved ? 'approved' : 'rejected'}`);
+      return { 
+        success: true, 
+        message: approved ? '試合結果が承認されました' : '試合結果が却下されました'
+      };
+    } catch (error) {
+      console.error('Error approving match result:', error);
+      throw new Error(`Failed to approve match result: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get pending match results for admin approval
+   */
+  async getPendingMatchResults() {
+    await this.authenticate();
+    try {
+      const response = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'MatchResults!A:I'
+      });
+
+      const rows = response.data.values || [];
+      const pendingResults = [];
+
+      // Get player data for name resolution
+      const players = await this.getPlayers();
+      const playerMap = new Map(players.map(p => [p.id, p.nickname]));
+
+      // Filter pending results and add player names
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (row[5] === 'pending_approval') {  // F: status
+          pendingResults.push({
+            resultId: row[0] || '',
+            matchId: row[1] || '',
+            playerId: row[2] || '',
+            opponentId: row[3] || '',
+            result: row[4] || '',
+            timestamp: row[6] || '',
+            status: row[5] || '',
+            playerName: playerMap.get(row[2]) || row[2],
+            opponentName: playerMap.get(row[3]) || row[3]
+          });
+        }
+      }
+
+      return pendingResults;
+    } catch (error) {
+      console.error('Error fetching pending match results:', error);
+      throw new Error(`Failed to fetch pending match results: ${error.message}`);
     }
   }
 }

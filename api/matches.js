@@ -97,6 +97,7 @@ module.exports = async function handler(req, res) {
       case 'POST': {
         const data = req.body || {};
         const action = data.action || req.query.action;
+        console.log('POST /api/matches action:', action, 'payload:', data);
 
         if (action === 'saveTournamentMatches') {
           // Save tournament match pairings

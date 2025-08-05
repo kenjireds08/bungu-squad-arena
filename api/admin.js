@@ -120,6 +120,9 @@ async function handleEditCompletedMatch(req, res) {
 /**
  * Handle tournament entry action
  */
+/**
+ * Handle tournament entry action
+ */
 async function handleTournamentEntry(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -157,34 +160,49 @@ async function handleTournamentEntry(req, res) {
       return res.status(404).json({ error: 'Player not found' });
     }
 
-    // 3. 既に他の大会に参加中かチェック
-    if (player.tournament_active === true) {
-      // 既に同じ大会に参加している場合はOK
-      const participantResponse = await sheetsService.getTournamentParticipants();
-      const existingParticipation = participantResponse.find(p => 
-        p.player_id === userId && p.tournament_id === tournamentId
-      );
-      
-      if (existingParticipation) {
-        return res.status(200).json({ 
-          message: 'Already registered for this tournament',
-          tournament: tournament
-        });
-      }
-      
-      // 別の大会に参加中の場合はエラー
-      return res.status(400).json({ 
-        error: 'Player is already registered for another tournament' 
+    // 3. TournamentParticipantsシートで既存参加をチェック（真実の源）
+    const participants = await sheetsService.getTournamentParticipants();
+    
+    // 既に同じ大会に参加しているかチェック
+    const existingEntry = participants.find(p => 
+      p.player_id === userId && p.tournament_id === tournamentId
+    );
+    
+    if (existingEntry) {
+      console.log(`Player ${userId} already registered for tournament ${tournamentId}`);
+      return res.status(200).json({ 
+        message: 'Already registered for this tournament',
+        tournament: tournament,
+        idempotent: true
       });
     }
 
-    // 4. 大会参加者リストに追加
+    // 他の当日アクティブな大会に参加中かチェック
+    const today = new Date().toISOString().split('T')[0];
+    const otherActiveEntry = participants.find(p => 
+      p.player_id === userId && 
+      p.tournament_id !== tournamentId &&
+      p.status === 'registered' &&
+      tournaments.find(t => t.id === p.tournament_id && t.date === today && t.status === 'active')
+    );
+    
+    if (otherActiveEntry) {
+      return res.status(409).json({ 
+        error: 'Player is already registered for another active tournament today',
+        conflictTournamentId: otherActiveEntry.tournament_id
+      });
+    }
+
+    // 4. 大会参加者リストに追加（TournamentParticipantsが真実の源）
     await sheetsService.addTournamentParticipant({
       player_id: userId,
       tournament_id: tournamentId,
       registered_at: new Date().toISOString(),
       status: 'registered'
     });
+
+    // 5. Playersシートのtournament_activeも更新（互換性のため）
+    await sheetsService.updateTournamentActive(userId, true);
 
     console.log(`Successfully registered player ${userId} for tournament ${tournamentId}`);
 
