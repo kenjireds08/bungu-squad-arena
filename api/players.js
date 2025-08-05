@@ -93,6 +93,12 @@ module.exports = async function handler(req, res) {
 
         // Delete player from Google Sheets
         const deleteResult = await sheetsService.deletePlayer(req.query.id);
+        
+        // Return 409 for soft delete (player has match history)
+        if (deleteResult.deactivated) {
+          return res.status(409).json(deleteResult);
+        }
+        
         return res.status(200).json(deleteResult);
 
       default:

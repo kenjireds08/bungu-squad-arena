@@ -302,6 +302,10 @@ module.exports = async function handler(req, res) {
         return await handleVersion(req, res);
       case 'create-sheet':
         return await handleCreateSheet(req, res);
+      case 'repair-match-metadata':
+        return await handleRepairMatchMetadata(req, res);
+      case 'renumber-matches':
+        return await handleRenumberMatches(req, res);
       default:
         return res.status(400).json({ error: 'Invalid action parameter' });
     }
@@ -309,7 +313,114 @@ module.exports = async function handler(req, res) {
     console.error('Admin API error:', error);
     return res.status(500).json({ error: error.message });
   }
-};;;
+};
+
+// リペア用：既存試合のメタデータ修正
+async function handleRepairMatchMetadata(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const { tournamentId } = req.body;
+
+  if (!tournamentId) {
+    return res.status(400).json({ error: 'Tournament ID is required' });
+  }
+
+  try {
+    const sheetsService = new SheetsService();
+    await sheetsService.authenticate();
+
+    // 既存試合のapproved_at, match_end_time, approved_byを修正
+    const matches = await sheetsService.getAllMatches();
+    const tournamentMatches = matches.filter(m => m.tournament_id === tournamentId);
+    
+    let repairedCount = 0;
+    for (const match of tournamentMatches) {
+      if (match.status === 'completed' || match.status === 'approved') {
+        // updateMatchStatusを使って既存の完了試合にメタデータを追加
+        await sheetsService.updateMatchStatus(match.match_id, 'approved');
+        repairedCount++;
+      }
+    }
+
+    console.log(`Repaired metadata for ${repairedCount} matches in tournament ${tournamentId}`);
+    
+    // Version increment
+    try {
+      await kv.incr(`tour:${tournamentId}:v`);
+    } catch (e) {
+      console.warn('Failed to increment version:', e);
+    }
+    
+    return res.status(200).json({
+      success: true,
+      message: `Repaired metadata for ${repairedCount} matches`,
+      repairedCount
+    });
+
+  } catch (error) {
+    console.error('Repair match metadata error:', error);
+    return res.status(500).json({ 
+      error: 'Failed to repair match metadata: ' + error.message 
+    });
+  }
+}
+
+// 試合番号リナンバリング
+async function handleRenumberMatches(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const { tournamentId } = req.body;
+
+  if (!tournamentId) {
+    return res.status(400).json({ error: 'Tournament ID is required' });
+  }
+
+  try {
+    const sheetsService = new SheetsService();
+    await sheetsService.authenticate();
+
+    // 大会の試合を取得してmatch_numberを1から順番に振り直し
+    const matches = await sheetsService.getAllMatches();
+    const tournamentMatches = matches.filter(m => m.tournament_id === tournamentId);
+    
+    let renumberedCount = 0;
+    for (let i = 0; i < tournamentMatches.length; i++) {
+      const match = tournamentMatches[i];
+      const newMatchNumber = `match_${i + 1}`;
+      
+      // match_numberを更新
+      await sheetsService.updateMatchMetadata(match.match_id, {
+        match_number: newMatchNumber
+      });
+      renumberedCount++;
+    }
+
+    console.log(`Renumbered ${renumberedCount} matches in tournament ${tournamentId}`);
+    
+    // Version increment
+    try {
+      await kv.incr(`tour:${tournamentId}:v`);
+    } catch (e) {
+      console.warn('Failed to increment version:', e);
+    }
+    
+    return res.status(200).json({
+      success: true,
+      message: `Renumbered ${renumberedCount} matches`,
+      renumberedCount
+    });
+
+  } catch (error) {
+    console.error('Renumber matches error:', error);
+    return res.status(500).json({ 
+      error: 'Failed to renumber matches: ' + error.message 
+    });
+  }
+}
 
 async function handleCheckAuth(req, res) {
   try {

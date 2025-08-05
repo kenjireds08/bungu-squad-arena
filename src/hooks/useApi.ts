@@ -42,13 +42,14 @@ export const useVersionPolling = (tournamentId: string = 'current') => {
 };;
 
 // Players hooks
-export const usePlayers = () => {
+export const usePlayers = (enablePolling = false) => {
   return useQuery({
     queryKey: ['players'],
     queryFn: api.getPlayers,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: enablePolling ? 1000 * 5 : 1000 * 60 * 5, // 5 seconds when polling, 5 minutes otherwise
+    refetchInterval: enablePolling ? 1000 * 5 : false, // Poll every 5 seconds when enabled
   });
-};
+};;
 
 export const usePlayer = (id: string) => {
   return useQuery({
@@ -140,15 +141,15 @@ export const useRankings = () => {
 };
 
 // Tournaments hooks
-export const useTournaments = () => {
+export const useTournaments = (enablePolling = false) => {
   return useQuery({
     queryKey: ['tournaments'],
     queryFn: api.getTournaments,
-    staleTime: 1000 * 30, // Emergency: Extended to 30 seconds
-    refetchInterval: false, // Using version-based polling instead
+    staleTime: enablePolling ? 1000 * 5 : 1000 * 30, // 5 seconds when polling, 30 seconds otherwise
+    refetchInterval: enablePolling ? 1000 * 10 : false, // Poll every 10 seconds when enabled
     retry: 1, // Reduce retry attempts
   });
-};
+};;
 
 export const useCreateTournament = () => {
   const queryClient = useQueryClient();
@@ -186,13 +187,14 @@ export const useDeleteTournament = () => {
 };
 
 // Matches hooks
-export const useMatches = (playerId?: string) => {
+export const useMatches = (playerId?: string, enablePolling = false) => {
   return useQuery({
     queryKey: ['matches', playerId],
     queryFn: () => api.getMatches(playerId),
-    staleTime: 1000 * 60 * 5,
+    staleTime: enablePolling ? 1000 * 5 : 1000 * 60 * 5, // 5 seconds when polling, 5 minutes otherwise
+    refetchInterval: enablePolling ? 1000 * 10 : false, // Poll every 10 seconds when enabled
   });
-};
+};;
 
 export const useAddMatch = () => {
   const queryClient = useQueryClient();

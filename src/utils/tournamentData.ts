@@ -51,6 +51,40 @@ export const getCategorizedTournaments = (apiTournaments: ApiTournament[] = []) 
     completed: tournaments.filter(t => t.status === '完了')
   };
 };
+/**
+ * Safe date formatting utility to handle Invalid Date issues
+ */
+export const formatDate = (dateValue: string | null | undefined, fallback = '未設定'): string => {
+  if (!dateValue || dateValue.trim() === '') {
+    return fallback;
+  }
+  
+  try {
+    const date = new Date(dateValue);
+    if (isNaN(date.getTime())) {
+      console.warn(`Invalid date value: ${dateValue}`);
+      return fallback;
+    }
+    
+    return date.toLocaleDateString('ja-JP', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  } catch (error) {
+    console.error(`Error formatting date: ${dateValue}`, error);
+    return fallback;
+  }
+};
+
+/**
+ * Format date for display in tournament history
+ */
+export const formatTournamentDate = (dateValue: string | null | undefined): string => {
+  return formatDate(dateValue, '日時未設定');
+};
 
 // Get the current active tournament (today's date)
 export const getCurrentActiveTournament = (apiTournaments: ApiTournament[] = []): Tournament | null => {

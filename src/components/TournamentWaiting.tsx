@@ -30,7 +30,7 @@ export const TournamentWaiting = ({ onClose, onViewRanking }: TournamentWaitingP
   const [showMatches, setShowMatches] = useState(false);
   const [tournamentMatches, setTournamentMatches] = useState([]);
   const [isLoadingMatches, setIsLoadingMatches] = useState(false);
-  const { data: tournaments, isLoading: tournamentsLoading } = useTournaments();
+  const { data: tournaments, isLoading: tournamentsLoading } = useTournaments(true); // Enable polling
   const playersQuery = useRankings();
   const { data: players, isLoading: playersLoading } = playersQuery;
   

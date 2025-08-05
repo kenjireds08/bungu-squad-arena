@@ -77,7 +77,13 @@ export const TournamentEntry = () => {
         console.log('TournamentEntry: date:', date);
         console.log('TournamentEntry: tournamentName:', decodedTournamentName);
         // Convert time format from URL (15-30) back to standard format (15:30)
-        const formattedTime = actualTime ? actualTime.replace('-', ':') : null;
+        let formattedTime = actualTime ? actualTime.replace('-', ':') : null;
+        
+        // Normalize time format to handle zero-padding variations (e.g., 6:00 -> 06:00)
+        if (formattedTime) {
+          const [hour, minute] = formattedTime.split(':');
+          formattedTime = `${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`;
+        }
         console.log('TournamentEntry: timeOrName:', timeOrName);
         console.log('TournamentEntry: isTimeFormat:', isTimeFormat);
         console.log('TournamentEntry: actualTime (URL):', actualTime);
@@ -130,20 +136,38 @@ export const TournamentEntry = () => {
                   return false;
                 }
                 
-                // Extract time from start_time and compare
+                // Extract time from start_time and compare with flexibility
                 if (t.start_time) {
                   console.log(`Raw start_time: "${t.start_time}", type: ${typeof t.start_time}`);
                   // Directly compare with start_time since it's already in HH:MM format
                   const tournamentTime = t.start_time.trim();
                   const urlTime = formattedTime.trim();
                   console.log(`Comparing tournament time: '${tournamentTime}' with URL time: '${urlTime}' (from "${actualTime}" -> "${formattedTime}")`);
-                  console.log(`Comparison result: ${tournamentTime === urlTime}`);
-                  console.log(`Device: ${/Mobi|Android/i.test(navigator.userAgent) ? 'Mobile' : 'Desktop'}`);
+                  
+                  // Exact match first
                   if (tournamentTime === urlTime) {
-                    console.log('✓ Time match found!');
+                    console.log('✓ Exact time match found!');
                     return true;
-                  } else {
-                    console.log('✗ Time mismatch');
+                  }
+                  
+                  // Flexible matching: ±30 minutes
+                  try {
+                    const [tHour, tMin] = tournamentTime.split(':').map(Number);
+                    const [uHour, uMin] = urlTime.split(':').map(Number);
+                    
+                    const tMinutes = tHour * 60 + tMin;
+                    const uMinutes = uHour * 60 + uMin;
+                    const timeDiff = Math.abs(tMinutes - uMinutes);
+                    
+                    console.log(`Time difference: ${timeDiff} minutes`);
+                    if (timeDiff <= 30) {
+                      console.log('✓ Flexible time match found (within 30 minutes)!');
+                      return true;
+                    } else {
+                      console.log('✗ Time difference too large');
+                    }
+                  } catch (error) {
+                    console.error('Error parsing time for flexible matching:', error);
                   }
                 } else {
                   console.log('✗ No start_time found');
@@ -151,6 +175,16 @@ export const TournamentEntry = () => {
                 return false;
               });
               console.log('Found tournament by date and time:', activeTournament);
+              
+              // Fallback: if no match found with time, try to find same-day active tournament
+              if (!activeTournament) {
+                console.log('No time match found, trying fallback to same-day active tournament');
+                activeTournament = tournaments.find((t: any) => 
+                  t.date === targetDate && 
+                  (t.status === 'active' || t.status === 'upcoming')
+                );
+                console.log('Fallback tournament found:', activeTournament);
+              }
             } else if (decodedTournamentName) {
               // Find tournament by date and name (legacy support)
               activeTournament = tournaments.find((t: any) => 

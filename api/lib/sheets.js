@@ -1238,7 +1238,7 @@ class SheetsService {
         out.push({
           match_id:         r[idx('match_id')] || '',
           tournament_id:    r[idx('tournament_id')] || '',
-          match_number:     r[idx('table_number')] || `match_${i}`, // Use table_number for match display, fallback to index
+          match_number:     r[idx('table_number')] || `match_${out.length + 1}`, // Use table_number for match display, fallback to tournament sequence
           player1_id:       p1,
           player1_name:     nameMap.get(p1) || '',
           player2_id:       p2,
@@ -1312,6 +1312,142 @@ class SheetsService {
     } catch (error) {
       console.error('Error adding single tournament match:', error);
       throw new Error(`Failed to add tournament match: ${error.message}`);
+    }
+  }
+
+  /**
+   * Delete or deactivate a player
+   */
+  async deletePlayer(playerId) {
+    await this.authenticate();
+    try {
+      // Check if player exists in any matches
+      const matchResponse = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'TournamentMatches!A:Z'
+      });
+      
+      const matchRows = matchResponse.data.values || [];
+      const { headers: matchHeaders, idx: matchIdx } = await this._getHeaders('TournamentMatches!1:1');
+      
+      // Check if player has participated in any matches
+      for (let i = 1; i < matchRows.length; i++) {
+        const player1Id = matchRows[i][matchIdx('player1_id')];
+        const player2Id = matchRows[i][matchIdx('player2_id')];
+        
+        if (player1Id === playerId || player2Id === playerId) {
+          // Player has match history - soft delete only
+          const { headers: playerHeaders, idx: playerIdx } = await this._getHeaders('Players!1:1');
+          const playersResponse = await this.sheets.spreadsheets.values.get({
+            spreadsheetId: this.spreadsheetId,
+            range: 'Players!A:Z'
+          });
+          
+          const playerRows = playersResponse.data.values || [];
+          let playerRowIndex = -1;
+          
+          for (let j = 1; j < playerRows.length; j++) {
+            if (playerRows[j][playerIdx('id')] === playerId) {
+              playerRowIndex = j;
+              break;
+            }
+          }
+          
+          if (playerRowIndex === -1) {
+            throw new Error('Player not found');
+          }
+          
+          // Set is_active to false
+          if (playerIdx('is_active') >= 0) {
+            await this.sheets.spreadsheets.values.update({
+              spreadsheetId: this.spreadsheetId,
+              range: `Players!${String.fromCharCode(65 + playerIdx('is_active'))}${playerRowIndex + 1}`,
+              valueInputOption: 'USER_ENTERED',
+              requestBody: {
+                values: [['false']]
+              }
+            });
+          }
+          
+          // Set player_status to inactive
+          if (playerIdx('player_status') >= 0) {
+            await this.sheets.spreadsheets.values.update({
+              spreadsheetId: this.spreadsheetId,
+              range: `Players!${String.fromCharCode(65 + playerIdx('player_status'))}${playerRowIndex + 1}`,
+              valueInputOption: 'USER_ENTERED',
+              requestBody: {
+                values: [['inactive']]
+              }
+            });
+          }
+          
+          return {
+            success: true,
+            message: '過去の対戦履歴があるため、非アクティブ化しました',
+            deactivated: true
+          };
+        }
+      }
+      
+      // No match history - can permanently delete
+      const { headers: playerHeaders, idx: playerIdx } = await this._getHeaders('Players!1:1');
+      const playersResponse = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'Players!A:Z'
+      });
+      
+      const playerRows = playersResponse.data.values || [];
+      let playerRowIndex = -1;
+      
+      for (let i = 1; i < playerRows.length; i++) {
+        if (playerRows[i][playerIdx('id')] === playerId) {
+          playerRowIndex = i;
+          break;
+        }
+      }
+      
+      if (playerRowIndex === -1) {
+        throw new Error('Player not found');
+      }
+      
+      // Get sheet ID for Players sheet
+      const spreadsheet = await this.sheets.spreadsheets.get({
+        spreadsheetId: this.spreadsheetId
+      });
+      
+      const playersSheet = spreadsheet.data.sheets.find(sheet => 
+        sheet.properties.title === 'Players'
+      );
+      
+      if (!playersSheet) {
+        throw new Error('Players sheet not found');
+      }
+      
+      // Delete the row
+      await this.sheets.spreadsheets.batchUpdate({
+        spreadsheetId: this.spreadsheetId,
+        requestBody: {
+          requests: [{
+            deleteDimension: {
+              range: {
+                sheetId: playersSheet.properties.sheetId,
+                dimension: 'ROWS',
+                startIndex: playerRowIndex,
+                endIndex: playerRowIndex + 1
+              }
+            }
+          }]
+        }
+      });
+      
+      return {
+        success: true,
+        message: 'プレイヤーを削除しました',
+        deleted: true
+      };
+    } catch (error) {
+      console.error('Error deleting player:', error);
+      throw new Error(`Failed to delete player: ${error.message}`);
     }
   }
 
@@ -1479,9 +1615,23 @@ class SheetsService {
     }
     if (hit < 0) throw new Error(`Match ${matchId} not found`);
 
+    const now = new Date().toISOString();
+    
     if (idx('status') >= 0) rows[hit][idx('status')] = status;
     if (idx('match_status') >= 0) rows[hit][idx('match_status')] = status;
     if (winnerId && idx('winner_id') >= 0) rows[hit][idx('winner_id')] = winnerId;
+    
+    // 試合完了時の日時フィールドを更新
+    if (status === 'completed' || status === 'approved') {
+      if (idx('match_end_time') >= 0) rows[hit][idx('match_end_time')] = now;
+      if (idx('approved_at') >= 0) rows[hit][idx('approved_at')] = now;
+      if (idx('approved_by') >= 0) rows[hit][idx('approved_by')] = 'admin';
+    }
+    
+    // 試合開始時
+    if (status === 'in_progress' && idx('match_start_time') >= 0) {
+      rows[hit][idx('match_start_time')] = now;
+    }
 
     await this.sheets.spreadsheets.values.update({
       spreadsheetId: this.spreadsheetId,
@@ -1498,6 +1648,50 @@ class SheetsService {
     }
   }
 
+  // Update specific match metadata fields
+  async updateMatchMetadata(matchId, metadata) {
+    await this.authenticate();
+    
+    try {
+      const { headers, idx } = await this._getHeaders('TournamentMatches!1:1');
+
+      const resp = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId, 
+        range: 'TournamentMatches!A:Z'
+      });
+      const rows = resp.data.values || [];
+
+      let hit = -1;
+      for (let i = 1; i < rows.length; i++) {
+        if ((rows[i][idx('match_id')] || '') === matchId) { 
+          hit = i; 
+          break; 
+        }
+      }
+      if (hit < 0) throw new Error(`Match ${matchId} not found`);
+
+      // Update provided metadata fields
+      Object.keys(metadata).forEach(field => {
+        if (idx(field) >= 0) {
+          rows[hit][idx(field)] = metadata[field];
+        }
+      });
+
+      await this.sheets.spreadsheets.values.update({
+        spreadsheetId: this.spreadsheetId,
+        range: 'TournamentMatches!A:Z',
+        valueInputOption: 'USER_ENTERED',
+        requestBody: { values: rows }
+      });
+
+      console.log(`Match ${matchId} metadata updated:`, metadata);
+      return { success: true };
+    } catch (error) {
+      console.error('Error updating match metadata:', error);
+      throw new Error(`Failed to update match metadata: ${error.message}`);
+    }
+  }
+
   /**
    * Admin direct match result input
    */
@@ -1505,6 +1699,13 @@ class SheetsService {
     await this.authenticate();
     try {
       const { matchId, winnerId, loserId, timestamp } = matchData;
+      
+      // 試合情報を取得してgame_typeを確認
+      const matches = await this.getTournamentMatches();
+      const match = matches.find(m => m.match_id === matchId);
+      if (!match) {
+        throw new Error(`Match ${matchId} not found`);
+      }
       
       // Create result ID
       const resultId = `admin_result_${Date.now()}`;
@@ -1532,11 +1733,45 @@ class SheetsService {
       // Update TournamentMatches status - admin decision is final so set to approved
       await this.updateMatchStatus(matchId, 'approved', winnerId);
 
+      // レーティング計算とプレイヤー情報更新
+      const players = await this.getPlayers();
+      const winner = players.find(p => p.id === winnerId);
+      const loser = players.find(p => p.id === loserId);
+      
+      if (!winner || !loser) {
+        throw new Error('Winner or loser not found');
+      }
+
+      // Elo レーティング計算 (K=32)
+      const K = 32;
+      const expectedWinner = 1 / (1 + Math.pow(10, (loser.current_rating - winner.current_rating) / 400));
+      const expectedLoser = 1 - expectedWinner;
+      
+      const winnerDelta = Math.round(K * (1 - expectedWinner));
+      const loserDelta = Math.round(K * (0 - expectedLoser));
+      
+      const winnerNewRating = winner.current_rating + winnerDelta;
+      const loserNewRating = loser.current_rating + loserDelta;
+
+      // レーティング更新
+      await this.updatePlayerRating(winnerId, winnerNewRating);
+      await this.updatePlayerRating(loserId, loserNewRating);
+
+      // カードプラスバッジ付与
+      if (match.game_type === 'cardplus' || match.game_type === 'カード+') {
+        await this.addBadgeToPlayer(winnerId, '➕');
+      }
+
       console.log(`Admin direct result recorded: ${resultId}`);
       return { 
         success: true, 
         resultId,
-        ratingUpdate: { message: 'Rating will be calculated separately' }
+        ratingUpdate: {
+          winnerDelta,
+          loserDelta,
+          winnerAfter: winnerNewRating,
+          loserAfter: loserNewRating
+        }
       };
     } catch (error) {
       console.error('Error recording admin direct match result:', error);
@@ -1683,6 +1918,130 @@ class SheetsService {
     } catch (error) {
       console.error('Error superseding pending match results:', error);
       throw new Error(`Failed to supersede pending match results: ${error.message}`);
+    }
+  }
+
+  /**
+   * Add badge to player (avoiding duplicates)
+   */
+  async addBadgeToPlayer(playerId, badge) {
+    await this.authenticate();
+    try {
+      const { headers, idx } = await this._getHeaders('Players!1:1');
+      
+      // Get player data
+      const response = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'Players!A:Z'
+      });
+      
+      const rows = response.data.values || [];
+      let playerRow = -1;
+      
+      // Find player row
+      for (let i = 1; i < rows.length; i++) {
+        if (rows[i][idx('id')] === playerId) {
+          playerRow = i;
+          break;
+        }
+      }
+      
+      if (playerRow === -1) {
+        throw new Error(`Player ${playerId} not found`);
+      }
+      
+      // Get current badges (I列 = champion_badges)
+      const badgeColumnIndex = idx('champion_badges');
+      if (badgeColumnIndex === -1) {
+        console.warn('champion_badges column not found');
+        return;
+      }
+      
+      const currentBadges = rows[playerRow][badgeColumnIndex] || '';
+      
+      // Add badge if not already present
+      if (!currentBadges.includes(badge)) {
+        const newBadges = currentBadges ? currentBadges + badge : badge;
+        
+        // Update the specific cell
+        await this.sheets.spreadsheets.values.update({
+          spreadsheetId: this.spreadsheetId,
+          range: `Players!${String.fromCharCode(65 + badgeColumnIndex)}${playerRow + 1}`,
+          valueInputOption: 'USER_ENTERED',
+          requestBody: {
+            values: [[newBadges]]
+          }
+        });
+        
+        console.log(`Badge ${badge} added to player ${playerId}`);
+      } else {
+        console.log(`Player ${playerId} already has badge ${badge}`);
+      }
+    } catch (error) {
+      console.error('Error adding badge to player:', error);
+      throw new Error(`Failed to add badge: ${error.message}`);
+    }
+  }
+
+  // Specific method for Card Plus badges
+  async addCardPlusBadge(playerId) {
+    await this.authenticate();
+    try {
+      const { headers, idx } = await this._getHeaders('Players!1:1');
+      
+      // Get player data
+      const response = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'Players!A:Z'
+      });
+      
+      const rows = response.data.values || [];
+      let playerRow = -1;
+      
+      // Find player row
+      for (let i = 1; i < rows.length; i++) {
+        if (rows[i][idx('id')] === playerId) {
+          playerRow = i;
+          break;
+        }
+      }
+      
+      if (playerRow === -1) {
+        throw new Error(`Player ${playerId} not found`);
+      }
+      
+      // Get current badges (I列 = champion_badges)
+      const badgeColumnIndex = idx('champion_badges');
+      if (badgeColumnIndex === -1) {
+        console.warn('champion_badges column not found');
+        return { badgesAdded: [] };
+      }
+      
+      const currentBadges = rows[playerRow][badgeColumnIndex] || '';
+      
+      // Check if Card Plus badge (＋) is already present
+      if (!currentBadges.includes('＋')) {
+        const newBadges = currentBadges + '＋';
+        
+        // Update the specific cell
+        await this.sheets.spreadsheets.values.update({
+          spreadsheetId: this.spreadsheetId,
+          range: `Players!${String.fromCharCode(65 + badgeColumnIndex)}${playerRow + 1}`,
+          valueInputOption: 'USER_ENTERED',
+          requestBody: {
+            values: [[newBadges]]
+          }
+        });
+        
+        console.log(`Card Plus badge (＋) added to player ${playerId}`);
+        return { badgesAdded: ['＋'] };
+      } else {
+        console.log(`Player ${playerId} already has Card Plus badge (＋)`);
+        return { badgesAdded: [] };
+      }
+    } catch (error) {
+      console.error('Error adding Card Plus badge:', error);
+      throw new Error(`Failed to add Card Plus badge: ${error.message}`);
     }
   }
 }

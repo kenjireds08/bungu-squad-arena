@@ -72,7 +72,7 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
   );
 
   const { data: rankings, isLoading: rankingsLoading } = useRankings();
-  const { data: tournaments, isLoading: tournamentsLoading } = useTournaments();
+  const { data: tournaments, isLoading: tournamentsLoading } = useTournaments(true); // Enable polling for admin dashboard
   const { requestPermission } = useNotifications();
 
   const currentUser = rankings?.find(player => player.id === CURRENT_USER_ID);

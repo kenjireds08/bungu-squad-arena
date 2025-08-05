@@ -282,23 +282,51 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
       </div>
     );
   }
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('ja-JP', { 
-      month: 'short', 
-      day: 'numeric',
-      weekday: 'short'
-    });
+  const formatDate = (dateString: string | null | undefined): string => {
+    if (!dateString || dateString.trim() === '') {
+      return '日付未設定';
+    }
+    
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        console.warn(`Invalid date value: ${dateString}`);
+        return '日付未設定';
+      }
+      
+      return date.toLocaleDateString('ja-JP', { 
+        month: 'short', 
+        day: 'numeric',
+        weekday: 'short'
+      });
+    } catch (error) {
+      console.error(`Error formatting date: ${dateString}`, error);
+      return '日付未設定';
+    }
   };
 
-  const formatDateTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleString('ja-JP', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+  const formatDateTime = (dateString: string | null | undefined): string => {
+    if (!dateString || dateString.trim() === '') {
+      return '時刻未設定';
+    }
+    
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        console.warn(`Invalid datetime value: ${dateString}`);
+        return '時刻未設定';
+      }
+      
+      return date.toLocaleString('ja-JP', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (error) {
+      console.error(`Error formatting datetime: ${dateString}`, error);
+      return '時刻未設定';
+    }
   };
 
   return (
