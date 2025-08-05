@@ -76,7 +76,7 @@ module.exports = async function handler(req, res) {
           id: playerId,
           nickname: nickname,
           email: email,
-          current_rating: 1000,
+          current_rating: 1200,
         };
         await sheets.addPlayer(playerData);
         
@@ -87,8 +87,12 @@ module.exports = async function handler(req, res) {
         const resend = new Resend(process.env.RESEND_API_KEY);
         const verifyUrl = `https://${req.headers.host}/api/verify-email?token=${token}`;
         
-        await resend.emails.send({
-          from: 'BUNGU SQUAD <noreply@bungu-squad.com>',
+        console.log('Attempting to send email to:', email);
+        console.log('Resend API Key exists:', !!process.env.RESEND_API_KEY);
+        
+        try {
+          const result = await resend.emails.send({
+          from: 'BUNGU SQUAD <noreply@ranking.bungu-squad.jp>',
           to: [email],
           subject: '【BUNGU SQUAD】メールアドレス認証のお願い',
           html: `
@@ -114,7 +118,14 @@ module.exports = async function handler(req, res) {
               </p>
             </div>
           `
-        });
+          });
+          
+          console.log('✅ Resend send OK, id =', result.id);
+          
+        } catch (sendError) {
+          console.error('❌ Resend send ERROR:', sendError);
+          throw sendError;
+        }
         
         return res.status(200).json({ 
           success: true, 
