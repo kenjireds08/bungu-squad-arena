@@ -1077,7 +1077,7 @@ class SheetsService {
         try {
           response = await this.sheets.spreadsheets.values.get({
             spreadsheetId: this.spreadsheetId,
-            range: 'Matches!A:K'
+            range: 'TournamentMatches!A2:N1000'
           });
 
           const rows = response.data.values || [];
@@ -2587,7 +2587,7 @@ class SheetsService {
         // Fallback to Matches sheet
         response = await this.sheets.spreadsheets.values.get({
           spreadsheetId: this.spreadsheetId,
-          range: 'Matches!A:K'
+          range: 'TournamentMatches!A2:N1000'
         });
         
         const rows = response.data.values || [];
