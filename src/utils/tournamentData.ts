@@ -48,9 +48,19 @@ export const getCategorizedTournaments = (apiTournaments: ApiTournament[] = []) 
   const tournaments = apiTournaments.map(transformTournamentData);
 
   return {
-    active: tournaments.filter(t => t.rawStatus === 'active'),
-    upcoming: tournaments.filter(t => t.rawStatus === 'upcoming'),
-    completed: tournaments.filter(t => t.rawStatus === 'completed' || t.rawStatus === 'ended')
+    active: tournaments.filter(t => 
+      t.rawStatus === 'active' || 
+      (t.status === '開催中')
+    ),
+    upcoming: tournaments.filter(t => 
+      t.rawStatus === 'upcoming' || 
+      (t.status === '募集中' && t.rawStatus !== 'active' && t.rawStatus !== 'ended' && t.rawStatus !== 'completed')
+    ),
+    completed: tournaments.filter(t => 
+      t.rawStatus === 'completed' || 
+      t.rawStatus === 'ended' ||
+      (t.status === '完了' && t.rawStatus !== 'active' && t.rawStatus !== 'upcoming')
+    )
   };
 };
 /**
