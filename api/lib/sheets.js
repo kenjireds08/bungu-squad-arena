@@ -1176,7 +1176,7 @@ class SheetsService {
       }
       
       const timestamp = new Date().toISOString();
-      const values = matches.map(match => {
+      const values = matches.map((match, index) => {
         const row = new Array(headers.length).fill('');
         const set = (name, val) => { const i = idx(name); if (i >= 0) row[i] = val; };
 
@@ -1188,8 +1188,9 @@ class SheetsService {
         set('status', 'scheduled');
         set('match_status', 'scheduled');
         set('created_at', timestamp);
+        // Set table_number as the match number for display purposes
+        if (idx('table_number') >= 0) set('table_number', `match_${index + 1}`);
         if (idx('round') >= 0) set('round', 'player_00');
-        if (idx('table_number') >= 0) set('table_number', '');
 
         return row;
       });
@@ -1237,7 +1238,7 @@ class SheetsService {
         out.push({
           match_id:         r[idx('match_id')] || '',
           tournament_id:    r[idx('tournament_id')] || '',
-          match_number:     r[idx('round')] ?? r[idx('table_number')] ?? '',
+          match_number:     r[idx('table_number')] || `match_${i}`, // Use table_number for match display, fallback to index
           player1_id:       p1,
           player1_name:     nameMap.get(p1) || '',
           player2_id:       p2,
@@ -1528,8 +1529,8 @@ class SheetsService {
         requestBody: { values }
       });
 
-      // Update TournamentMatches status
-      await this.updateMatchStatus(matchId, 'completed', winnerId);
+      // Update TournamentMatches status - admin decision is final so set to approved
+      await this.updateMatchStatus(matchId, 'approved', winnerId);
 
       console.log(`Admin direct result recorded: ${resultId}`);
       return { 
@@ -1640,6 +1641,48 @@ class SheetsService {
     } catch (error) {
       console.error('Error fetching pending match results:', error);
       throw new Error(`Failed to fetch pending match results: ${error.message}`);
+    }
+  }
+
+  /**
+   * Supersede pending match results when admin makes final decision
+   */
+  async supersedePendingMatchResults(matchId) {
+    await this.authenticate();
+    try {
+      const response = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'MatchResults!A:I'
+      });
+
+      const rows = response.data.values || [];
+      let changed = false;
+      const now = new Date().toISOString();
+
+      // A:result_id, B:match_id, ... F:status, H:approved_by, I:approved_at
+      for (let i = 1; i < rows.length; i++) {
+        if (rows[i][1] === matchId && rows[i][5] === 'pending_approval') {
+          rows[i][5] = 'superseded'; // Status changed to superseded
+          rows[i][7] = 'admin';      // H: approved_by
+          rows[i][8] = now;          // I: approved_at
+          changed = true;
+        }
+      }
+
+      if (changed) {
+        await this.sheets.spreadsheets.values.update({
+          spreadsheetId: this.spreadsheetId,
+          range: 'MatchResults!A:I',
+          valueInputOption: 'USER_ENTERED',
+          requestBody: { values: rows }
+        });
+        console.log(`Superseded pending results for match ${matchId}`);
+      }
+
+      return { success: true, supersededCount: changed ? 1 : 0 };
+    } catch (error) {
+      console.error('Error superseding pending match results:', error);
+      throw new Error(`Failed to supersede pending match results: ${error.message}`);
     }
   }
 }

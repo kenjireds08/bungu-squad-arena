@@ -205,9 +205,12 @@ module.exports = async function handler(req, res) {
             timestamp: new Date().toISOString()
           });
 
+          // Supersede any pending player reports for this match
+          await sheetsService.supersedePendingMatchResults(matchId);
+
           return res.status(200).json({
             success: true,
-            message: '管理者により試合結果が入力・承認されました',
+            message: '試合を完了しました',
             ratingUpdate: result.ratingUpdate
           });
         } else {
