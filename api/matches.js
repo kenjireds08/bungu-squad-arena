@@ -1,29 +1,36 @@
 const SheetsService = require('./lib/sheets');
 
-// In-memory cache and deduplication for matches
-if (!globalThis.matchesCache) {
-  globalThis.matchesCache = { data: null, timestamp: 0, ttl: 30000 };
-}
+// Global match cache with TTL
+globalThis.matchesCache = globalThis.matchesCache || {
+  data: {},
+  ttl: 30000 // 30 seconds
+};
 
-// In-flight request deduplication
-if (!globalThis.matchesInflight) {
-  globalThis.matchesInflight = new Map();
-}
+// Deduplication for concurrent requests
+const pendingRequests = new Map();
 
-async function dedupedGetMatches(key, fn) {
-  if (globalThis.matchesInflight.has(key)) {
-    return globalThis.matchesInflight.get(key);
+async function dedupedGetMatches(key, fetcher) {
+  if (pendingRequests.has(key)) {
+    return await pendingRequests.get(key);
   }
   
-  const promise = fn().finally(() => {
-    setTimeout(() => globalThis.matchesInflight.delete(key), 5000);
-  });
+  const promise = fetcher();
+  pendingRequests.set(key, promise);
   
-  globalThis.matchesInflight.set(key, promise);
-  return promise;
+  try {
+    const result = await promise;
+    return result;
+  } finally {
+    pendingRequests.delete(key);
+  }
 }
 
 module.exports = async function handler(req, res) {
+  // Enable CORS
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
   if (req.method === 'OPTIONS') {
     return res.status(200).json({ message: 'OK' });
   }
@@ -32,12 +39,18 @@ module.exports = async function handler(req, res) {
     const sheetsService = new SheetsService();
 
     switch (req.method) {
-      case 'GET':
+      case 'GET': {
         // Add caching to reduce API calls
         res.setHeader('Cache-Control', 'public, s-maxage=10, stale-while-revalidate=30');
         
         const { playerId, tournamentId, action: getAction } = req.query;
         const cacheKey = `matches_${tournamentId || playerId || 'all'}`;
+        
+        // Handle special GET actions (from matchResults.js)
+        if (getAction === 'pendingResults') {
+          const pendingResults = await sheetsService.getPendingMatchResults();
+          return res.status(200).json(pendingResults);
+        }
         
         // Check cache first
         const now = Date.now();
@@ -47,12 +60,6 @@ module.exports = async function handler(req, res) {
         if (cachedData && (now - cachedData.timestamp) < cache.ttl) {
           console.log('Returning cached matches data for:', cacheKey);
           return res.status(200).json(cachedData.data);
-        }
-        
-        // Handle special GET actions (from matchResults.js)
-        if (getAction === 'pendingResults') {
-          const pendingResults = await sheetsService.getPendingMatchResults();
-          return res.status(200).json(pendingResults);
         }
         
         // Use deduplication for API calls
@@ -85,10 +92,12 @@ module.exports = async function handler(req, res) {
           // If no cache available, throw error to be handled by main catch block
           throw error;
         }
+      }
 
-      case 'POST':
-        const { action, ...data } = req.body;
-        
+      case 'POST': {
+        const data = req.body || {};
+        const action = data.action || req.query.action;
+
         if (action === 'saveTournamentMatches') {
           // Save tournament match pairings
           const { tournamentId, matches } = data;
@@ -201,23 +210,7 @@ module.exports = async function handler(req, res) {
             ratingUpdate: result.ratingUpdate
           });
         } else {
-            // This is bulk tournament creation (original format)
-            const transformedMatches = matches.map((match) => {
-              // Return original format if already in the expected structure
-              if (match.player1 && match.player2) {
-                return match;
-              }
-              // Should not reach here for bulk creation
-              throw new Error('Invalid match format for bulk creation');
-            });
-            
-            const result = await sheetsService.saveTournamentMatches(tournamentId, transformedMatches);
-            console.log(`Tournament matches created for ${tournamentId}, should notify players`);
-            
-            return res.status(201).json(result);
-          }
-        } else {
-          // Original match result logic
+          // Original match result logic (fallback)
           const { player1Id, player2Id, result } = req.body;
           
           if (!player1Id || !player2Id || !result) {
@@ -263,8 +256,9 @@ module.exports = async function handler(req, res) {
             ratingChanges
           });
         }
+      }
 
-      case 'PUT':
+      case 'PUT': {
         // Update match result or status, or approve match result (from matchResults.js)
         const { matchId, action: putAction } = req.query;
         const updateData = req.body;
@@ -287,8 +281,9 @@ module.exports = async function handler(req, res) {
 
         const result = await sheetsService.updateMatchResult(matchId, updateData);
         return res.status(200).json(result);
+      }
 
-      case 'DELETE':
+      case 'DELETE': {
         // Delete a match
         const { matchId: deleteMatchId } = req.query;
 
@@ -298,6 +293,7 @@ module.exports = async function handler(req, res) {
 
         const deleteResult = await sheetsService.deleteMatch(deleteMatchId);
         return res.status(200).json(deleteResult);
+      }
 
       default:
         return res.status(405).json({ error: 'Method not allowed' });
@@ -315,4 +311,4 @@ module.exports = async function handler(req, res) {
     
     return res.status(500).json({ error: error.message || 'Internal server error' });
   }
-}
+};
