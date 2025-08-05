@@ -70,7 +70,7 @@ module.exports = async function handler(req, res) {
         // 認証トークン生成
         const token = crypto.randomBytes(32).toString('hex');
         
-        // まずプレイヤーを仮登録（email_verified=FALSE）
+        // プレイヤー情報をKVに一時保存（認証後に本登録）
         const playerId = `player_${Date.now()}`;
         const playerData = {
           id: playerId,
@@ -78,10 +78,9 @@ module.exports = async function handler(req, res) {
           email: email,
           current_rating: 1200,
         };
-        await sheets.addPlayer(playerData);
         
-        // KVにトークンを保存（1時間有効）
-        await kv.set(`verify:${token}`, email, { ex: 3600 });
+        // KVにトークンとプレイヤー情報を保存（1時間有効）
+        await kv.set(`verify:${token}`, JSON.stringify(playerData), { ex: 3600 });
         
         // Resendでメール送信
         const resend = new Resend(process.env.RESEND_API_KEY);

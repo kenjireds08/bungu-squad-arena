@@ -20,10 +20,10 @@ module.exports = async function handler(req, res) {
   }
   
   try {
-    // KVからトークンを取得
-    const email = await kv.get(`verify:${token}`);
+    // KVからプレイヤー情報を取得
+    const playerDataStr = await kv.get(`verify:${token}`);
     
-    if (!email) {
+    if (!playerDataStr) {
       return res.status(400).send(`
         <html>
           <head><title>認証エラー</title></head>
@@ -37,8 +37,11 @@ module.exports = async function handler(req, res) {
       `);
     }
     
-    // Sheetsでemail_verifiedをTRUEに更新
-    await sheets.verifyPlayerEmail(email);
+    // プレイヤー情報をパース
+    const playerData = JSON.parse(playerDataStr);
+    
+    // Sheetsにプレイヤーを正式登録（email_verified=TRUE）
+    await sheets.addPlayer(playerData);
     
     // トークンを削除（使い回し防止）
     await kv.del(`verify:${token}`);
