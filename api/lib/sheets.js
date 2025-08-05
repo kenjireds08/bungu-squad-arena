@@ -3398,4 +3398,71 @@ class SheetsService {
   }
 }
 
+  /**
+   * 大会参加者を取得
+   */
+  async getTournamentParticipants() {
+    try {
+      const response = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'TournamentParticipants!A:Z'
+      });
+
+      const rows = response.data.values || [];
+      if (rows.length === 0) return [];
+
+      const headers = rows[0];
+      const participants = rows.slice(1).map(row => {
+        const participant = {};
+        headers.forEach((header, index) => {
+          participant[header] = row[index] || '';
+        });
+        return participant;
+      });
+
+      return participants;
+    } catch (error) {
+      console.error('Error fetching tournament participants:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 大会参加者を追加
+   */
+  async addTournamentParticipant(participant) {
+    try {
+      // まずヘッダーを取得して列構造を確認
+      const response = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'TournamentParticipants!1:1'
+      });
+
+      const headers = response.data.values?.[0] || [];
+      if (headers.length === 0) {
+        throw new Error('TournamentParticipants sheet headers not found');
+      }
+
+      // participantオブジェクトをヘッダー順の配列に変換
+      const row = headers.map(header => participant[header] || '');
+
+      // 新しい行を追加
+      await this.sheets.spreadsheets.values.append({
+        spreadsheetId: this.spreadsheetId,
+        range: 'TournamentParticipants!A:Z',
+        valueInputOption: 'RAW',
+        resource: {
+          values: [row]
+        }
+      });
+
+      console.log('Tournament participant added successfully:', participant.player_id);
+      return participant;
+    } catch (error) {
+      console.error('Error adding tournament participant:', error);
+      throw error;
+    }
+  }
+}
+
 module.exports = SheetsService;

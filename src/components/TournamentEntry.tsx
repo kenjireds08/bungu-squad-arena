@@ -133,23 +133,17 @@ export const TournamentEntry = () => {
                 // Extract time from start_time and compare
                 if (t.start_time) {
                   console.log(`Raw start_time: "${t.start_time}", type: ${typeof t.start_time}`);
-                  const timeMatch = t.start_time.match(/(\d{1,2}:\d{2})/);
-                  console.log(`Time match result:`, timeMatch);
-                  if (timeMatch) {
-                    // Normalize time format for comparison (add leading zero if needed)
-                    const tournamentTime = timeMatch[1].padStart(5, '0');
-                    const urlTime = formattedTime.padStart(5, '0');
-                    console.log(`Comparing tournament time: '${tournamentTime}' (from "${t.start_time}") with URL time: '${urlTime}' (from "${actualTime}" -> "${formattedTime}")`);
-                    console.log(`Comparison result: ${tournamentTime === urlTime}`);
-                    console.log(`Device: ${/Mobi|Android/i.test(navigator.userAgent) ? 'Mobile' : 'Desktop'}`);
-                    if (tournamentTime === urlTime) {
-                      console.log('✓ Time match found!');
-                      return true;
-                    } else {
-                      console.log('✗ Time mismatch');
-                    }
+                  // Directly compare with start_time since it's already in HH:MM format
+                  const tournamentTime = t.start_time.trim();
+                  const urlTime = formattedTime.trim();
+                  console.log(`Comparing tournament time: '${tournamentTime}' with URL time: '${urlTime}' (from "${actualTime}" -> "${formattedTime}")`);
+                  console.log(`Comparison result: ${tournamentTime === urlTime}`);
+                  console.log(`Device: ${/Mobi|Android/i.test(navigator.userAgent) ? 'Mobile' : 'Desktop'}`);
+                  if (tournamentTime === urlTime) {
+                    console.log('✓ Time match found!');
+                    return true;
                   } else {
-                    console.log('✗ No time match in start_time:', t.start_time);
+                    console.log('✗ Time mismatch');
                   }
                 } else {
                   console.log('✗ No start_time found');
@@ -272,11 +266,23 @@ export const TournamentEntry = () => {
         return;
       }
 
-      // TODO: Implement actual entry API call
+      // Specific tournament entry API call with tournament ID
       console.log('Entering tournament:', tournament.id, 'for user:', userId);
       
-      // Mock API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Call tournament-specific entry API
+      const entryResponse = await fetch('/api/tournament-entry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          userId: userId,
+          tournamentId: tournament.id 
+        })
+      });
+      
+      if (!entryResponse.ok) {
+        const errorData = await entryResponse.json();
+        throw new Error(errorData.error || 'Tournament entry failed');
+      }
       
       // Update tournament active status via API with real-time updates
       console.log('Sending API request for user:', userId);
@@ -301,13 +307,13 @@ export const TournamentEntry = () => {
       console.error('Failed to enter tournament:', error);
       toast({
         title: "エラー",
-        description: "エントリーに失敗しました。もう一度お試しください。",
+        description: `エントリーに失敗しました: ${error.message}`,
         variant: "destructive"
       });
     } finally {
       setIsEntering(false);
     }
-  };
+  };;
 
   // Send email verification
   const handleEmailVerification = async () => {
