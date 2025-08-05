@@ -40,9 +40,11 @@ module.exports = async function handler(req, res) {
     // プレイヤー情報をパース（型を確認してから）
     const playerData = (typeof raw === 'string') ? JSON.parse(raw) : raw;
     
-    // デバッグ: 取得したプレイヤーデータをログ出力
-    console.log('🔍 Retrieved player data from KV:', JSON.stringify(playerData, null, 2));
-    console.log('🔍 tournamentId check:', playerData.tournamentId, 'Type:', typeof playerData.tournamentId);
+    // Debug logs (development only)
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('🔍 Retrieved player data from KV:', JSON.stringify(playerData, null, 2));
+      console.log('🔍 tournamentId check:', playerData.tournamentId, 'Type:', typeof playerData.tournamentId);
+    }
     
     // Sheetsにプレイヤーを正式登録（email_verified=TRUE）
     await sheets.addPlayer(playerData);
@@ -50,7 +52,9 @@ module.exports = async function handler(req, res) {
     // QRコードからの登録の場合は大会エントリーも自動実行
     if (playerData.tournamentId) {
       try {
-        console.log(`Attempting auto-enrollment for player ${playerData.email} with ID ${playerData.id} in tournament ${playerData.tournamentId}`);
+        if (process.env.NODE_ENV !== 'production') {
+          console.log(`Attempting auto-enrollment for player ${playerData.email} with ID ${playerData.id} in tournament ${playerData.tournamentId}`);
+        }
         
         // プレイヤーIDを使って大会エントリーを更新
         await sheets.updateTournamentActive(playerData.id, true);

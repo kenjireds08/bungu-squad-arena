@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, LogIn, UserPlus, Shield } from 'lucide-react';
+import { Loader2, LogIn, UserPlus, Shield, RefreshCw } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 
 interface LoginProps {
@@ -20,6 +20,41 @@ export const Login = ({ onLoginSuccess, isNewPlayer = false }: LoginProps) => {
     password: '' // 既存ユーザーログイン用（管理者のみ）
   });
   const { toast } = useToast();
+
+  const handleClearCache = async () => {
+    try {
+      // Service Worker登録を削除
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(registrations.map(reg => reg.unregister()));
+      }
+      
+      // すべてのキャッシュを削除
+      if ('caches' in window) {
+        const cacheNames = await caches.keys();
+        await Promise.all(cacheNames.map(name => caches.delete(name)));
+      }
+      
+      toast({
+        title: "キャッシュクリア完了",
+        description: "ページを再読み込みして問題が解決されたか確認してください",
+        variant: "default"
+      });
+      
+      // 2秒後にページをリロード
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+      
+    } catch (error) {
+      console.error('Cache clear error:', error);
+      toast({
+        title: "エラー",
+        description: "キャッシュクリアに失敗しました。手動でページをリロードしてください",
+        variant: "destructive"
+      });
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -247,7 +282,7 @@ export const Login = ({ onLoginSuccess, isNewPlayer = false }: LoginProps) => {
                 )}
               </Button>
 
-              <div className="text-center">
+              <div className="text-center space-y-2">
                 <Button
                   type="button"
                   variant="link"
@@ -259,6 +294,20 @@ export const Login = ({ onLoginSuccess, isNewPlayer = false }: LoginProps) => {
                 >
                   {isSignUp ? '既存プレイヤーの方はこちら' : '初めての方はこちら'}
                 </Button>
+                
+                {/* 一時的なキャッシュクリアボタン */}
+                <div className="pt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleClearCache}
+                    className="text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    <RefreshCw className="h-3 w-3 mr-1" />
+                    ログインできない場合はこちら（キャッシュクリア）
+                  </Button>
+                </div>
               </div>
             </form>
           </CardContent>

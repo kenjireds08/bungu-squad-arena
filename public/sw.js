@@ -1,8 +1,8 @@
 // BUNGU SQUAD Service Worker for PWA functionality with camera support
 // Update version to force SW update - Change this whenever you need to force update
-const SW_VERSION = '2.2.0'; // PWA Camera optimization update
-const CACHE_NAME = 'bungu-squad-v2-2';
-const STATIC_CACHE = 'bungu-squad-static-v2-2';
+const SW_VERSION = '2.4.0'; // API caching fix - no more 503 cache
+const CACHE_NAME = 'bungu-squad-v2-4';
+const STATIC_CACHE = 'bungu-squad-static-v2-4';
 
 // Assets to cache for offline functionality
 const STATIC_ASSETS = [
@@ -46,7 +46,7 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch event - Network First strategy for better updates
+// Fetch event - Network First strategy with proper API handling
 self.addEventListener('fetch', (event) => {
   // Skip non-GET requests
   if (event.request.method !== 'GET') return;
@@ -68,40 +68,30 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  const url = new URL(event.request.url);
+  
+  // API endpoints: Never cache, always fetch fresh
+  if (url.pathname.startsWith('/api/')) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
+  // Static resources: Cache with error response prevention
   event.respondWith(
-    // Try network first
-    fetch(event.request)
-      .then((fetchResponse) => {
-        // Don't cache API calls or external resources
-        if (!fetchResponse || fetchResponse.status !== 200 || fetchResponse.type !== 'basic') {
-          return fetchResponse;
+    caches.open(STATIC_CACHE).then(async (cache) => {
+      const cached = await cache.match(event.request);
+      
+      const fresh = fetch(event.request).then((response) => {
+        // Only cache successful responses (200-299)
+        if (response.ok && response.type === 'basic') {
+          cache.put(event.request, response.clone());
         }
+        return response;
+      }).catch(() => cached); // Fallback to cache on network error
 
-        // Cache the response for non-sensitive resources
-        if (!event.request.url.includes('/api/') && !event.request.url.includes('camera')) {
-          const responseToCache = fetchResponse.clone();
-          caches.open(CACHE_NAME)
-            .then((cache) => {
-              cache.put(event.request, responseToCache);
-            });
-        }
-
-        return fetchResponse;
-      })
-      .catch(() => {
-        // If network fails, try cache
-        return caches.match(event.request)
-          .then((cachedResponse) => {
-            if (cachedResponse) {
-              return cachedResponse;
-            }
-            // Return offline fallback for navigation requests
-            if (event.request.mode === 'navigate') {
-              return caches.match('/');
-            }
-            return new Response('Offline', { status: 503 });
-          });
-      })
+      // Return cached version immediately if available, otherwise wait for network
+      return cached || fresh;
+    })
   );
 });
 
