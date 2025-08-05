@@ -10,6 +10,7 @@ export interface Tournament {
   participants: number;
   status: string;
   rawStatus?: string; // Raw status from API for filtering
+  normalizedStatus?: string; // Normalized status based on date logic
   description?: string;
 }
 
@@ -29,7 +30,31 @@ export const getTournamentStatus = (date: string, time?: string) => {
 };
 
 // Convert API tournament data to internal format
+// Normalize status based on date and rawStatus for proper categorization
+const normalizeStatus = (rawStatus: string | undefined, date: string): string => {
+  const today = new Date().toLocaleDateString('sv-SE'); // Get today in YYYY-MM-DD format
+  const tournamentDate = new Date(date).toISOString().split('T')[0];
+  
+  // Ended tournaments are always completed
+  if (rawStatus === 'ended') {
+    return 'completed';
+  }
+  
+  // Date-based logic
+  if (tournamentDate < today) {
+    return 'completed'; // Past tournaments
+  } else if (tournamentDate === today) {
+    // Today's tournaments - respect rawStatus unless ended
+    if (rawStatus === 'completed') return 'completed';
+    return 'active'; // Default to active for today
+  } else {
+    // Future tournaments
+    return 'upcoming';
+  }
+};
 const transformTournamentData = (apiTournament: ApiTournament): Tournament => {
+  const normalizedStatus = normalizeStatus(apiTournament.status, apiTournament.date);
+  
   return {
     id: apiTournament.id,
     name: apiTournament.tournament_name,
@@ -39,6 +64,7 @@ const transformTournamentData = (apiTournament: ApiTournament): Tournament => {
     participants: apiTournament.current_participants,
     status: getTournamentStatus(apiTournament.date),
     rawStatus: apiTournament.status, // Add raw status from API
+    normalizedStatus, // Add normalized status for proper categorization
     description: apiTournament.description || ''
   };
 };
@@ -49,17 +75,13 @@ export const getCategorizedTournaments = (apiTournaments: ApiTournament[] = []) 
 
   return {
     active: tournaments.filter(t => 
-      t.rawStatus === 'active' || 
-      (t.status === '開催中')
+      t.normalizedStatus === 'active'
     ),
     upcoming: tournaments.filter(t => 
-      t.rawStatus === 'upcoming' || 
-      (t.status === '募集中' && t.rawStatus !== 'active' && t.rawStatus !== 'ended' && t.rawStatus !== 'completed')
+      t.normalizedStatus === 'upcoming'
     ),
     completed: tournaments.filter(t => 
-      t.rawStatus === 'completed' || 
-      t.rawStatus === 'ended' ||
-      (t.status === '完了' && t.rawStatus !== 'active' && t.rawStatus !== 'upcoming')
+      t.normalizedStatus === 'completed'
     )
   };
 };
