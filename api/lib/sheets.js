@@ -2807,18 +2807,27 @@ class SheetsService {
       const actualRowNumber = playerRowIndex + 2;
       const currentDate = new Date().toISOString().split('T')[0];
       
+      // Get current champion_badges (I列)
+      const currentBadges = rows[playerRowIndex][8] || ''; // I列は8番目のインデックス
+      
       if (gameType === 'trump') {
-        // Check if already experienced
-        const isExperienced = rows[playerRowIndex][9] === 'TRUE';
-        if (!isExperienced) {
-          // Update trump_rule_experienced (column J) and first_trump_game_date (column K)
+        // Check if trump badge already exists
+        if (!currentBadges.includes('♠️')) {
+          // Add trump badge to champion_badges
+          const newBadges = currentBadges ? `${currentBadges}, ♠️` : '♠️';
+          
+          // Update champion_badges (column I) and first_trump_game_date (column K)
           await this.sheets.spreadsheets.values.batchUpdate({
             spreadsheetId: this.spreadsheetId,
             requestBody: {
               valueInputOption: 'USER_ENTERED',
               data: [
                 {
-                  range: `Players!J${actualRowNumber}`,
+                  range: `Players!I${actualRowNumber}`,
+                  values: [[newBadges]]
+                },
+                {
+                  range: `Players!J${actualRowNumber}`, // trump_rule_experienced フラグも更新
                   values: [['TRUE']]
                 },
                 {
@@ -2828,20 +2837,28 @@ class SheetsService {
               ]
             }
           });
-          console.log(`Updated trump experience for player ${playerId}`);
+          console.log(`Added trump badge to player ${playerId}: "${newBadges}"`);
+        } else {
+          console.log(`Player ${playerId} already has trump badge`);
         }
       } else if (gameType === 'cardplus') {
-        // Check if already experienced
-        const isExperienced = rows[playerRowIndex][11] === 'TRUE';
-        if (!isExperienced) {
-          // Update cardplus_rule_experienced (column L) and first_cardplus_game_date (column M)
+        // Check if cardplus badge already exists
+        if (!currentBadges.includes('➕') && !currentBadges.includes('+')) {
+          // Add cardplus badge to champion_badges
+          const newBadges = currentBadges ? `${currentBadges}, ➕` : '➕';
+          
+          // Update champion_badges (column I) and first_cardplus_game_date (column M)
           await this.sheets.spreadsheets.values.batchUpdate({
             spreadsheetId: this.spreadsheetId,
             requestBody: {
               valueInputOption: 'USER_ENTERED',
               data: [
                 {
-                  range: `Players!L${actualRowNumber}`,
+                  range: `Players!I${actualRowNumber}`,
+                  values: [[newBadges]]
+                },
+                {
+                  range: `Players!L${actualRowNumber}`, // cardplus_rule_experienced フラグも更新
                   values: [['TRUE']]
                 },
                 {
@@ -2851,7 +2868,9 @@ class SheetsService {
               ]
             }
           });
-          console.log(`Updated cardplus experience for player ${playerId}`);
+          console.log(`Added cardplus badge to player ${playerId}: "${newBadges}"`);
+        } else {
+          console.log(`Player ${playerId} already has cardplus badge`);
         }
       }
     } catch (error) {
