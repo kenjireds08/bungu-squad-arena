@@ -44,7 +44,7 @@ module.exports = async function handler(req, res) {
         res.setHeader('Cache-Control', 'public, s-maxage=10, stale-while-revalidate=30');
         
         const { playerId, tournamentId, action: getAction } = req.query;
-        const cacheKey = `matches_${tournamentId || playerId || 'all'}`;
+        const cacheKey = `matches_v2_${tournamentId || playerId || 'all'}`;
         
         // Handle special GET actions (from matchResults.js)
         if (getAction === 'pendingResults') {

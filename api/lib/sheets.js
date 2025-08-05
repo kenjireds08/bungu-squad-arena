@@ -14,9 +14,20 @@ async function cached(key, ttl, loader) {
 
 class SheetsService {
   constructor() {
-    this.auth = null;
     this.sheets = null;
+    this.auth = null;
     this.spreadsheetId = process.env.GOOGLE_SHEETS_ID;
+  }
+
+  // ヘッダー取得＆indexマップ
+  async _getHeaders(range) {
+    const res = await this.sheets.spreadsheets.values.get({
+      spreadsheetId: this.spreadsheetId,
+      range
+    });
+    const headers = res.data.values?.[0] || [];
+    const idx = (name) => headers.indexOf(name); // 見つからなければ -1
+    return { headers, idx };
   }
 
   async authenticate() {
@@ -1150,13 +1161,13 @@ class SheetsService {
 
   async saveTournamentMatches(tournamentId, matches) {
     await this.authenticate();
+    const { headers, idx } = await this._getHeaders('TournamentMatches!1:1');
     
     try {
       // Ensure tournament matches sheet exists
       await this.createTournamentMatchesSheet();
       
       // Try to delete existing matches for this tournament
-      // If deletion fails, we'll continue with append (backward compatibility)
       try {
         await this.deleteTournamentMatches(tournamentId);
         console.log(`Existing matches deleted for tournament ${tournamentId}`);
@@ -1165,27 +1176,29 @@ class SheetsService {
       }
       
       const timestamp = new Date().toISOString();
-      const values = matches.map(match => [
-        `${tournamentId}_${match.id}`,    // A: match_id (tournament_id + match_id)
-        tournamentId,                      // B: tournament_id
-        'player_00',                       // C: round (default)
-        match.player1.id,                 // D: player1_id
-        match.player1.name,               // E: player1_name
-        match.player2.id,                 // F: player2_id
-        match.player2.name,               // G: player2_name
-        match.gameType,                   // H: game_type
-        'scheduled',                      // I: status
-        '',                               // J: winner_id (empty until match completed)
-        timestamp                         // K: created_at
-      ]);
+      const values = matches.map(match => {
+        const row = new Array(headers.length).fill('');
+        const set = (name, val) => { const i = idx(name); if (i >= 0) row[i] = val; };
+
+        set('match_id', `${tournamentId}_${match.id}`);
+        set('tournament_id', tournamentId);
+        set('player1_id', match.player1.id);
+        set('player2_id', match.player2.id);
+        set('game_type', match.gameType);
+        set('status', 'scheduled');
+        set('match_status', 'scheduled');
+        set('created_at', timestamp);
+        if (idx('round') >= 0) set('round', 'player_00');
+        if (idx('table_number') >= 0) set('table_number', '');
+
+        return row;
+      });
 
       await this.sheets.spreadsheets.values.append({
         spreadsheetId: this.spreadsheetId,
-        range: 'TournamentMatches!A:X',
+        range: 'TournamentMatches!A:Z',
         valueInputOption: 'USER_ENTERED',
-        requestBody: {
-          values
-        }
+        requestBody: { values }
       });
 
       console.log(`Tournament matches saved for ${tournamentId}: ${matches.length} matches`);
@@ -1200,84 +1213,47 @@ class SheetsService {
     await this.authenticate();
     
     try {
-      let response, matches = [];
-      
-      // Try TournamentMatches first
-      try {
-        response = await this.sheets.spreadsheets.values.get({
-          spreadsheetId: this.spreadsheetId,
-          range: 'TournamentMatches!A2:X1000'
-        });
+      const { headers, idx } = await this._getHeaders('TournamentMatches!1:1');
 
-        const rows = response.data.values || [];
-        matches = rows
-          .filter(row => row[1] === tournamentId) // Filter by tournament_id
-          .map((row) => ({
-            match_id: row[0] || '',
-            tournament_id: row[1] || '',
-            match_number: row[2] || '',
-            player1_id: row[3] || '',
-            player1_name: row[4] || '',
-            player2_id: row[5] || '',
-            player2_name: row[6] || '',
-            game_type: row[7] || 'trump',
-            status: row[8] || 'scheduled',
-            winner_id: row[9] || '',
-            result_details: row[10] || '',
-            created_at: row[11] || '',
-            completed_at: row[12] || '',
-            approved_at: row[13] || ''
-          }));
-      } catch (tournamentError) {
-        console.log('TournamentMatches not found, trying Matches sheet');
-      }
-      
-      // If no matches found in TournamentMatches, try Matches sheet
-      if (matches.length === 0) {
-        try {
-          response = await this.sheets.spreadsheets.values.get({
-            spreadsheetId: this.spreadsheetId,
-            range: 'TournamentMatches!A2:X1000'
-          });
+      const resp = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'TournamentMatches!A:Z'
+      });
+      const rows = resp.data.values || [];
+      if (rows.length <= 1) return [];
 
-          const rows = response.data.values || [];
-          if (rows.length > 1) {
-            matches = rows
-              .slice(1) // Skip header
-              .filter(row => row[1] === tournamentId) // Filter by tournament_id
-              .map((row) => ({
-                match_id: row[0] || '',
-                tournament_id: row[1] || '',
-                match_number: row[2] || '',
-                player1_id: row[3] || '',
-                player1_name: row[4] || '',
-                player2_id: row[5] || '',
-                player2_name: row[7] || '',
-            game_type: row[6] || 'trump',
-                status: row[8] || 'scheduled',
-                winner_id: row[9] || '',
-                created_at: row[10] || ''
-              }));
-          }
-        } catch (matchError) {
-          console.error('Error fetching from Matches sheet:', matchError);
-        }
-      }
-
-      // Get players for name resolution
+      // Players を取得して id->nickname のマップ化
       const players = await this.getPlayers();
-      const playerMap = new Map(players.map(p => [p.id, p.nickname]));
+      const nameMap = new Map(players.map(p => [p.id, p.nickname]));
 
-      // Resolve player names if they are missing or show as IDs
-      matches = matches.map(match => ({
-        ...match,
-        player1_name: playerMap.get(match.player1_id) || match.player1_name || match.player1_id,
-        player2_name: playerMap.get(match.player2_id) || match.player2_name || match.player2_id,
-      }));
+      const out = [];
+      for (let i = 1; i < rows.length; i++) {
+        const r = rows[i];
+        if (tournamentId && r[idx('tournament_id')] !== tournamentId) continue;
 
-      // Note: Rating changes are fetched separately by frontend via /api/rating-history endpoint
+        const p1 = r[idx('player1_id')] || '';
+        const p2 = r[idx('player2_id')] || '';
 
-      return matches;
+        out.push({
+          match_id:         r[idx('match_id')] || '',
+          tournament_id:    r[idx('tournament_id')] || '',
+          match_number:     r[idx('round')] ?? r[idx('table_number')] ?? '',
+          player1_id:       p1,
+          player1_name:     nameMap.get(p1) || '',
+          player2_id:       p2,
+          player2_name:     nameMap.get(p2) || '',
+          game_type:        r[idx('game_type')] || '',   // ← 既定値に 'trump' は使わない
+          status:           r[idx('status')] || r[idx('match_status')] || 'scheduled',
+          winner_id:        r[idx('winner_id')] || '',
+          created_at:       r[idx('created_at')] || '',
+          match_start_time: r[idx('match_start_time')] || '',
+          match_end_time:   r[idx('match_end_time')] || '',
+          reported_at:      r[idx('reported_at')] || '',
+          approved_by:      r[idx('approved_by')] || '',
+          approved_at:      r[idx('approved_at')] || ''
+        });
+      }
+      return out;
     } catch (error) {
       console.error('Error fetching tournament matches:', error);
       
@@ -1483,42 +1459,38 @@ class SheetsService {
    */
   async updateMatchStatus(matchId, status, winnerId = '') {
     await this.authenticate();
+    
     try {
-      // Get TournamentMatches data
-      const response = await this.sheets.spreadsheets.values.get({
-        spreadsheetId: this.spreadsheetId,
-        range: 'TournamentMatches!A:X'
-      });
+      const { headers, idx } = await this._getHeaders('TournamentMatches!1:1');
 
-      const rows = response.data.values || [];
-      let updated = false;
+    const resp = await this.sheets.spreadsheets.values.get({
+      spreadsheetId: this.spreadsheetId, 
+      range: 'TournamentMatches!A:Z'
+    });
+    const rows = resp.data.values || [];
 
-      // Find and update the match
-      for (let i = 1; i < rows.length; i++) {
-        if (rows[i][0] === matchId) {
-          rows[i][8] = status;      // I: status
-          if (winnerId) {
-            rows[i][9] = winnerId;  // J: winner_id
-          }
-          updated = true;
-          break;
-        }
+    let hit = -1;
+    for (let i = 1; i < rows.length; i++) {
+      if ((rows[i][idx('match_id')] || '') === matchId) { 
+        hit = i; 
+        break; 
       }
+    }
+    if (hit < 0) throw new Error(`Match ${matchId} not found`);
 
-      if (!updated) {
-        throw new Error(`Match ${matchId} not found`);
-      }
+    if (idx('status') >= 0) rows[hit][idx('status')] = status;
+    if (idx('match_status') >= 0) rows[hit][idx('match_status')] = status;
+    if (winnerId && idx('winner_id') >= 0) rows[hit][idx('winner_id')] = winnerId;
 
-      // Write back to sheet
-      await this.sheets.spreadsheets.values.update({
-        spreadsheetId: this.spreadsheetId,
-        range: 'TournamentMatches!A:X',
-        valueInputOption: 'USER_ENTERED',
-        requestBody: { values: rows }
-      });
+    await this.sheets.spreadsheets.values.update({
+      spreadsheetId: this.spreadsheetId,
+      range: 'TournamentMatches!A:Z',
+      valueInputOption: 'USER_ENTERED',
+      requestBody: { values: rows }
+    });
 
-      console.log(`Match ${matchId} status updated to ${status}`);
-      return { success: true };
+    console.log(`Match ${matchId} status updated to ${status}`);
+    return { success: true };
     } catch (error) {
       console.error('Error updating match status:', error);
       throw new Error(`Failed to update match status: ${error.message}`);
