@@ -1,8 +1,11 @@
 // BUNGU SQUAD Service Worker for PWA functionality with camera support
 // Update version to force SW update - Change this whenever you need to force update
-const SW_VERSION = '2.4.0'; // API caching fix - no more 503 cache
-const CACHE_NAME = 'bungu-squad-v2-4';
-const STATIC_CACHE = 'bungu-squad-static-v2-4';
+const SW_VERSION = '2.4.1'; // Production: Quiet API bypass logs
+const CACHE_NAME = 'bungu-squad-v2-4-1';
+const STATIC_CACHE = 'bungu-squad-static-v2-4-1';
+
+// Debug flag - only show logs in development (localhost)
+const DEBUG = self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1';
 
 // Assets to cache for offline functionality
 const STATIC_ASSETS = [
@@ -24,12 +27,12 @@ self.addEventListener('message', event => {
 
 // Install event - cache essential assets and force update
 self.addEventListener('install', (event) => {
-  console.log(`SW v${SW_VERSION} installing...`);
+  if (DEBUG) console.log(`SW v${SW_VERSION} installing...`);
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => cache.addAll(STATIC_ASSETS))
       .then(() => {
-        console.log(`SW v${SW_VERSION} installed, skipping waiting...`);
+        if (DEBUG) console.log(`SW v${SW_VERSION} installed, skipping waiting...`);
         return self.skipWaiting();
       })
   );
@@ -37,7 +40,7 @@ self.addEventListener('install', (event) => {
 
 // Activate event - clean up old caches and claim clients
 self.addEventListener('activate', (event) => {
-  console.log(`SW v${SW_VERSION} activating...`);
+  if (DEBUG) console.log(`SW v${SW_VERSION} activating...`);
   event.waitUntil(
     caches.keys()
       .then((cacheNames) => {
@@ -45,13 +48,13 @@ self.addEventListener('activate', (event) => {
           cacheNames
             .filter((cacheName) => cacheName !== CACHE_NAME && cacheName !== STATIC_CACHE)
             .map((cacheName) => {
-              console.log(`Deleting old cache: ${cacheName}`);
+              if (DEBUG) console.log(`Deleting old cache: ${cacheName}`);
               return caches.delete(cacheName);
             })
         );
       })
       .then(() => {
-        console.log(`SW v${SW_VERSION} claiming clients...`);
+        if (DEBUG) console.log(`SW v${SW_VERSION} claiming clients...`);
         return self.clients.claim();
       })
   );
@@ -83,7 +86,7 @@ self.addEventListener('fetch', (event) => {
   
   // API endpoints: Never cache, always fetch fresh
   if (url.pathname.startsWith('/api/')) {
-    console.log(`SW v${SW_VERSION}: Bypassing cache for API: ${url.pathname}`);
+    if (DEBUG) console.log(`SW v${SW_VERSION}: Bypassing cache for API: ${url.pathname}`);
     event.respondWith(fetch(event.request));
     return;
   }
