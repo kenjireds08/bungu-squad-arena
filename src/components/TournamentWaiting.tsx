@@ -31,10 +31,24 @@ export const TournamentWaiting = ({ onClose, onViewRanking }: TournamentWaitingP
   const [tournamentMatches, setTournamentMatches] = useState([]);
   const [isLoadingMatches, setIsLoadingMatches] = useState(false);
   const { data: tournaments, isLoading: tournamentsLoading } = useTournaments();
-  const { data: players, isLoading: playersLoading } = useRankings();
+  const playersQuery = useRankings();
+  const { data: players, isLoading: playersLoading } = playersQuery;
   
   // Enable version-based polling for real-time updates
   useVersionPolling('current');
+  
+  // Additional auto-refresh for participant list every 5 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // Force refetch players data for participant updates
+      if (!playersLoading && playersQuery.refetch) {
+        console.log('Auto-refreshing tournament participants...');
+        playersQuery.refetch();
+      }
+    }, 5000); // Every 5 seconds
+    
+    return () => clearInterval(interval);
+  }, [playersLoading, playersQuery.refetch]);
   
   // Get today's tournament and participants
   const today = new Date().toISOString().split('T')[0];

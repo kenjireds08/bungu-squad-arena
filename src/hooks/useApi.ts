@@ -22,6 +22,7 @@ export const useVersionPolling = (tournamentId: string = 'current') => {
           queryClient.invalidateQueries({ queryKey: ['matches', tournamentId] });
           queryClient.invalidateQueries({ queryKey: ['tournaments'] });
           queryClient.invalidateQueries({ queryKey: ['rankings'] });
+          queryClient.invalidateQueries({ queryKey: ['players'] }); // Add players query invalidation
         }
         
         lastVersionRef.current = v;
@@ -38,7 +39,7 @@ export const useVersionPolling = (tournamentId: string = 'current') => {
     
     return () => clearInterval(interval);
   }, [tournamentId, queryClient]);
-};
+};;
 
 // Players hooks
 export const usePlayers = () => {
