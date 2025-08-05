@@ -3396,12 +3396,11 @@ class SheetsService {
       throw error;
     }
   }
-}
-
   /**
    * 大会参加者を取得
    */
   async getTournamentParticipants() {
+    await this.authenticate();
     try {
       const response = await this.sheets.spreadsheets.values.get({
         spreadsheetId: this.spreadsheetId,
@@ -3431,6 +3430,7 @@ class SheetsService {
    * 大会参加者を追加
    */
   async addTournamentParticipant(participant) {
+    await this.authenticate();
     try {
       // まずヘッダーを取得して列構造を確認
       const response = await this.sheets.spreadsheets.values.get({
@@ -3450,14 +3450,14 @@ class SheetsService {
       await this.sheets.spreadsheets.values.append({
         spreadsheetId: this.spreadsheetId,
         range: 'TournamentParticipants!A:Z',
-        valueInputOption: 'RAW',
-        resource: {
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
           values: [row]
         }
       });
 
       console.log('Tournament participant added successfully:', participant.player_id);
-      return participant;
+      return { ok: true };
     } catch (error) {
       console.error('Error adding tournament participant:', error);
       throw error;
