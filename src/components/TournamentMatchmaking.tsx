@@ -335,12 +335,17 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
 
   const getPlayerBadges = (player: any) => {
     const badges = [];
-    if (player.trump_rule_experienced) {
+    
+    // PlayersシートのI列（champion_badges）を基準にバッジを表示
+    const championBadges = player.champion_badges || '';
+    
+    if (championBadges.includes('♠️')) {
       badges.push(<Badge key="trump" variant="secondary" className="text-xs"><Spade className="h-3 w-3 mr-1" />トランプ</Badge>);
     }
-    if (player.cardplus_rule_experienced) {
+    if (championBadges.includes('➕') || championBadges.includes('+')) {
       badges.push(<Badge key="cardplus" variant="secondary" className="text-xs"><Plus className="h-3 w-3 mr-1" />カード+</Badge>);
     }
+    
     return badges;
   };
 
