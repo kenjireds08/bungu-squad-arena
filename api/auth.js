@@ -52,7 +52,11 @@ module.exports = async function handler(req, res) {
       
     } else if (action === 'send-verification') {
       // メール認証リクエスト処理
-      const { email, nickname } = req.body;
+      const { email, nickname, tournamentId } = req.body;
+      
+      // デバッグ: リクエストボディの内容を確認
+      console.log('🔍 Auth request body:', JSON.stringify(req.body, null, 2));
+      console.log('🔍 tournamentId received:', tournamentId, 'Type:', typeof tournamentId);
       
       if (!email || !nickname) {
         return res.status(400).json({ error: 'Email and nickname are required' });
@@ -77,7 +81,11 @@ module.exports = async function handler(req, res) {
           nickname: nickname,
           email: email,
           current_rating: 1200,
+          tournamentId: tournamentId || null, // QRコードからの場合は大会ID保存
         };
+        
+        // デバッグ: KVに保存するデータを確認
+        console.log('🔍 Saving to KV:', JSON.stringify(playerData, null, 2));
         
         // KVにトークンとプレイヤー情報を保存（1時間有効）
         await kv.set(`verify:${token}`, JSON.stringify(playerData), { ex: 3600 });
