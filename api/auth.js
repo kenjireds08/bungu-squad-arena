@@ -94,6 +94,20 @@ module.exports = async function handler(req, res) {
         // KVにトークンとプレイヤー情報を保存（1時間有効）
         await kv.set(`verify:${token}`, JSON.stringify(playerData), { ex: 3600 });
         
+        // 大会情報を取得（tournamentIdがある場合）
+        let tournamentInfo = null;
+        if (tournamentId) {
+          try {
+            const tournaments = await sheets.getTournaments();
+            tournamentInfo = tournaments.find(t => t.id === tournamentId);
+            if (process.env.NODE_ENV !== 'production') {
+              console.log('🔍 Tournament info found:', tournamentInfo);
+            }
+          } catch (tourError) {
+            console.warn('Failed to fetch tournament info:', tourError);
+          }
+        }
+        
         // Resendでメール送信
         const resend = new Resend(process.env.RESEND_API_KEY);
         const verifyUrl = `https://${req.headers.host}/api/verify-email?token=${token}`;
@@ -107,26 +121,57 @@ module.exports = async function handler(req, res) {
           to: [email],
           subject: '【BUNGU SQUAD】メールアドレス認証のお願い',
           html: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-              <h2 style="color: #333;">BUNGU SQUAD アカウント認証</h2>
-              <p>こんにちは、<strong>${nickname}</strong> さん</p>
-              <p>BUNGU SQUADへのご登録ありがとうございます！</p>
-              <p>アカウントの認証を完了するため、下記のボタンをクリックしてください：</p>
-              <div style="text-align: center; margin: 30px 0;">
-                <a href="${verifyUrl}" 
-                   style="background: #007bff; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">
-                  メールアドレスを認証する
+            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff; color: #333333; padding: 32px 24px;">
+              
+              <h1 style="color: #d4af37; font-size: 24px; font-weight: bold; margin: 0 0 24px 0;">BUNGU SQUAD メール認証</h1>
+              
+              <p style="color: #333333; font-size: 16px; line-height: 1.6; margin: 0 0 16px 0;">${nickname}さん、</p>
+              
+              <p style="color: #333333; font-size: 16px; line-height: 1.6; margin: 0 0 32px 0;">BUNGU SQUADの大会エントリーにお申し込みいただき、ありがとうございます。</p>
+
+              ${tournamentInfo ? `
+              <!-- Tournament Info Box -->
+              <div style="background: #f5f5f5; border-radius: 8px; padding: 24px; margin: 0 0 32px 0;">
+                <h3 style="color: #333333; font-size: 18px; font-weight: bold; margin: 0 0 16px 0;">大会情報</h3>
+                <div style="color: #333333; font-size: 16px; line-height: 1.6;">
+                  <div style="margin-bottom: 8px;"><strong>日時:</strong> ${tournamentInfo.date || new Date().toLocaleDateString('ja-JP')} ${tournamentInfo.start_time || '15:30〜'}</div>
+                  <div style="margin-bottom: ${tournamentInfo.description ? '8px' : '0'};"><strong>場所:</strong> ${tournamentInfo.location || 'オンライン'}</div>
+                  ${tournamentInfo.description ? `<div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #ddd;"><strong>詳細:</strong><br>${tournamentInfo.description}</div>` : ''}
+                </div>
+              </div>
+              ` : `
+              <!-- Default Tournament Info -->
+              <div style="background: #f5f5f5; border-radius: 8px; padding: 24px; margin: 0 0 32px 0;">
+                <h3 style="color: #333333; font-size: 18px; font-weight: bold; margin: 0 0 16px 0;">大会情報</h3>
+                <div style="color: #333333; font-size: 16px; line-height: 1.6;">
+                  <div style="margin-bottom: 8px;"><strong>日時:</strong> ${new Date().toLocaleDateString('ja-JP')} 15:30〜</div>
+                  <div><strong>場所:</strong> オンライン</div>
+                </div>
+              </div>
+              `}
+
+              <p style="color: #333333; font-size: 16px; line-height: 1.6; margin: 0 0 32px 0;">下記のリンクをクリックして、メール認証を完了してください：</p>
+
+              <!-- CTA Button -->
+              <div style="text-align: center; margin: 0 0 32px 0;">
+                <a href="${verifyUrl}" style="display: inline-block; background: #d4af37; color: #ffffff; font-weight: bold; font-size: 16px; padding: 16px 32px; text-decoration: none; border-radius: 8px;">
+                  メール認証を完了する
                 </a>
               </div>
-              <p style="color: #666; font-size: 14px;">
-                ※このリンクは1時間で無効になります。<br>
-                ※もしボタンがクリックできない場合は、以下のURLをコピーしてブラウザに貼り付けてください：<br>
-                <a href="${verifyUrl}">${verifyUrl}</a>
-              </p>
-              <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
-              <p style="color: #999; font-size: 12px;">
-                このメールに心当たりがない場合は、無視してください。
-              </p>
+
+              <!-- Important Notes -->
+              <div style="color: #666666; font-size: 14px; line-height: 1.6; margin: 0 0 32px 0;">
+                <p style="margin: 0 0 8px 0;">※ このリンクは24時間で無効になります</p>
+                <p style="margin: 0;">※ 認証完了後、自動的に大会にエントリーされます</p>
+              </div>
+
+              <hr style="border: none; border-top: 1px solid #ddd; margin: 32px 0;">
+
+              <!-- Footer -->
+              <div style="color: #999999; font-size: 14px; text-align: left;">
+                <p style="margin: 0 0 8px 0; font-weight: bold;">BUNGU SQUAD ランキングシステム</p>
+                <p style="margin: 0;">このメールに心当たりがない場合は、このメールを無視してください。</p>
+              </div>
             </div>
           `
           });
