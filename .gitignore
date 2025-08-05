@@ -35,3 +35,4 @@ docs/027-vercel-environment-variables.md
 # Bun
 bun.lockb
 .vercel
+.env*.local

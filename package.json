@@ -11,7 +11,9 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
-    "vercel-build": "vite build"
+    "vercel-build": "vite build",
+    "read:sheet-structure": "node scripts/read-sheet-structure.js",
+    "validate:sheet-structure": "node scripts/validate-sheet-structure.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",

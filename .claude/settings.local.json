@@ -49,7 +49,11 @@
       "Bash(dig:*)",
       "mcp__serena__read_memory",
       "Bash(npx tsc:*)",
-      "Bash(sed:*)"
+      "Bash(sed:*)",
+      "mcp__serena__think_about_collected_information",
+      "Bash(npm run read:sheet-structure:*)",
+      "Bash(test:*)",
+      "Bash(cat:*)"
     ],
     "deny": []
   }

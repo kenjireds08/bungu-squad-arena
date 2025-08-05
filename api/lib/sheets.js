@@ -939,7 +939,7 @@ class SheetsService {
       // Get all data from TournamentMatches sheet
       const response = await this.sheets.spreadsheets.values.get({
         spreadsheetId: this.spreadsheetId,
-        range: 'TournamentMatches!A:N'
+        range: 'TournamentMatches!A:X'
       });
 
       const rows = response.data.values || [];
@@ -963,7 +963,7 @@ class SheetsService {
       // Clear the entire sheet and rewrite with filtered data
       await this.sheets.spreadsheets.values.clear({
         spreadsheetId: this.spreadsheetId,
-        range: 'TournamentMatches!A:N'
+        range: 'TournamentMatches!A:X'
       });
 
       if (newRows.length > 0) {
@@ -1005,23 +1005,17 @@ class SheetsService {
       const values = matches.map(match => [
         `${tournamentId}_${match.id}`,    // A: match_id (tournament_id + match_id)
         tournamentId,                      // B: tournament_id
-        match.id,                         // C: match_number
-        match.player1.id,                 // D: player1_id
-        match.player1.nickname,           // E: player1_name
-        match.player2.id,                 // F: player2_id
-        match.player2.nickname,           // G: player2_name
-        match.gameType,                   // H: game_type
-        'scheduled',                      // I: status (scheduled, in_progress, completed, approved)
-        '',                              // J: winner_id
-        '',                              // K: result_details
-        timestamp,                       // L: created_at
-        '',                              // M: completed_at
-        ''                               // N: approved_at
+        match.player1.id,                 // C: player1_id
+        match.player2.id,                 // D: player2_id
+        '',                              // E: table_number
+        'scheduled',                      // F: match_status
+        match.gameType,                   // G: game_type ⭐NEW
+        timestamp                        // H: created_at
       ]);
 
       await this.sheets.spreadsheets.values.append({
         spreadsheetId: this.spreadsheetId,
-        range: 'TournamentMatches!A:N',
+        range: 'TournamentMatches!A:X',
         valueInputOption: 'USER_ENTERED',
         requestBody: {
           values
@@ -1046,7 +1040,7 @@ class SheetsService {
       try {
         response = await this.sheets.spreadsheets.values.get({
           spreadsheetId: this.spreadsheetId,
-          range: 'TournamentMatches!A2:N1000'
+          range: 'TournamentMatches!A2:X1000'
         });
 
         const rows = response.data.values || [];
@@ -1077,7 +1071,7 @@ class SheetsService {
         try {
           response = await this.sheets.spreadsheets.values.get({
             spreadsheetId: this.spreadsheetId,
-            range: 'TournamentMatches!A2:N1000'
+            range: 'TournamentMatches!A2:X1000'
           });
 
           const rows = response.data.values || [];
@@ -1476,7 +1470,7 @@ class SheetsService {
                 title: 'TournamentMatches',
                 gridProperties: {
                   rowCount: 1000,
-                  columnCount: 26 // A-Z columns
+                  columnCount: 27 // A-X columns (with game_type)
                 }
               }
             }
@@ -1492,28 +1486,29 @@ class SheetsService {
         'player2_id',         // D
         'table_number',       // E
         'match_status',       // F
-        'created_at',         // G
-        'winner_id',          // H
-        'loser_id',           // I
-        'match_start_time',   // J
-        'match_end_time',     // K
-        'reported_by',        // L
-        'reported_at',        // M
-        'approved_by',        // N
-        'approved_at',        // O
-        'player1_rating_before', // P
-        'player2_rating_before', // Q
-        'player1_rating_after',  // R
-        'player2_rating_after',  // S
-        'player1_rating_change', // T
-        'player2_rating_change', // U
-        'notes',              // V
-        'created_by'          // W
+        'game_type',          // G 👈★ NEW
+        'created_at',         // H
+        'winner_id',          // I
+        'loser_id',           // J
+        'match_start_time',   // K
+        'match_end_time',     // L
+        'reported_by',        // M
+        'reported_at',        // N
+        'approved_by',        // O
+        'approved_at',        // P
+        'player1_rating_before', // Q
+        'player2_rating_before', // R
+        'player1_rating_after',  // S
+        'player2_rating_after',  // T
+        'player1_rating_change', // U
+        'player2_rating_change', // V
+        'notes',              // W
+        'created_by'          // X
       ];
 
       await this.sheets.spreadsheets.values.update({
         spreadsheetId: this.spreadsheetId,
-        range: 'TournamentMatches!A1:W1',
+        range: 'TournamentMatches!A1:X1',
         valueInputOption: 'USER_ENTERED',
         requestBody: {
           values: [headers]
@@ -1542,7 +1537,7 @@ class SheetsService {
     try {
       const response = await this.sheets.spreadsheets.values.get({
         spreadsheetId: this.spreadsheetId,
-        range: 'TournamentMatches!A:W'
+        range: 'TournamentMatches!A:X'
       });
 
       const rows = response.data.values || [];
@@ -1591,7 +1586,7 @@ class SheetsService {
       // Get the match details
       const matchesResponse = await this.sheets.spreadsheets.values.get({
         spreadsheetId: this.spreadsheetId,
-        range: 'TournamentMatches!A:W'
+        range: 'TournamentMatches!A:X'
       });
 
       const matchRows = matchesResponse.data.values || [];
@@ -1652,7 +1647,7 @@ class SheetsService {
         await this.updatePlayerRating(player2_id, eloResult.player2NewRating);
 
         // Update game experience and badges for both players
-        const gameType = matchRow[6] || 'basic'; // game_type is in column G
+        const gameType = matchRow[6] || 'basic'; // game_type = column G // game_type is in column G
         if (gameType && gameType !== 'basic') {
           console.log(`Updating game experience and badges for match approval: Player1 ${player1_id}, Player2 ${player2_id}, GameType: ${gameType}`);
           await this.updatePlayerGameExperience(player1_id, gameType);
@@ -2443,7 +2438,7 @@ class SheetsService {
       try {
         const response = await this.sheets.spreadsheets.values.get({
           spreadsheetId: this.spreadsheetId,
-          range: 'TournamentMatches!A2:N1000'
+          range: 'TournamentMatches!A2:X1000'
         });
         
         const rows = response.data.values || [];
@@ -2587,7 +2582,7 @@ class SheetsService {
         // Fallback to Matches sheet
         response = await this.sheets.spreadsheets.values.get({
           spreadsheetId: this.spreadsheetId,
-          range: 'TournamentMatches!A2:N1000'
+          range: 'TournamentMatches!A2:X1000'
         });
         
         const rows = response.data.values || [];
@@ -3339,23 +3334,17 @@ class SheetsService {
       const values = [[
         matchId,                          // A: match_id
         tournamentId,                     // B: tournament_id
-        nextMatchNumber.toString(),       // C: match_number
-        matchData.player1_id,             // D: player1_id
-        matchData.player1_name,           // E: player1_name
-        matchData.player2_id,             // F: player2_id
-        matchData.player2_name,           // G: player2_name
-        matchData.game_type,              // H: game_type
-        'scheduled',                      // I: status
-        '',                               // J: winner_id
-        '',                               // K: result_details
-        timestamp,                        // L: created_at
-        '',                               // M: completed_at
-        ''                                // N: approved_at
+        matchData.player1_id,             // C: player1_id
+        matchData.player2_id,             // D: player2_id
+        '',                               // E: table_number
+        'scheduled',                      // F: match_status
+        matchData.game_type,              // G: game_type ⭐NEW
+        timestamp                         // H: created_at
       ]];
 
       await this.sheets.spreadsheets.values.append({
         spreadsheetId: this.spreadsheetId,
-        range: 'TournamentMatches!A:N',
+        range: 'TournamentMatches!A:X',
         valueInputOption: 'USER_ENTERED',
         requestBody: {
           values

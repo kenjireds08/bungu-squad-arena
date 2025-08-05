@@ -182,18 +182,28 @@
 |---|---|---|---|
 | A | match_id | 文字列 | 試合ID |
 | B | tournament_id | 文字列 | 大会ID |
-| C | match_number | 数値 | 試合番号 |
-| D | player1_id | 文字列 | プレイヤー1ID |
-| E | player1_name | 文字列 | プレイヤー1名 |
-| F | player2_id | 文字列 | プレイヤー2ID |
-| G | player2_name | 文字列 | プレイヤー2名 |
-| H | game_type | 文字列 | ゲーム種類（trump/cardplus） |
-| I | status | 文字列 | 試合状態（scheduled/in_progress/completed/approved） |
-| J | winner_id | 文字列 | 勝者ID |
-| K | result_details | 文字列 | 試合詳細 |
-| L | created_at | 日時 | 作成日時 |
-| M | completed_at | 日時 | 完了日時 |
-| N | approved_at | 日時 | 承認日時 |
+| C | player1_id | 文字列 | プレイヤー1ID |
+| D | player2_id | 文字列 | プレイヤー2ID |
+| E | table_number | 数値 | テーブル番号 |
+| F | match_status | 文字列 | 試合状態（scheduled/in_progress/completed/invalid） |
+| G | game_type | 文字列 | ゲーム種類（trump/cardplus） ⭐NEW |
+| H | created_at | 日時 | 作成日時 |
+| I | winner_id | 文字列 | 勝者ID |
+| J | loser_id | 文字列 | 敗者ID |
+| K | match_start_time | 日時 | 試合開始時刻 |
+| L | match_end_time | 日時 | 試合終了時刻 |
+| M | reported_by | 文字列 | 報告者ID |
+| N | reported_at | 日時 | 報告日時 |
+| O | approved_by | 文字列 | 承認者ID |
+| P | approved_at | 日時 | 承認日時 |
+| Q | player1_rating_before | 数値 | プレイヤー1開始時レート |
+| R | player2_rating_before | 数値 | プレイヤー2開始時レート |
+| S | player1_rating_after | 数値 | プレイヤー1終了時レート |
+| T | player2_rating_after | 数値 | プレイヤー2終了時レート |
+| U | player1_rating_change | 数値 | プレイヤー1レート変動 |
+| V | player2_rating_change | 数値 | プレイヤー2レート変動 |
+| W | notes | 文字列 | 備考 |
+| X | created_by | 文字列 | 作成者 |
 
 ### 11. TournamentDailyArchive シート
 **目的**: 日別大会参加履歴の保存
