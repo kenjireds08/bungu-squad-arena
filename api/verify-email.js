@@ -81,66 +81,82 @@ module.exports = async function handler(req, res) {
             <style>
               body {
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
                 margin: 0;
-                padding: 0;
+                padding: 20px;
                 min-height: 100vh;
                 display: flex;
+                flex-direction: column;
                 justify-content: center;
                 align-items: center;
               }
               .container {
-                background: white;
-                border-radius: 20px;
-                padding: 40px;
+                background: #ffffff;
+                border-radius: 16px;
+                padding: 32px 24px;
                 text-align: center;
-                box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+                box-shadow: 0 8px 32px rgba(0,0,0,0.1);
                 max-width: 400px;
-                width: 90%;
+                width: 100%;
+                margin-bottom: 20px;
+                border: 1px solid rgba(0,0,0,0.06);
               }
               .checkmark {
-                width: 80px;
-                height: 80px;
+                width: 64px;
+                height: 64px;
                 border-radius: 50%;
-                background: #28a745;
+                background: #34d399;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                margin: 0 auto 20px;
-                animation: pulse 2s infinite;
+                margin: 0 auto 24px;
+                position: relative;
+              }
+              .checkmark::before {
+                content: '';
+                position: absolute;
+                width: 100%;
+                height: 100%;
+                border-radius: 50%;
+                background: #34d399;
+                opacity: 0.2;
+                animation: ripple 2s infinite;
               }
               .checkmark svg {
-                width: 40px;
-                height: 40px;
+                width: 32px;
+                height: 32px;
                 fill: white;
+                z-index: 1;
               }
-              @keyframes pulse {
-                0% { transform: scale(1); }
-                50% { transform: scale(1.05); }
-                100% { transform: scale(1); }
+              @keyframes ripple {
+                0% { transform: scale(1); opacity: 0.2; }
+                70% { transform: scale(1.4); opacity: 0; }
+                100% { transform: scale(1.4); opacity: 0; }
               }
               .title {
-                font-size: 28px;
-                font-weight: bold;
-                color: #333;
-                margin: 20px 0;
+                font-size: 24px;
+                font-weight: 700;
+                color: #1f2937;
+                margin: 0 0 8px 0;
+                line-height: 1.2;
               }
               .subtitle {
-                font-size: 18px;
-                color: #666;
-                margin: 10px 0 20px;
+                font-size: 16px;
+                color: #6b7280;
+                margin: 0 0 32px 0;
+                line-height: 1.4;
               }
               .loading {
                 display: flex;
                 justify-content: center;
                 align-items: center;
-                margin: 30px 0;
+                margin: 0;
               }
               .spinner {
-                width: 40px;
-                height: 40px;
-                border: 4px solid #f3f3f3;
-                border-top: 4px solid #28a745;
+                width: 20px;
+                height: 20px;
+                border: 2px solid #e5e7eb;
+                border-top: 2px solid #34d399;
                 border-radius: 50%;
                 animation: spin 1s linear infinite;
               }
@@ -149,9 +165,10 @@ module.exports = async function handler(req, res) {
                 100% { transform: rotate(360deg); }
               }
               .loading-text {
-                margin-left: 15px;
-                font-size: 16px;
-                color: #666;
+                margin-left: 12px;
+                font-size: 14px;
+                color: #6b7280;
+                font-weight: 500;
               }
             </style>
           </head>
