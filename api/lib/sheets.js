@@ -144,7 +144,8 @@ class SheetsService {
           last_login: row[20] || '',
           profile_image_uploaded: row[21] === 'true',
           preferred_language: row[22] || 'ja',
-          tournament_active: row[23] === 'TRUE'
+          tournament_active: row[23] === 'TRUE',
+          email_verified: row[24] === 'TRUE' // Y column
         }));
       } catch (error) {
         console.error('Error fetching players:', error);
@@ -3351,6 +3352,40 @@ class SheetsService {
     } catch (error) {
       console.error('Error adding single tournament match:', error);
       throw new Error(`Failed to add tournament match: ${error.message}`);
+    }
+  }
+
+  async verifyPlayerEmail(email) {
+    try {
+      await this.authenticate();
+      
+      // Find player by email and set email_verified to TRUE
+      const players = await this.getPlayers();
+      const player = players.find(p => p.email.toLowerCase() === email.toLowerCase());
+      
+      if (!player) {
+        throw new Error('Player not found');
+      }
+      
+      // Get row number (index + 2 because data starts at row 2)
+      const playerIndex = players.findIndex(p => p.email.toLowerCase() === email.toLowerCase());
+      const rowNumber = playerIndex + 2;
+      
+      // Update email_verified column (Y column)
+      await this.sheets.spreadsheets.values.update({
+        spreadsheetId: this.spreadsheetId,
+        range: `Players!Y${rowNumber}`,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+          values: [['TRUE']]
+        }
+      });
+      
+      console.log(`Email verified for player: ${email}`);
+      return true;
+    } catch (error) {
+      console.error('Error verifying player email:', error);
+      throw error;
     }
   }
 }

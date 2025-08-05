@@ -1,5 +1,7 @@
 const SheetsService = require('./lib/sheets');
 const crypto = require('crypto');
+const { kv } = require('@vercel/kv');
+const { Resend } = require('resend');
 
 const sheets = new SheetsService();
 
@@ -56,31 +58,72 @@ module.exports = async function handler(req, res) {
         return res.status(400).json({ error: 'Email and nickname are required' });
       }
       
-      // 簡単な認証トークン生成
-      const token = crypto.randomBytes(32).toString('hex');
-      
-      // 実際のメール送信はスキップ（実装が必要な場合は後で追加）
-      console.log(`Verification email would be sent to ${email} with token: ${token}`);
-      
-      // プレイヤーデータを直接登録
       try {
+        // 既存プレイヤーチェック
+        const players = await sheets.getPlayers();
+        const existingPlayer = players.find(p => p.email.toLowerCase() === email.toLowerCase());
+        
+        if (existingPlayer) {
+          return res.status(409).json({ error: 'このメールアドレスは既に登録されています' });
+        }
+        
+        // 認証トークン生成
+        const token = crypto.randomBytes(32).toString('hex');
+        
+        // まずプレイヤーを仮登録（email_verified=FALSE）
         const playerId = `player_${Date.now()}`;
         const playerData = {
           id: playerId,
           nickname: nickname,
           email: email,
-          current_rating: 1000, // デフォルトレーティング
+          current_rating: 1000,
         };
         await sheets.addPlayer(playerData);
+        
+        // KVにトークンを保存（1時間有効）
+        await kv.set(`verify:${token}`, email, { ex: 3600 });
+        
+        // Resendでメール送信
+        const resend = new Resend(process.env.RESEND_API_KEY);
+        const verifyUrl = `https://${req.headers.host}/api/verify-email?token=${token}`;
+        
+        await resend.emails.send({
+          from: 'BUNGU SQUAD <noreply@bungu-squad.com>',
+          to: [email],
+          subject: '【BUNGU SQUAD】メールアドレス認証のお願い',
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2 style="color: #333;">BUNGU SQUAD アカウント認証</h2>
+              <p>こんにちは、<strong>${nickname}</strong> さん</p>
+              <p>BUNGU SQUADへのご登録ありがとうございます！</p>
+              <p>アカウントの認証を完了するため、下記のボタンをクリックしてください：</p>
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="${verifyUrl}" 
+                   style="background: #007bff; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">
+                  メールアドレスを認証する
+                </a>
+              </div>
+              <p style="color: #666; font-size: 14px;">
+                ※このリンクは1時間で無効になります。<br>
+                ※もしボタンがクリックできない場合は、以下のURLをコピーしてブラウザに貼り付けてください：<br>
+                <a href="${verifyUrl}">${verifyUrl}</a>
+              </p>
+              <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+              <p style="color: #999; font-size: 12px;">
+                このメールに心当たりがない場合は、無視してください。
+              </p>
+            </div>
+          `
+        });
+        
         return res.status(200).json({ 
           success: true, 
-          message: 'Player registered successfully',
-          // 開発用：実際は認証が必要
-          verified: true
+          message: '確認メールを送信しました。メール内のリンクをクリックして認証を完了してください。'
         });
+        
       } catch (error) {
-        console.error('Failed to add player:', error);
-        return res.status(500).json({ error: 'Failed to register player' });
+        console.error('Failed to send verification email:', error);
+        return res.status(500).json({ error: 'メール送信に失敗しました。しばらく時間をおいて再度お試しください。' });
       }
       
     } else if (action === 'verify') {
