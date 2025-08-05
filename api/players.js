@@ -5,6 +5,17 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ message: 'OK' });
   }
 
+  // Debug mode for troubleshooting
+  if (req.query.debug === '1') {
+    return res.status(200).json({ 
+      ok: true, 
+      message: 'Debug mode - skipping actual logic',
+      timestamp: new Date().toISOString(),
+      query: req.query,
+      method: req.method
+    });
+  }
+
   try {
     const sheetsService = new SheetsService();
 
@@ -12,6 +23,8 @@ module.exports = async function handler(req, res) {
       case 'GET':
         // Add caching to reduce API calls
         res.setHeader('Cache-Control', 'public, s-maxage=15, stale-while-revalidate=60');
+        
+        console.log(`Players API: ${req.method} ${JSON.stringify(req.query)}`);
         
         if (req.query.id) {
           const player = await sheetsService.getPlayer(req.query.id);
@@ -21,6 +34,7 @@ module.exports = async function handler(req, res) {
           return res.status(200).json(player);
         } else {
           const players = await sheetsService.getPlayers();
+          console.log(`Players API: Retrieved ${players.length} players`);
           return res.status(200).json(players);
         }
 
@@ -85,7 +99,18 @@ module.exports = async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
   } catch (error) {
-    console.error('API Error:', error);
-    return res.status(500).json({ error: error.message || 'Internal server error' });
+    console.error('Players API Error:', error);
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      response: error.response?.data,
+      status: error.response?.status,
+      query: req.query,
+      method: req.method
+    });
+    return res.status(500).json({ 
+      error: error.message || 'Internal server error',
+      timestamp: new Date().toISOString()
+    });
   }
 }

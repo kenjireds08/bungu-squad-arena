@@ -22,27 +22,38 @@ self.addEventListener('message', event => {
   }
 });
 
-// Install event - cache essential assets
+// Install event - cache essential assets and force update
 self.addEventListener('install', (event) => {
+  console.log(`SW v${SW_VERSION} installing...`);
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => cache.addAll(STATIC_ASSETS))
-      .then(() => self.skipWaiting())
+      .then(() => {
+        console.log(`SW v${SW_VERSION} installed, skipping waiting...`);
+        return self.skipWaiting();
+      })
   );
 });
 
-// Activate event - clean up old caches
+// Activate event - clean up old caches and claim clients
 self.addEventListener('activate', (event) => {
+  console.log(`SW v${SW_VERSION} activating...`);
   event.waitUntil(
     caches.keys()
       .then((cacheNames) => {
         return Promise.all(
           cacheNames
             .filter((cacheName) => cacheName !== CACHE_NAME && cacheName !== STATIC_CACHE)
-            .map((cacheName) => caches.delete(cacheName))
+            .map((cacheName) => {
+              console.log(`Deleting old cache: ${cacheName}`);
+              return caches.delete(cacheName);
+            })
         );
       })
-      .then(() => self.clients.claim())
+      .then(() => {
+        console.log(`SW v${SW_VERSION} claiming clients...`);
+        return self.clients.claim();
+      })
   );
 });
 
@@ -72,6 +83,7 @@ self.addEventListener('fetch', (event) => {
   
   // API endpoints: Never cache, always fetch fresh
   if (url.pathname.startsWith('/api/')) {
+    console.log(`SW v${SW_VERSION}: Bypassing cache for API: ${url.pathname}`);
     event.respondWith(fetch(event.request));
     return;
   }

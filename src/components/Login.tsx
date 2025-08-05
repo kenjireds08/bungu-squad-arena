@@ -295,19 +295,21 @@ export const Login = ({ onLoginSuccess, isNewPlayer = false }: LoginProps) => {
                   {isSignUp ? '既存プレイヤーの方はこちら' : '初めての方はこちら'}
                 </Button>
                 
-                {/* 一時的なキャッシュクリアボタン */}
-                <div className="pt-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleClearCache}
-                    className="text-xs text-muted-foreground hover:text-foreground"
-                  >
-                    <RefreshCw className="h-3 w-3 mr-1" />
-                    ログインできない場合はこちら（キャッシュクリア）
-                  </Button>
-                </div>
+                {/* 一時的なキャッシュクリアボタン（開発環境のみ） */}
+                {process.env.NODE_ENV !== 'production' && (
+                  <div className="pt-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleClearCache}
+                      className="text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      <RefreshCw className="h-3 w-3 mr-1" />
+                      ログインできない場合はこちら（キャッシュクリア）
+                    </Button>
+                  </div>
+                )}
               </div>
             </form>
           </CardContent>
