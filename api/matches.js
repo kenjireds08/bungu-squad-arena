@@ -36,7 +36,7 @@ module.exports = async function handler(req, res) {
         // Add caching to reduce API calls
         res.setHeader('Cache-Control', 'public, s-maxage=10, stale-while-revalidate=30');
         
-        const { playerId, tournamentId } = req.query;
+        const { playerId, tournamentId, action: getAction } = req.query;
         const cacheKey = `matches_${tournamentId || playerId || 'all'}`;
         
         // Check cache first
@@ -47,6 +47,12 @@ module.exports = async function handler(req, res) {
         if (cachedData && (now - cachedData.timestamp) < cache.ttl) {
           console.log('Returning cached matches data for:', cacheKey);
           return res.status(200).json(cachedData.data);
+        }
+        
+        // Handle special GET actions (from matchResults.js)
+        if (getAction === 'pendingResults') {
+          const pendingResults = await sheetsService.getPendingMatchResults();
+          return res.status(200).json(pendingResults);
         }
         
         // Use deduplication for API calls
@@ -132,6 +138,84 @@ module.exports = async function handler(req, res) {
             
             return res.status(201).json(result);
           }
+        } else if (action === 'submitResult') {
+          // プレイヤーが試合結果を報告（matchResults.jsから移植）
+          const { matchId, playerId, result, opponentId } = data;
+
+          if (!matchId || !playerId || !result || !opponentId) {
+            return res.status(400).json({ error: 'Missing required fields' });
+          }
+
+          // 試合結果を記録（承認待ち状態）
+          const resultId = await sheetsService.submitMatchResult({
+            matchId,
+            playerId,
+            result, // 'win' or 'lose'
+            opponentId,
+            timestamp: new Date().toISOString(),
+            status: 'pending_approval'
+          });
+
+          // Update match status to 'completed' since result has been reported
+          const winnerId = result === 'win' ? playerId : opponentId;
+          await sheetsService.updateMatchStatus(matchId, 'completed', winnerId);
+
+          return res.status(200).json({
+            success: true,
+            resultId,
+            message: '試合結果を報告しました。管理者の承認をお待ちください。'
+          });
+        } else if (action === 'start') {
+          // 管理者による試合開始（matchResults.jsから移植）
+          const { matchId } = data;
+
+          if (!matchId) {
+            return res.status(400).json({ error: 'Missing matchId' });
+          }
+
+          // 試合ステータスを 'scheduled' から 'in_progress' に変更
+          await sheetsService.updateMatchStatus(matchId, 'in_progress');
+
+          return res.status(200).json({
+            success: true,
+            message: '試合が開始されました'
+          });
+        } else if (action === 'adminDirectInput') {
+          // 管理者が直接試合結果を入力・承認（matchResults.jsから移植）
+          const { matchId, winnerId, loserId } = data;
+
+          if (!matchId || !winnerId || !loserId) {
+            return res.status(400).json({ error: 'Missing required fields' });
+          }
+
+          const result = await sheetsService.adminDirectMatchResult({
+            matchId,
+            winnerId,
+            loserId,
+            timestamp: new Date().toISOString()
+          });
+
+          return res.status(200).json({
+            success: true,
+            message: '管理者により試合結果が入力・承認されました',
+            ratingUpdate: result.ratingUpdate
+          });
+        } else {
+            // This is bulk tournament creation (original format)
+            const transformedMatches = matches.map((match) => {
+              // Return original format if already in the expected structure
+              if (match.player1 && match.player2) {
+                return match;
+              }
+              // Should not reach here for bulk creation
+              throw new Error('Invalid match format for bulk creation');
+            });
+            
+            const result = await sheetsService.saveTournamentMatches(tournamentId, transformedMatches);
+            console.log(`Tournament matches created for ${tournamentId}, should notify players`);
+            
+            return res.status(201).json(result);
+          }
         } else {
           // Original match result logic
           const { player1Id, player2Id, result } = req.body;
@@ -181,9 +265,21 @@ module.exports = async function handler(req, res) {
         }
 
       case 'PUT':
-        // Update match result or status
-        const { matchId } = req.query;
+        // Update match result or status, or approve match result (from matchResults.js)
+        const { matchId, action: putAction } = req.query;
         const updateData = req.body;
+
+        // Handle approve action (from matchResults.js)
+        if (putAction === 'approve') {
+          const { resultId, approved } = updateData;
+
+          if (!resultId || typeof approved !== 'boolean') {
+            return res.status(400).json({ error: 'Missing required fields: resultId, approved' });
+          }
+
+          const result = await sheetsService.approveMatchResult(resultId, approved);
+          return res.status(200).json(result);
+        }
 
         if (!matchId) {
           return res.status(400).json({ error: 'Match ID is required' });

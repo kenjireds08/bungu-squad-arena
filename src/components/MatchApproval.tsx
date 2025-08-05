@@ -47,7 +47,7 @@ export const MatchApproval = ({ onBack }: MatchApprovalProps) => {
     try {
       setIsLoading(true);
       
-      const response = await fetch('/api/tournament-system?action=pending-results');
+      const response = await fetch('/api/matches?action=pendingResults');
       if (!response.ok) {
         throw new Error('Failed to load pending matches');
       }
@@ -76,8 +76,8 @@ export const MatchApproval = ({ onBack }: MatchApprovalProps) => {
     setApprovingMatchId(matchId);
     
     try {
-      const response = await fetch('/api/tournament-system?action=approve-result', {
-        method: 'POST',
+      const response = await fetch('/api/matches?action=approve', {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },

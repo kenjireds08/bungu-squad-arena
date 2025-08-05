@@ -80,7 +80,7 @@ export const AdminDirectInput = ({
       const winnerId = selectedWinner === player1 ? 'player1_id' : 'player2_id'; // TODO: Get actual player IDs
       const loserId = selectedWinner === player1 ? 'player2_id' : 'player1_id';
       
-      const response = await fetch('/api/matchResults', {
+      const response = await fetch('/api/matches', {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

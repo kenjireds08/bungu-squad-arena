@@ -101,12 +101,13 @@ export const MatchResult = ({ onBack, currentUserId, matchId }: MatchResultProps
         reported_at: new Date().toISOString()
       };
 
-      const response = await fetch('/api/matchResults', {
+      const response = await fetch('/api/matches', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          action: 'submitResult',
           matchId: match.id,
           playerId: currentUserId,
           result: selectedResult, // 'win' or 'loss'

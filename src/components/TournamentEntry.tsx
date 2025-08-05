@@ -270,7 +270,7 @@ export const TournamentEntry = () => {
       console.log('Entering tournament:', tournament.id, 'for user:', userId);
       
       // Call tournament-specific entry API
-      const entryResponse = await fetch('/api/tournament-entry', {
+      const entryResponse = await fetch('/api/admin?action=tournament-entry', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
