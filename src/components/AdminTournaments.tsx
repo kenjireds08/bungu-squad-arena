@@ -15,6 +15,7 @@ import { TournamentMatchmaking } from './TournamentMatchmaking';
 import { TournamentResultsView } from './TournamentResultsView';
 import { useRankings, useTournaments, useCreateTournament, useUpdateTournament, useDeleteTournament } from '@/hooks/useApi';
 import { useToast } from '@/components/ui/use-toast';
+import { useQueryClient } from '@tanstack/react-query';
 import { getCategorizedTournaments, getTournamentStatus } from '@/utils/tournamentData';
 
 interface AdminTournamentsProps {
@@ -35,6 +36,7 @@ export const AdminTournaments = ({ onBack, initialView = 'list', selectedTournam
   const updateTournamentMutation = useUpdateTournament();
   const deleteTournamentMutation = useDeleteTournament();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   
   // Get tournaments from API data
   const tournaments = getCategorizedTournaments(tournamentsData || []);
@@ -249,6 +251,10 @@ export const AdminTournaments = ({ onBack, initialView = 'list', selectedTournam
       }
 
       const result = await response.json();
+      
+      // Immediately invalidate tournaments cache for instant UI update
+      await queryClient.invalidateQueries({ queryKey: ['tournaments'] });
+      await queryClient.invalidateQueries({ queryKey: ['rankings'] });
       
       toast({
         title: "大会終了完了",

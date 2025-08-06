@@ -404,11 +404,17 @@ module.exports = async function handler(req, res) {
                     <div class="loading-text">待機画面に移動しています...</div>
                   </div>
                 </div>
+                <div style="margin-top: 24px;">
+                  <a href="/" style="display: inline-block; background: #d4af37; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold;">
+                    PWAで開く
+                  </a>
+                </div>
                 <script>
-                  // 3秒後に実際の大会ページに自動遷移（302リダイレクト）
-                  setTimeout(() => {
-                    window.location.href = \`/tournament/\${encodeURIComponent('${playerData.tournamentId}')}/\${encodeURIComponent(new Date().toLocaleDateString('sv-SE'))}/06-00?verified=1\`;
-                  }, 3000);
+                  // リダイレクトを一時的に無効化（ルーティング問題を避けるため）
+                  // 将来的にはKVに正しいリダイレクトURLを保存して302リダイレクト
+                  // setTimeout(() => {
+                  //   window.location.href = '/tournament-waiting';
+                  // }, 3000);
                 </script>
               </body>
             </html>

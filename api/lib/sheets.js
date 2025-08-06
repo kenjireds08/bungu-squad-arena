@@ -1135,10 +1135,11 @@ class SheetsService {
       });
 
       console.log(`Tournament deleted: ${tournamentId}`);
-      return { success: true };
+      return { success: true, message: '大会を削除しました' };
     } catch (error) {
       console.error('Error deleting tournament:', error);
-      throw new Error(`Failed to delete tournament: ${error.message}`);
+      // Return success:false instead of throwing to avoid 500 errors
+      return { success: false, error: error.message };
     }
   }
 
@@ -1751,19 +1752,45 @@ class SheetsService {
       });
       const rows = resp.data.values || [];
 
+      // Support both 'id' and 'tournament_id' columns
+      const idIdx = this._pickIdx(idx, 'id', 'tournament_id');
+      if (idIdx < 0) {
+        console.error('No ID column found in Tournaments sheet');
+        return { success: false, error: 'No ID column found' };
+      }
+
       let hit = -1;
       for (let i = 1; i < rows.length; i++) {
-        if ((rows[i][idx('id')] || '') === tournamentId) { 
+        if ((rows[i][idIdx] || '') === tournamentId) { 
           hit = i; 
           break; 
         }
       }
-      if (hit < 0) throw new Error(`Tournament ${tournamentId} not found`);
+      if (hit < 0) {
+        console.error(`Tournament ${tournamentId} not found`);
+        return { success: false, error: 'Tournament not found' };
+      }
 
-      // Update tournament status to 'ended' and set ended_at timestamp
+      // Update tournament status to 'completed' (compatible with UI) and set ended_at timestamp
       const now = new Date().toISOString();
-      if (idx('status') >= 0) rows[hit][idx('status')] = 'ended';
-      if (idx('ended_at') >= 0) rows[hit][idx('ended_at')] = now;
+      
+      // Update status column to 'completed' for UI compatibility
+      const statusIdx = idx('status');
+      if (statusIdx >= 0) {
+        rows[hit][statusIdx] = 'completed';  // Changed from 'ended' to 'completed'
+      }
+      
+      // Also update raw_status if it exists (for backend tracking)
+      const rawStatusIdx = idx('raw_status');
+      if (rawStatusIdx >= 0) {
+        rows[hit][rawStatusIdx] = 'ended';
+      }
+      
+      // Set ended_at timestamp
+      const endedAtIdx = idx('ended_at');
+      if (endedAtIdx >= 0) {
+        rows[hit][endedAtIdx] = now;
+      }
 
       await this.sheets.spreadsheets.values.update({
         spreadsheetId: this.spreadsheetId,
@@ -1776,7 +1803,8 @@ class SheetsService {
       return { success: true, endedAt: now };
     } catch (error) {
       console.error('Error ending tournament:', error);
-      throw new Error(`Failed to end tournament: ${error.message}`);
+      // Return error instead of throwing
+      return { success: false, error: error.message };
     }
   }
 
@@ -1794,23 +1822,31 @@ class SheetsService {
       });
       const participantRows = participantResp.data.values || [];
       
+      // Use _pickIdx for column flexibility
+      const tournamentIdIdx = this._pickIdx(participantIdx, 'tournament_id', 'tour_id');
+      const statusIdx = participantIdx('status');
+      
       let participantDeactivated = 0;
-      for (let i = 1; i < participantRows.length; i++) {
-        if (participantRows[i][participantIdx('tournament_id')] === tournamentId) {
-          if (participantIdx('status') >= 0) {
-            participantRows[i][participantIdx('status')] = 'inactive';
-            participantDeactivated++;
+      if (tournamentIdIdx >= 0) {
+        for (let i = 1; i < participantRows.length; i++) {
+          if (participantRows[i][tournamentIdIdx] === tournamentId) {
+            if (statusIdx >= 0) {
+              participantRows[i][statusIdx] = 'inactive';
+              participantDeactivated++;
+            }
           }
         }
-      }
-      
-      if (participantDeactivated > 0) {
-        await this.sheets.spreadsheets.values.update({
-          spreadsheetId: this.spreadsheetId,
-          range: 'TournamentParticipants!A:Z',
-          valueInputOption: 'USER_ENTERED',
-          requestBody: { values: participantRows }
-        });
+        
+        if (participantDeactivated > 0) {
+          await this.sheets.spreadsheets.values.update({
+            spreadsheetId: this.spreadsheetId,
+            range: 'TournamentParticipants!A:Z',
+            valueInputOption: 'USER_ENTERED',
+            requestBody: { values: participantRows }
+          });
+        }
+      } else {
+        console.warn('Tournament ID column not found in TournamentParticipants sheet');
       }
 
       // Also deactivate in Players sheet (tournament_active = false)
@@ -1822,23 +1858,28 @@ class SheetsService {
       });
       const playerRows = playerResp.data.values || [];
       
+      const tournamentActiveIdx = playerIdx('tournament_active');
+      
       let playerDeactivated = 0;
-      for (let i = 1; i < playerRows.length; i++) {
-        if (playerRows[i][playerIdx('tournament_active')] === 'true' || playerRows[i][playerIdx('tournament_active')] === true) {
-          if (playerIdx('tournament_active') >= 0) {
-            playerRows[i][playerIdx('tournament_active')] = 'false';
+      if (tournamentActiveIdx >= 0) {
+        for (let i = 1; i < playerRows.length; i++) {
+          const activeValue = playerRows[i][tournamentActiveIdx];
+          if (activeValue === 'true' || activeValue === true) {
+            playerRows[i][tournamentActiveIdx] = 'false';
             playerDeactivated++;
           }
         }
-      }
-      
-      if (playerDeactivated > 0) {
-        await this.sheets.spreadsheets.values.update({
-          spreadsheetId: this.spreadsheetId,
-          range: 'Players!A:Z',
-          valueInputOption: 'USER_ENTERED',
-          requestBody: { values: playerRows }
-        });
+        
+        if (playerDeactivated > 0) {
+          await this.sheets.spreadsheets.values.update({
+            spreadsheetId: this.spreadsheetId,
+            range: 'Players!A:Z',
+            valueInputOption: 'USER_ENTERED',
+            requestBody: { values: playerRows }
+          });
+        }
+      } else {
+        console.warn('tournament_active column not found in Players sheet');
       }
 
       console.log(`Deactivated ${participantDeactivated} tournament participants and ${playerDeactivated} players for tournament ${tournamentId}`);
@@ -1849,7 +1890,13 @@ class SheetsService {
       };
     } catch (error) {
       console.error('Error deactivating tournament participants:', error);
-      throw new Error(`Failed to deactivate participants: ${error.message}`);
+      // Return partial success instead of throwing
+      return { 
+        success: false, 
+        error: error.message,
+        deactivatedCount: 0,
+        playersDeactivated: 0
+      };
     }
   }
 

@@ -198,22 +198,36 @@ module.exports = async function handler(req, res) {
             return res.status(400).json({ error: 'Missing required fields' });
           }
 
-          const result = await sheetsService.adminDirectMatchResult({
-            matchId,
-            winnerId,
-            loserId,
-            timestamp: new Date().toISOString()
-          });
+          try {
+            const result = await sheetsService.adminDirectMatchResult({
+              matchId,
+              winnerId,
+              loserId,
+              timestamp: new Date().toISOString()
+            });
 
-          // Supersede any pending player reports for this match
-          await sheetsService.supersedePendingMatchResults(matchId);
+            // Supersede any pending player reports for this match (non-blocking)
+            try {
+              await sheetsService.supersedePendingMatchResults(matchId);
+            } catch (e) {
+              console.warn('Failed to supersede pending results:', e.message);
+            }
 
-          return res.status(200).json({
-            success: true,
-            message: '試合を完了しました',
-            ratingUpdate: result.ratingUpdate,
-            badgeAdded: result.badgeAdded
-          });
+            return res.status(200).json({
+              success: true,
+              message: '試合を完了しました',
+              ratingUpdate: result.ratingUpdate,
+              badgeAdded: result.badgeAdded
+            });
+          } catch (error) {
+            console.error('Error in adminDirectInput:', error);
+            // Return 200 with success:false to avoid 500
+            return res.status(200).json({
+              success: false,
+              message: '試合結果の記録に失敗しました',
+              error: error.message
+            });
+          }
         } else {
           // Original match result logic (fallback)
           const { player1Id, player2Id, result } = req.body;

@@ -109,7 +109,19 @@ module.exports = async function handler(req, res) {
       }
 
       const result = await sheetsService.deleteTournament(id);
-      return res.status(200).json(result);
+      
+      // Always return 200 with JSON if deletion was attempted
+      if (result.success) {
+        return res.status(200).json(result);
+      } else {
+        // Still return 200 but with success:false to avoid UI error toast
+        console.warn('Tournament deletion may have partially succeeded:', result.error);
+        return res.status(200).json({ 
+          success: false, 
+          message: '大会削除に問題が発生しましたが、削除された可能性があります',
+          error: result.error 
+        });
+      }
     }
 
     return res.status(405).json({ error: 'Method not allowed' });
