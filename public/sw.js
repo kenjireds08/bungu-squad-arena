@@ -1,8 +1,8 @@
 // BUNGU SQUAD Service Worker for PWA functionality with camera support
 // Update version to force SW update - Change this whenever you need to force update
-const SW_VERSION = '2.4.1'; // Production: Quiet API bypass logs
-const CACHE_NAME = 'bungu-squad-v2-4-1';
-const STATIC_CACHE = 'bungu-squad-static-v2-4-1';
+const SW_VERSION = '2.5.0'; // Fix: Prevent HTML fallback for scripts
+const CACHE_NAME = 'bungu-squad-v2-5-0';
+const STATIC_CACHE = 'bungu-squad-static-v2-5-0';
 
 // Debug flag - only show logs in development (localhost)
 const DEBUG = self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1';
@@ -91,23 +91,74 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Static resources: Cache with error response prevention
-  event.respondWith(
-    caches.open(STATIC_CACHE).then(async (cache) => {
-      const cached = await cache.match(event.request);
-      
-      const fresh = fetch(event.request).then((response) => {
-        // Only cache successful responses (200-299)
-        if (response.ok && response.type === 'basic') {
-          cache.put(event.request, response.clone());
-        }
-        return response;
-      }).catch(() => cached); // Fallback to cache on network error
+  // CRITICAL FIX: Never return HTML fallback for JS/CSS/assets
+  // This prevents the "MIME type text/html" error
+  const isNavigationRequest = event.request.mode === 'navigate';
+  const isAssetRequest = 
+    event.request.destination === 'script' ||
+    event.request.destination === 'style' ||
+    event.request.destination === 'image' ||
+    event.request.destination === 'font' ||
+    url.pathname.includes('/assets/') ||
+    url.pathname.endsWith('.js') ||
+    url.pathname.endsWith('.css') ||
+    url.pathname.endsWith('.png') ||
+    url.pathname.endsWith('.jpg') ||
+    url.pathname.endsWith('.svg') ||
+    url.pathname.endsWith('.woff') ||
+    url.pathname.endsWith('.woff2');
 
-      // Return cached version immediately if available, otherwise wait for network
-      return cached || fresh;
-    })
-  );
+  if (isAssetRequest) {
+    // For assets: Try network first, fallback to cache, never HTML
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          // Cache successful responses
+          if (response.ok) {
+            caches.open(STATIC_CACHE).then(cache => {
+              cache.put(event.request, response.clone());
+            });
+          }
+          return response;
+        })
+        .catch(() => {
+          // Try cache for assets
+          return caches.match(event.request).then(cached => {
+            if (cached) return cached;
+            // For missing assets, return 404 instead of HTML
+            return new Response('Not Found', { status: 404 });
+          });
+        })
+    );
+    return;
+  }
+
+  // Navigation requests (HTML pages): Cache with HTML fallback
+  if (isNavigationRequest) {
+    event.respondWith(
+      caches.open(STATIC_CACHE).then(async (cache) => {
+        const cached = await cache.match(event.request);
+        
+        const fresh = fetch(event.request).then((response) => {
+          // Only cache successful responses (200-299)
+          if (response.ok && response.type === 'basic') {
+            cache.put(event.request, response.clone());
+          }
+          return response;
+        }).catch(() => {
+          // For navigation, fallback to cached or root HTML
+          return cached || cache.match('/');
+        });
+
+        // Return cached version immediately if available, otherwise wait for network
+        return cached || fresh;
+      })
+    );
+    return;
+  }
+
+  // Other requests: Network only
+  event.respondWith(fetch(event.request));
 });
 
 // Push notification handling

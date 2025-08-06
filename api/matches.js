@@ -9,6 +9,33 @@ globalThis.matchesCache = globalThis.matchesCache || {
 // Deduplication for concurrent requests
 const pendingRequests = new Map();
 
+// Normalize game_type to prevent errors
+function normalizeGameType(gameType) {
+  if (!gameType) return 'trump';
+  
+  const normalized = gameType.toString().toLowerCase().trim();
+  
+  // Map various inputs to standard values
+  if (normalized.includes('card') || normalized.includes('カード')) {
+    return 'cardplus';
+  }
+  if (normalized.includes('trump') || normalized.includes('トランプ')) {
+    return 'trump';
+  }
+  
+  // Direct mapping
+  switch (normalized) {
+    case 'cardplus':
+    case 'card+':
+    case 'card＋':
+      return 'cardplus';
+    case 'trump':
+    case 'normal':
+    default:
+      return 'trump';
+  }
+}
+
 async function dedupedGetMatches(key, fetcher) {
   if (pendingRequests.has(key)) {
     return await pendingRequests.get(key);
@@ -125,28 +152,52 @@ module.exports = async function handler(req, res) {
               player1_name: player1.nickname,
               player2_id: match.player2_id,
               player2_name: player2.nickname,
-              game_type: match.game_type
+              game_type: normalizeGameType(match.game_type)
             };
             
-            const result = await sheetsService.addSingleTournamentMatch(tournamentId, matchData);
-            console.log(`Single match added for tournament ${tournamentId}`);
-            
-            return res.status(201).json(result);
+            try {
+              const result = await sheetsService.addSingleTournamentMatch(tournamentId, matchData);
+              console.log(`Single match added for tournament ${tournamentId}`);
+              
+              return res.status(201).json(result);
+            } catch (error) {
+              console.error('Error adding single match:', error);
+              // Return 200 with success:false to avoid 500
+              return res.status(200).json({
+                success: false,
+                message: '試合の追加に失敗しました',
+                error: error.message
+              });
+            }
           } else {
             // This is bulk tournament creation (original format)
-            const transformedMatches = matches.map((match) => {
-              // Return original format if already in the expected structure
-              if (match.player1 && match.player2) {
-                return match;
-              }
-              // Should not reach here for bulk creation
-              throw new Error('Invalid match format for bulk creation');
-            });
-            
-            const result = await sheetsService.saveTournamentMatches(tournamentId, transformedMatches);
-            console.log(`Tournament matches created for ${tournamentId}, should notify players`);
-            
-            return res.status(201).json(result);
+            try {
+              const transformedMatches = matches.map((match) => {
+                // Return original format if already in the expected structure
+                if (match.player1 && match.player2) {
+                  // Normalize game_type for bulk matches too
+                  return {
+                    ...match,
+                    game_type: normalizeGameType(match.game_type)
+                  };
+                }
+                // Should not reach here for bulk creation
+                throw new Error('Invalid match format for bulk creation');
+              });
+              
+              const result = await sheetsService.saveTournamentMatches(tournamentId, transformedMatches);
+              console.log(`Tournament matches created for ${tournamentId}, should notify players`);
+              
+              return res.status(201).json(result);
+            } catch (error) {
+              console.error('Error saving tournament matches:', error);
+              // Return 200 with success:false to avoid 500
+              return res.status(200).json({
+                success: false,
+                message: '試合の保存に失敗しました',
+                error: error.message
+              });
+            }
           }
         } else if (action === 'submitResult') {
           // プレイヤーが試合結果を報告（matchResults.jsから移植）

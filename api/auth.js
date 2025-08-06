@@ -441,13 +441,21 @@ module.exports = async function handler(req, res) {
           stack: error.stack,
           token: req.query.token ? req.query.token.substring(0, 10) + '...' : 'missing'
         });
-        return res.status(500).send(`
+        
+        // NEVER return 500 - always return 200 with HTML fallback
+        return res.status(200).send(`
           <html>
-            <head><title>エラー</title></head>
-            <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
-              <h1 style="color: #dc3545;">エラーが発生しました</h1>
-              <p>認証処理中にエラーが発生しました。しばらく時間をおいて再度お試しください。</p>
-              <a href="/" style="color: #007bff;">トップページに戻る</a>
+            <head>
+              <title>認証エラー</title>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            </head>
+            <body style="font-family: -apple-system, sans-serif; text-align: center; padding: 50px; background: #f5f7fa;">
+              <div style="background: white; padding: 40px; border-radius: 12px; max-width: 400px; margin: 0 auto; box-shadow: 0 4px 16px rgba(0,0,0,0.1);">
+                <h1 style="color: #dc3545; margin-bottom: 20px;">⚠️ 認証エラー</h1>
+                <p style="color: #6b7280; margin-bottom: 30px;">認証処理中にエラーが発生しました。<br>しばらく時間をおいて再度お試しください。</p>
+                <a href="/" style="display: inline-block; background: #d4af37; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 10px;">PWAで開く</a>
+              </div>
             </body>
           </html>
         `);
@@ -467,6 +475,29 @@ module.exports = async function handler(req, res) {
       message: error.message,
       stack: error.stack
     });
-    return res.status(500).json({ error: 'Internal server error' });
+    
+    // NEVER return 500 - return appropriate response based on action
+    if (req.query.action === 'verify-email') {
+      // For email verification, always return HTML
+      return res.status(200).send(`
+        <html>
+          <head>
+            <title>認証エラー</title>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          </head>
+          <body style="font-family: -apple-system, sans-serif; text-align: center; padding: 50px; background: #f5f7fa;">
+            <div style="background: white; padding: 40px; border-radius: 12px; max-width: 400px; margin: 0 auto; box-shadow: 0 4px 16px rgba(0,0,0,0.1);">
+              <h1 style="color: #dc3545; margin-bottom: 20px;">⚠️ システムエラー</h1>
+              <p style="color: #6b7280; margin-bottom: 30px;">システムエラーが発生しました。<br>しばらく時間をおいて再度お試しください。</p>
+              <a href="/" style="display: inline-block; background: #d4af37; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 10px;">PWAで開く</a>
+            </div>
+          </body>
+        </html>
+      `);
+    } else {
+      // For other actions, return JSON with success:false
+      return res.status(200).json({ success: false, error: error.message });
+    }
   }
 }

@@ -271,9 +271,37 @@ export const useStartMatch = () => {
   
   return useMutation({
     mutationFn: (matchId: string) => api.startMatch(matchId),
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
+      // Immediately invalidate all match-related caches
       queryClient.invalidateQueries({ queryKey: ['matches'] });
       queryClient.invalidateQueries({ queryKey: ['tournaments'] });
+      
+      // Force refetch matches for better UX
+      queryClient.refetchQueries({ queryKey: ['matches'] });
+    },
+    onMutate: async (matchId) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['matches'] });
+      
+      // Optimistically update the match status
+      const previousMatches = queryClient.getQueryData(['matches']);
+      
+      queryClient.setQueryData(['matches'], (old: any) => {
+        if (!old) return old;
+        return old.map((match: any) => 
+          match.match_id === matchId 
+            ? { ...match, status: 'in_progress' }
+            : match
+        );
+      });
+      
+      return { previousMatches };
+    },
+    onError: (err, matchId, context) => {
+      // If mutation fails, revert the optimistic update
+      if (context?.previousMatches) {
+        queryClient.setQueryData(['matches'], context.previousMatches);
+      }
     },
   });
 };

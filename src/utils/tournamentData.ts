@@ -15,7 +15,12 @@ export interface Tournament {
 }
 
 // Helper function to determine tournament status based on date and time
-export const getTournamentStatus = (date: string, time?: string) => {
+export const getTournamentStatus = (date: string, time?: string, rawStatus?: string) => {
+  // Priority: raw status from backend
+  if (rawStatus === 'completed' || rawStatus === 'ended') {
+    return '完了';
+  }
+  
   const now = new Date();
   const today = now.toLocaleDateString('sv-SE'); // Use local date YYYY-MM-DD
   const tournamentDate = new Date(date).toISOString().split('T')[0];
@@ -62,7 +67,7 @@ const transformTournamentData = (apiTournament: ApiTournament): Tournament => {
     time: apiTournament.start_time,
     location: apiTournament.location,
     participants: apiTournament.current_participants,
-    status: getTournamentStatus(apiTournament.date),
+    status: getTournamentStatus(apiTournament.date, apiTournament.start_time, apiTournament.status),
     rawStatus: apiTournament.status, // Add raw status from API
     normalizedStatus, // Add normalized status for proper categorization
     description: apiTournament.description || ''
