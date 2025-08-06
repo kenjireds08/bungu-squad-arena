@@ -35,34 +35,25 @@ export const getTournamentStatus = (date: string, time?: string, rawStatus?: str
 };
 
 // Convert API tournament data to internal format
-// Normalize status based on date, time and rawStatus for proper categorization
-const normalizeStatus = (rawStatus: string | undefined, date: string, startTime?: string): string => {
-  const now = new Date();
-  const today = now.toLocaleDateString('sv-SE'); // Get today in YYYY-MM-DD format
+// Normalize status based on rawStatus from admin actions, with date fallback
+const normalizeStatus = (rawStatus: string | undefined, date: string): string => {
+  const today = new Date().toLocaleDateString('sv-SE'); // Get today in YYYY-MM-DD format
   const tournamentDate = new Date(date).toISOString().split('T')[0];
   
-  // Ended tournaments are always completed
+  // Priority 1: Admin-controlled status (管理者の操作を最優先)
   if (rawStatus === 'ended' || rawStatus === 'completed') {
-    return 'completed';
+    return 'completed'; // 管理者が大会終了ボタンを押した
   }
   
-  // Date-based logic with time consideration
+  if (rawStatus === 'active' && tournamentDate === today) {
+    return 'active'; // 管理者が開催中にしている今日の大会
+  }
+  
+  // Priority 2: Date-based fallback (日付ベースのフォールバック)
   if (tournamentDate < today) {
     return 'completed'; // Past tournaments
   } else if (tournamentDate === today) {
-    // Today's tournaments - check time if available
-    if (startTime) {
-      const [hours, minutes] = startTime.split(':').map(Number);
-      const tournamentStart = new Date();
-      tournamentStart.setHours(hours, minutes, 0, 0);
-      
-      // If tournament hasn't started yet, it's still upcoming/open for entry
-      if (now < tournamentStart) {
-        return 'upcoming'; // Not started yet, can still enter
-      }
-    }
-    
-    // If no time specified or tournament has started, consider active
+    // Today's tournaments - default to active unless admin ended it
     return 'active';
   } else {
     // Future tournaments
@@ -70,7 +61,7 @@ const normalizeStatus = (rawStatus: string | undefined, date: string, startTime?
   }
 };
 const transformTournamentData = (apiTournament: ApiTournament): Tournament => {
-  const normalizedStatus = normalizeStatus(apiTournament.status, apiTournament.date, apiTournament.start_time);
+  const normalizedStatus = normalizeStatus(apiTournament.status, apiTournament.date);
   
   return {
     id: apiTournament.id,
@@ -81,7 +72,7 @@ const transformTournamentData = (apiTournament: ApiTournament): Tournament => {
     participants: apiTournament.current_participants,
     status: getTournamentStatus(apiTournament.date, apiTournament.start_time, apiTournament.status),
     rawStatus: apiTournament.status, // Add raw status from API
-    normalizedStatus, // Add normalized status for proper categorization
+    normalizedStatus, // Add normalized status for proper categorization (admin-controlled)
     description: apiTournament.description || ''
   };
 };
