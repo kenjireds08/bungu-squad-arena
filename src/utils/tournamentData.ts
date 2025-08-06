@@ -35,30 +35,42 @@ export const getTournamentStatus = (date: string, time?: string, rawStatus?: str
 };
 
 // Convert API tournament data to internal format
-// Normalize status based on date and rawStatus for proper categorization
-const normalizeStatus = (rawStatus: string | undefined, date: string): string => {
-  const today = new Date().toLocaleDateString('sv-SE'); // Get today in YYYY-MM-DD format
+// Normalize status based on date, time and rawStatus for proper categorization
+const normalizeStatus = (rawStatus: string | undefined, date: string, startTime?: string): string => {
+  const now = new Date();
+  const today = now.toLocaleDateString('sv-SE'); // Get today in YYYY-MM-DD format
   const tournamentDate = new Date(date).toISOString().split('T')[0];
   
   // Ended tournaments are always completed
-  if (rawStatus === 'ended') {
+  if (rawStatus === 'ended' || rawStatus === 'completed') {
     return 'completed';
   }
   
-  // Date-based logic
+  // Date-based logic with time consideration
   if (tournamentDate < today) {
     return 'completed'; // Past tournaments
   } else if (tournamentDate === today) {
-    // Today's tournaments - respect rawStatus unless ended
-    if (rawStatus === 'completed') return 'completed';
-    return 'active'; // Default to active for today
+    // Today's tournaments - check time if available
+    if (startTime) {
+      const [hours, minutes] = startTime.split(':').map(Number);
+      const tournamentStart = new Date();
+      tournamentStart.setHours(hours, minutes, 0, 0);
+      
+      // If tournament hasn't started yet, it's still upcoming/open for entry
+      if (now < tournamentStart) {
+        return 'upcoming'; // Not started yet, can still enter
+      }
+    }
+    
+    // If no time specified or tournament has started, consider active
+    return 'active';
   } else {
     // Future tournaments
     return 'upcoming';
   }
 };
 const transformTournamentData = (apiTournament: ApiTournament): Tournament => {
-  const normalizedStatus = normalizeStatus(apiTournament.status, apiTournament.date);
+  const normalizedStatus = normalizeStatus(apiTournament.status, apiTournament.date, apiTournament.start_time);
   
   return {
     id: apiTournament.id,

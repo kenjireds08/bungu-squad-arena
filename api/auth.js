@@ -258,39 +258,92 @@ module.exports = async function handler(req, res) {
         // プレイヤー情報をパース（型を確認してから）
         const playerData = (typeof raw === 'string') ? JSON.parse(raw) : raw;
         
-        // Debug logs (development only)
-        if (process.env.NODE_ENV !== 'production') {
-          console.log('🔍 Retrieved player data from KV:', JSON.stringify(playerData, null, 2));
-          console.log('🔍 tournamentId check:', playerData.tournamentId, 'Type:', typeof playerData.tournamentId);
+        console.log('[verify] Stage 1: Token found, data parsed', {
+          email: playerData.email,
+          nickname: playerData.nickname, 
+          tournamentId: playerData.tournamentId,
+          token: token.substring(0, 10) + '...'
+        });
+        
+        // STEP 1: Ensure player exists in Players sheet
+        let playerId = playerData.id;
+        try {
+          console.log('[verify] Stage 2: Ensuring player exists...');
+          
+          // Check if player already exists
+          const existingPlayer = await sheets.getPlayerByEmail(playerData.email);
+          
+          if (existingPlayer) {
+            console.log('[verify] Stage 2a: Player exists, updating...', { playerId: existingPlayer.id });
+            // Update existing player to set email_verified = true
+            playerId = existingPlayer.id;
+            await sheets.updatePlayer(playerId, { email_verified: true });
+          } else {
+            console.log('[verify] Stage 2b: Creating new player...');
+            // Create new player
+            const newPlayerData = {
+              ...playerData,
+              email_verified: true,
+              tournament_active: false // Will be set to true in next step
+            };
+            playerId = await sheets.addPlayer(newPlayerData);
+            console.log('[verify] Stage 2c: New player created', { playerId });
+          }
+        } catch (error) {
+          console.error('[verify] Stage 2 FAILED: Player creation/update error', error);
+          return res.status(200).json({
+            success: false,
+            stage: 'player-creation',
+            error: error.message
+          });
         }
         
-        // Sheetsにプレイヤーを正式登録（email_verified=TRUE）
-        await sheets.addPlayer(playerData);
-        
-        // QRコードからの登録の場合は大会エントリーも自動実行
+        // STEP 2: Add to TournamentParticipants if from QR code
         if (playerData.tournamentId) {
           try {
-            if (process.env.NODE_ENV !== 'production') {
-              console.log(`Attempting auto-enrollment for player ${playerData.email} with ID ${playerData.id} in tournament ${playerData.tournamentId}`);
-            }
+            console.log('[verify] Stage 3: Adding to tournament...', {
+              tournamentId: playerData.tournamentId,
+              playerId
+            });
             
-            // プレイヤーIDを使って大会エントリーを更新
-            await sheets.updateTournamentActive(playerData.id, true);
-            console.log(`✅ Auto-enrolled player ${playerData.email} (ID: ${playerData.id}) in tournament ${playerData.tournamentId}`);
+            // Add to TournamentParticipants sheet
+            const participantData = {
+              tournament_id: playerData.tournamentId,
+              player_id: playerId,
+              status: 'active',
+              joined_at: new Date().toISOString()
+            };
+            await sheets.addTournamentParticipant(participantData);
+            console.log('[verify] Stage 3a: Added to TournamentParticipants');
+            
+            // Update Players sheet tournament_active flag
+            await sheets.updateTournamentActive(playerId, true);
+            console.log('[verify] Stage 3b: Set tournament_active = true');
+            
           } catch (entryError) {
-            console.error('❌ Failed to auto-enroll in tournament:', entryError);
-            // 大会エントリー失敗してもユーザー登録は成功とする
+            console.error('[verify] Stage 3 WARNING: Tournament entry failed', entryError);
+            // Continue anyway - player is created, just not enrolled
           }
         }
         
         // トークンを削除（使い回し防止）
         await kv.del(`verify:${token}`);
+        console.log('[verify] Stage 4: Token deleted');
         
         const isFromTournament = !!playerData.tournamentId;
         
-        // QRコードからの場合は専用の成功画面を表示
+        // QRコードからの場合は302リダイレクトで待機画面へ
         if (isFromTournament) {
-          return res.status(200).send(`
+          console.log('[verify] Stage 5: Success! Redirecting to tournament waiting...');
+          const today = new Date().toLocaleDateString('sv-SE');
+          const redirectUrl = `/tournament/${playerData.tournamentId}/${today}/18-00?verified=1&player=${encodeURIComponent(playerData.nickname)}`;
+          
+          // 302 Redirect for successful enrollment
+          return res.redirect(302, redirectUrl);
+        }
+        
+        // 通常の認証（QRコード以外）の場合はHTML表示
+        return res.status(200).send(`
             <html>
               <head>
                 <title>QRコード読み取り完了</title>

@@ -1,8 +1,8 @@
 // BUNGU SQUAD Service Worker for PWA functionality with camera support
 // Update version to force SW update - Change this whenever you need to force update
-const SW_VERSION = '2.5.0'; // Fix: Prevent HTML fallback for scripts
-const CACHE_NAME = 'bungu-squad-v2-5-0';
-const STATIC_CACHE = 'bungu-squad-static-v2-5-0';
+const SW_VERSION = '2.5.1'; // Fix: Resolve response.clone() errors
+const CACHE_NAME = 'bungu-squad-v2-5-1';
+const STATIC_CACHE = 'bungu-squad-static-v2-5-1';
 
 // Debug flag - only show logs in development (localhost)
 const DEBUG = self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1';
@@ -113,11 +113,18 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(event.request)
         .then((response) => {
-          // Cache successful responses
+          // Cache successful responses - clone BEFORE any async operations
           if (response.ok) {
-            caches.open(STATIC_CACHE).then(cache => {
-              cache.put(event.request, response.clone());
-            });
+            const responseClone = response.clone();
+            // Use async/await to ensure proper handling
+            (async () => {
+              try {
+                const cache = await caches.open(STATIC_CACHE);
+                await cache.put(event.request, responseClone);
+              } catch (cacheError) {
+                if (DEBUG) console.warn('Failed to cache asset:', cacheError);
+              }
+            })();
           }
           return response;
         })
@@ -140,9 +147,17 @@ self.addEventListener('fetch', (event) => {
         const cached = await cache.match(event.request);
         
         const fresh = fetch(event.request).then((response) => {
-          // Only cache successful responses (200-299)
+          // Only cache successful responses (200-299) - clone FIRST
           if (response.ok && response.type === 'basic') {
-            cache.put(event.request, response.clone());
+            const responseClone = response.clone();
+            // Async cache update without blocking response
+            (async () => {
+              try {
+                await cache.put(event.request, responseClone);
+              } catch (cacheError) {
+                if (DEBUG) console.warn('Failed to cache navigation response:', cacheError);
+              }
+            })();
           }
           return response;
         }).catch(() => {

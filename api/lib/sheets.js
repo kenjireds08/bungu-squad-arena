@@ -413,6 +413,71 @@ class SheetsService {
     }
   }
 
+  async getPlayerByEmail(email) {
+    try {
+      const players = await this.getPlayers();
+      return players.find(player => player.email === email);
+    } catch (error) {
+      console.error('Error getting player by email:', error);
+      return null; // Return null if not found instead of throwing
+    }
+  }
+
+  async updatePlayer(playerId, updates) {
+    await this.authenticate();
+    
+    try {
+      const { headers, idx } = await this._getHeaders('Players!1:1');
+      
+      // Get all player data
+      const response = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'Players!A:Z'
+      });
+      
+      const rows = response.data.values || [];
+      let playerRowIndex = -1;
+      
+      // Find player row - support both 'id' and 'player_id'
+      const idColumnIndex = this._pickIdx(idx, 'id', 'player_id');
+      if (idColumnIndex === -1) {
+        throw new Error('Neither id nor player_id column found in Players sheet');
+      }
+      
+      for (let i = 1; i < rows.length; i++) {
+        if (rows[i][idColumnIndex] === playerId) {
+          playerRowIndex = i;
+          break;
+        }
+      }
+      
+      if (playerRowIndex === -1) {
+        throw new Error('Player not found');
+      }
+      
+      // Apply updates
+      Object.keys(updates).forEach(key => {
+        const colIdx = idx(key);
+        if (colIdx >= 0 && rows[playerRowIndex]) {
+          rows[playerRowIndex][colIdx] = updates[key];
+        }
+      });
+      
+      // Write back the entire sheet
+      await this.sheets.spreadsheets.values.update({
+        spreadsheetId: this.spreadsheetId,
+        range: 'Players!A:Z',
+        valueInputOption: 'USER_ENTERED',
+        requestBody: { values: rows }
+      });
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Error updating player:', error);
+      throw new Error(`Failed to update player: ${error.message}`);
+    }
+  }
+
   async updatePlayerRating(playerId, newRating) {
     await this.authenticate();
     
@@ -1826,13 +1891,21 @@ class SheetsService {
       const tournamentIdIdx = this._pickIdx(participantIdx, 'tournament_id', 'tour_id');
       const statusIdx = participantIdx('status');
       
+      console.log(`[deactivateTournamentParticipants] Processing ${participantRows.length - 1} participants for tournament ${tournamentId}`);
+      console.log(`[deactivateTournamentParticipants] Column indices: tournamentId=${tournamentIdIdx}, status=${statusIdx}`);
+      
       let participantDeactivated = 0;
       if (tournamentIdIdx >= 0) {
         for (let i = 1; i < participantRows.length; i++) {
-          if (participantRows[i][tournamentIdIdx] === tournamentId) {
+          const rowTournamentId = participantRows[i][tournamentIdIdx];
+          console.log(`[deactivateTournamentParticipants] Row ${i}: tournamentId=${rowTournamentId}, target=${tournamentId}, match=${rowTournamentId === tournamentId}`);
+          
+          if (rowTournamentId === tournamentId) {
             if (statusIdx >= 0) {
+              const oldStatus = participantRows[i][statusIdx];
               participantRows[i][statusIdx] = 'inactive';
               participantDeactivated++;
+              console.log(`[deactivateTournamentParticipants] Deactivated participant row ${i}: ${oldStatus} → inactive`);
             }
           }
         }
@@ -1860,6 +1933,8 @@ class SheetsService {
       
       const tournamentActiveIdx = playerIdx('tournament_active');
       
+      console.log(`[deactivateTournamentParticipants] Processing ${playerRows.length - 1} players, tournament_active column index: ${tournamentActiveIdx}`);
+      
       let playerDeactivated = 0;
       if (tournamentActiveIdx >= 0) {
         for (let i = 1; i < playerRows.length; i++) {
@@ -1867,6 +1942,7 @@ class SheetsService {
           if (activeValue === 'true' || activeValue === true) {
             playerRows[i][tournamentActiveIdx] = 'false';
             playerDeactivated++;
+            console.log(`[deactivateTournamentParticipants] Deactivated player row ${i}: tournament_active ${activeValue} → false`);
           }
         }
         
