@@ -95,24 +95,6 @@ module.exports = async function handler(req, res) {
         // 認証トークン生成
         const token = crypto.randomBytes(32).toString('hex');
         
-        // プレイヤー情報をKVに一時保存（認証後に本登録）
-        const playerId = `player_${Date.now()}`;
-        const playerData = {
-          id: playerId,
-          nickname: nickname,
-          email: email,
-          current_rating: 1200,
-          tournamentId: tournamentId || null, // QRコードからの場合は大会ID保存
-        };
-        
-        // Debug logs (development only)
-        if (process.env.NODE_ENV !== 'production') {
-          console.log('🔍 Saving to KV:', JSON.stringify(playerData, null, 2));
-        }
-        
-        // KVにトークンとプレイヤー情報を保存（1時間有効）
-        await kv.set(`verify:${token}`, JSON.stringify(playerData), { ex: 3600 });
-        
         // 大会情報を取得（tournamentIdがある場合）
         let tournamentInfo = null;
         if (tournamentId) {
@@ -126,6 +108,27 @@ module.exports = async function handler(req, res) {
             console.warn('Failed to fetch tournament info:', tourError);
           }
         }
+        
+        // プレイヤー情報をKVに一時保存（認証後に本登録）
+        const playerId = `player_${Date.now()}`;
+        const playerData = {
+          id: playerId,
+          nickname: nickname,
+          email: email,
+          current_rating: 1200,
+          tournamentId: tournamentId || null, // QRコードからの場合は大会ID保存
+          // 大会情報も保存（リダイレクト用）
+          tournamentDate: tournamentInfo?.date,
+          tournamentTime: tournamentInfo?.start_time
+        };
+        
+        // Debug logs (development only)
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('🔍 Saving to KV:', JSON.stringify(playerData, null, 2));
+        }
+        
+        // KVにトークンとプレイヤー情報を保存（6時間有効）
+        await kv.set(`verify:${token}`, JSON.stringify(playerData), { ex: 21600 });
         
         // Resendでメール送信
         const resend = new Resend(process.env.RESEND_API_KEY);
@@ -335,8 +338,13 @@ module.exports = async function handler(req, res) {
         // QRコードからの場合は302リダイレクトで待機画面へ
         if (isFromTournament) {
           console.log('[verify] Stage 5: Success! Redirecting to tournament waiting...');
-          const today = new Date().toLocaleDateString('sv-SE');
-          const redirectUrl = `/tournament/${playerData.tournamentId}/${today}/18-00?verified=1&player=${encodeURIComponent(playerData.nickname)}`;
+          
+          // KVから取得した大会情報を使用（固定値を避ける）
+          const date = playerData.tournamentDate || new Date().toLocaleDateString('sv-SE');
+          const time = playerData.tournamentTime || '18-00';
+          const redirectUrl = `/tournament/${playerData.tournamentId}/${date}/${time}?verified=1&player=${encodeURIComponent(playerData.nickname)}`;
+          
+          console.log(`[verify] Redirecting to: ${redirectUrl}`);
           
           // 302 Redirect for successful enrollment
           return res.redirect(302, redirectUrl);

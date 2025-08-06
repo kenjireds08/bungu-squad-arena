@@ -33,6 +33,7 @@ self.addEventListener('install', (event) => {
       .then((cache) => cache.addAll(STATIC_ASSETS))
       .then(() => {
         if (DEBUG) console.log(`SW v${SW_VERSION} installed, skipping waiting...`);
+        // Force immediate activation for critical updates
         return self.skipWaiting();
       })
   );
@@ -55,7 +56,20 @@ self.addEventListener('activate', (event) => {
       })
       .then(() => {
         if (DEBUG) console.log(`SW v${SW_VERSION} claiming clients...`);
+        // Immediately take control of all clients
         return self.clients.claim();
+      })
+      .then(() => {
+        // Notify all clients about the update
+        return self.clients.matchAll().then(clients => {
+          clients.forEach(client => {
+            client.postMessage({
+              type: 'SW_UPDATED',
+              version: SW_VERSION,
+              timestamp: Date.now()
+            });
+          });
+        });
       })
   );
 });

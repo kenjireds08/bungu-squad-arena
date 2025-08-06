@@ -1627,39 +1627,86 @@ class SheetsService {
   }
 
   /**
-   * 大会参加者を追加
+   * 大会参加者を追加または更新（upsert）- 二重登録を防ぐ
    */
   async addTournamentParticipant(participant) {
     await this.authenticate();
     try {
       // まずヘッダーを取得して列構造を確認
-      const response = await this.sheets.spreadsheets.values.get({
-        spreadsheetId: this.spreadsheetId,
-        range: 'TournamentParticipants!1:1'
-      });
-
-      const headers = response.data.values?.[0] || [];
+      const { headers, idx } = await this._getHeaders('TournamentParticipants!1:1');
+      
       if (headers.length === 0) {
         throw new Error('TournamentParticipants sheet headers not found');
       }
 
-      // participantオブジェクトをヘッダー順の配列に変換
-      const row = headers.map(header => participant[header] || '');
-
-      // 新しい行を追加
-      await this.sheets.spreadsheets.values.append({
+      // 既存データを全て取得
+      const response = await this.sheets.spreadsheets.values.get({
         spreadsheetId: this.spreadsheetId,
-        range: 'TournamentParticipants!A:Z',
-        valueInputOption: 'USER_ENTERED',
-        requestBody: {
-          values: [row]
-        }
+        range: 'TournamentParticipants!A:Z'
       });
+      
+      const rows = response.data.values || [];
+      
+      // 既存の参加者を検索（tournament_id + player_id で重複チェック）
+      const tournamentIdIdx = this._pickIdx(idx, 'tournament_id', 'tour_id');
+      const playerIdIdx = this._pickIdx(idx, 'player_id', 'participant_id');
+      const statusIdx = idx('status');
+      
+      let existingRowIndex = -1;
+      for (let i = 1; i < rows.length; i++) {
+        if (rows[i][tournamentIdIdx] === participant.tournament_id && 
+            rows[i][playerIdIdx] === participant.player_id) {
+          existingRowIndex = i;
+          break;
+        }
+      }
+      
+      if (existingRowIndex >= 0) {
+        // 既存の参加者が見つかった場合：statusを'active'に更新
+        console.log(`[addTournamentParticipant] Updating existing participant at row ${existingRowIndex}`);
+        
+        if (statusIdx >= 0) {
+          rows[existingRowIndex][statusIdx] = 'active';
+        }
+        
+        // 更新日時も設定
+        const joinedAtIdx = idx('joined_at');
+        if (joinedAtIdx >= 0) {
+          rows[existingRowIndex][joinedAtIdx] = new Date().toISOString();
+        }
+        
+        // 全シートを更新
+        await this.sheets.spreadsheets.values.update({
+          spreadsheetId: this.spreadsheetId,
+          range: 'TournamentParticipants!A:Z',
+          valueInputOption: 'USER_ENTERED',
+          requestBody: { values: rows }
+        });
+        
+        console.log('Tournament participant updated to active:', participant.player_id);
+        return { ok: true, updated: true };
+      } else {
+        // 新規参加者を追加
+        console.log(`[addTournamentParticipant] Adding new participant`);
+        
+        // participantオブジェクトをヘッダー順の配列に変換
+        const row = headers.map(header => participant[header] || '');
 
-      console.log('Tournament participant added successfully:', participant.player_id);
-      return { ok: true };
+        // 新しい行を追加
+        await this.sheets.spreadsheets.values.append({
+          spreadsheetId: this.spreadsheetId,
+          range: 'TournamentParticipants!A:Z',
+          valueInputOption: 'USER_ENTERED',
+          requestBody: {
+            values: [row]
+          }
+        });
+
+        console.log('Tournament participant added successfully:', participant.player_id);
+        return { ok: true, updated: false };
+      }
     } catch (error) {
-      console.error('Error adding tournament participant:', error);
+      console.error('Error adding/updating tournament participant:', error);
       throw error;
     }
   }
