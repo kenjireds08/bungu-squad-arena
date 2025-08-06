@@ -211,7 +211,8 @@ module.exports = async function handler(req, res) {
           return res.status(200).json({
             success: true,
             message: '試合を完了しました',
-            ratingUpdate: result.ratingUpdate
+            ratingUpdate: result.ratingUpdate,
+            badgeAdded: result.badgeAdded
           });
         } else {
           // Original match result logic (fallback)

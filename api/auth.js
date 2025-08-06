@@ -8,6 +8,25 @@ const sheets = new SheetsService();
 module.exports = async function handler(req, res) {
   const { action } = req.query;
   
+  // Detailed logging for debugging iPhone email verification issues
+  console.log('🔍 Auth API Request:', {
+    method: req.method,
+    action: action,
+    path: req.url,
+    query: req.query,
+    userAgent: req.headers['user-agent'],
+    referer: req.headers.referer,
+    host: req.headers.host,
+    hasToken: !!req.query.token,
+    timestamp: new Date().toISOString()
+  });
+  
+  // CORS headers for iPhone Safari compatibility
+  res.setHeader('Access-Control-Allow-Origin', 'https://ranking.bungu-squad.jp');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  
   // Handle OPTIONS request
   if (req.method === 'OPTIONS') {
     return res.status(200).json({ message: 'OK' });
@@ -197,7 +216,13 @@ module.exports = async function handler(req, res) {
       // メール認証確認処理（verify-email.jsから移植）
       const { token } = req.query;
       
+      console.log('🔍 Email verification attempt:', { 
+        token: token ? token.substring(0, 10) + '...' : 'missing',
+        hasToken: !!token 
+      });
+      
       if (!token) {
+        console.warn('❌ Verification failed: No token provided');
         return res.status(400).send(`
           <html>
             <head><title>認証エラー</title></head>
@@ -213,8 +238,10 @@ module.exports = async function handler(req, res) {
       try {
         // KVからプレイヤー情報を取得
         const raw = await kv.get(`verify:${token}`);
+        console.log('🔍 KV lookup result:', { found: !!raw, type: typeof raw });
         
         if (!raw) {
+          console.warn('❌ Verification failed: Token not found or expired');
           return res.status(400).send(`
             <html>
               <head><title>認証エラー</title></head>
@@ -378,9 +405,9 @@ module.exports = async function handler(req, res) {
                   </div>
                 </div>
                 <script>
-                  // 3秒後に大会待機画面に自動遷移  
+                  // 3秒後に実際の大会ページに自動遷移（302リダイレクト）
                   setTimeout(() => {
-                    window.location.href = '/tournament-waiting';
+                    window.location.href = \`/tournament/\${encodeURIComponent('${playerData.tournamentId}')}/\${encodeURIComponent(new Date().toLocaleDateString('sv-SE'))}/06-00?verified=1\`;
                   }, 3000);
                 </script>
               </body>
@@ -402,7 +429,12 @@ module.exports = async function handler(req, res) {
         }
         
       } catch (error) {
-        console.error('Email verification error:', error);
+        console.error('❌ Email verification error:', error);
+        console.error('❌ Error details:', {
+          message: error.message,
+          stack: error.stack,
+          token: req.query.token ? req.query.token.substring(0, 10) + '...' : 'missing'
+        });
         return res.status(500).send(`
           <html>
             <head><title>エラー</title></head>
@@ -420,7 +452,15 @@ module.exports = async function handler(req, res) {
     }
     
   } catch (error) {
-    console.error('Auth API error:', error);
+    console.error('❌ Auth API error:', error);
+    console.error('❌ Request details:', {
+      method: req.method,
+      action: req.query.action,
+      path: req.url,
+      userAgent: req.headers['user-agent'],
+      message: error.message,
+      stack: error.stack
+    });
     return res.status(500).json({ error: 'Internal server error' });
   }
 }

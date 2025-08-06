@@ -30,6 +30,15 @@ class SheetsService {
     return { headers, idx };
   }
 
+  // Helper function to find column index with multiple candidate names
+  _pickIdx(idx, ...candidates) {
+    for (const candidate of candidates) {
+      const i = idx(candidate);
+      if (i >= 0) return i;
+    }
+    return -1;
+  }
+
   async authenticate() {
     if (this.auth) return this.auth;
 
@@ -408,14 +417,41 @@ class SheetsService {
     await this.authenticate();
     
     try {
-      const players = await this.getPlayers();
-      const playerIndex = players.findIndex(p => p.id === playerId);
+      const { headers, idx } = await this._getHeaders('Players!1:1');
       
-      if (playerIndex === -1) {
+      // Get player data
+      const response = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'Players!A:Z'
+      });
+      
+      const rows = response.data.values || [];
+      let playerRow = -1;
+      
+      // Find player row - support both 'id' and 'player_id'
+      const idColumnIndex = this._pickIdx(idx, 'id', 'player_id');
+      if (idColumnIndex === -1) {
+        throw new Error('Neither id nor player_id column found in Players sheet');
+      }
+      
+      for (let i = 1; i < rows.length; i++) {
+        if (rows[i][idColumnIndex] === playerId) {
+          playerRow = i;
+          break;
+        }
+      }
+      
+      if (playerRow === -1) {
         throw new Error('Player not found');
       }
 
-      const range = `Players!D${playerIndex + 2}`;
+      // Find current_rating column
+      const ratingColumnIndex = idx('current_rating');
+      if (ratingColumnIndex === -1) {
+        throw new Error('current_rating column not found in Players sheet');
+      }
+
+      const range = `Players!${String.fromCharCode(65 + ratingColumnIndex)}${playerRow + 1}`;
       await this.sheets.spreadsheets.values.update({
         spreadsheetId: this.spreadsheetId,
         range,
@@ -1346,8 +1382,13 @@ class SheetsService {
           const playerRows = playersResponse.data.values || [];
           let playerRowIndex = -1;
           
+          const idColumnIndex = this._pickIdx(playerIdx, 'id', 'player_id');
+          if (idColumnIndex === -1) {
+            throw new Error('Neither id nor player_id column found in Players sheet');
+          }
+          
           for (let j = 1; j < playerRows.length; j++) {
-            if (playerRows[j][playerIdx('id')] === playerId) {
+            if (playerRows[j][idColumnIndex] === playerId) {
               playerRowIndex = j;
               break;
             }
@@ -1399,8 +1440,13 @@ class SheetsService {
       const playerRows = playersResponse.data.values || [];
       let playerRowIndex = -1;
       
+      const idColumnIndex = this._pickIdx(playerIdx, 'id', 'player_id');
+      if (idColumnIndex === -1) {
+        throw new Error('Neither id nor player_id column found in Players sheet');
+      }
+      
       for (let i = 1; i < playerRows.length; i++) {
-        if (playerRows[i][playerIdx('id')] === playerId) {
+        if (playerRows[i][idColumnIndex] === playerId) {
           playerRowIndex = i;
           break;
         }
@@ -1872,9 +1918,16 @@ class SheetsService {
       await this.updatePlayerRating(winnerId, winnerNewRating);
       await this.updatePlayerRating(loserId, loserNewRating);
 
-      // カードプラスバッジ付与
+      // カードプラスバッジ付与（非ブロッキング）
+      let badgeAdded = false;
       if (match.game_type === 'cardplus' || match.game_type === 'カード+') {
-        await this.addBadgeToPlayer(winnerId, '➕');
+        try {
+          const badgeResult = await this.addBadgeToPlayer(winnerId, '➕');
+          badgeAdded = badgeResult?.success === true;
+        } catch (error) {
+          console.warn('Badge add failed but continuing match result process:', error);
+          badgeAdded = false;
+        }
       }
 
       console.log(`Admin direct result recorded: ${resultId}`);
@@ -1886,7 +1939,8 @@ class SheetsService {
           loserDelta,
           winnerAfter: winnerNewRating,
           loserAfter: loserNewRating
-        }
+        },
+        badgeAdded
       };
     } catch (error) {
       console.error('Error recording admin direct match result:', error);
@@ -2037,7 +2091,7 @@ class SheetsService {
   }
 
   /**
-   * Add badge to player (avoiding duplicates)
+   * Add badge to player (avoiding duplicates) - Non-blocking version
    */
   async addBadgeToPlayer(playerId, badge) {
     await this.authenticate();
@@ -2053,23 +2107,30 @@ class SheetsService {
       const rows = response.data.values || [];
       let playerRow = -1;
       
-      // Find player row
+      // Find player row - support both 'id' and 'player_id'
+      const idColumnIndex = this._pickIdx(idx, 'id', 'player_id');
+      if (idColumnIndex === -1) {
+        console.warn('Neither id nor player_id column found in Players sheet');
+        return { success: false, reason: 'no_id_column' };
+      }
+      
       for (let i = 1; i < rows.length; i++) {
-        if (rows[i][idx('id')] === playerId) {
+        if (rows[i][idColumnIndex] === playerId) {
           playerRow = i;
           break;
         }
       }
       
       if (playerRow === -1) {
-        throw new Error(`Player ${playerId} not found`);
+        console.warn(`Player ${playerId} not found in Players sheet`);
+        return { success: false, reason: 'player_not_found' };
       }
       
-      // Get current badges (I列 = champion_badges)
+      // Get current badges (champion_badges column)
       const badgeColumnIndex = idx('champion_badges');
       if (badgeColumnIndex === -1) {
-        console.warn('champion_badges column not found');
-        return;
+        console.warn('champion_badges column not found in Players sheet');
+        return { success: false, reason: 'no_badge_column' };
       }
       
       const currentBadges = rows[playerRow][badgeColumnIndex] || '';
@@ -2089,12 +2150,14 @@ class SheetsService {
         });
         
         console.log(`Badge ${badge} added to player ${playerId}`);
+        return { success: true, added: true };
       } else {
         console.log(`Player ${playerId} already has badge ${badge}`);
+        return { success: true, added: false };
       }
     } catch (error) {
       console.error('Error adding badge to player:', error);
-      throw new Error(`Failed to add badge: ${error.message}`);
+      return { success: false, reason: error.message };
     }
   }
 

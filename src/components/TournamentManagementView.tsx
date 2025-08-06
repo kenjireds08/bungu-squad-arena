@@ -159,16 +159,37 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
         )
       );
       
-      await adminDirectInputMutation.mutateAsync({
+      const result = await adminDirectInputMutation.mutateAsync({
         matchId: match.match_id,
         winnerId,
         loserId
       });
 
-      toast({
-        title: "試合結果を確定しました",
-        description: "レーティングが更新され、次の試合に進行できます。",
-      });
+      // バッジ付与結果に応じて異なるメッセージ表示
+      if (result?.badgeAdded === true) {
+        toast({
+          title: "試合結果を確定しました",
+          description: "レーティングが更新され、カード+バッジを付与しました。次の試合に進行できます。",
+        });
+      } else if (result?.badgeAdded === false) {
+        toast({
+          title: "試合結果を確定しました", 
+          description: "レーティングが更新されました。バッジは付与済みのため追加されませんでした。",
+        });
+      } else if (result?.ratingUpdate && typeof result.badgeAdded === 'undefined') {
+        // バッジ対象外のゲーム（カード+以外）
+        toast({
+          title: "試合結果を確定しました",
+          description: "レーティングが更新され、次の試合に進行できます。",
+        });
+      } else {
+        // バッジ付与失敗の場合
+        toast({
+          title: "試合結果を確定しました",
+          description: "レーティング更新完了。バッジ付与は保留されました（後で再試行してください）。",
+          variant: "default" // 警告色ではなくデフォルト
+        });
+      }
 
       // 確実にサーバーから最新データを取得
       await fetchMatches();
