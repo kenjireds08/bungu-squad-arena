@@ -394,13 +394,18 @@ export const TournamentEntry = () => {
       });
       
       console.log('Tournament entry API response status:', entryResponse.status);
+      console.log('Tournament entry API response headers:', [...entryResponse.headers.entries()]);
       
       if (!entryResponse.ok) {
         let errorData;
+        let responseText;
         try {
-          errorData = await entryResponse.json();
+          responseText = await entryResponse.text();
+          console.error('Raw error response:', responseText);
+          errorData = JSON.parse(responseText);
         } catch (jsonError) {
           console.error('Failed to parse error response:', jsonError);
+          console.error('Response text was:', responseText);
           errorData = { error: `HTTP ${entryResponse.status}: ${entryResponse.statusText}` };
         }
         console.error('Tournament entry API error:', entryResponse.status, errorData);
