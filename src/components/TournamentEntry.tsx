@@ -144,8 +144,12 @@ export const TournamentEntry = () => {
                   const urlTime = formattedTime.trim();
                   console.log(`Comparing tournament time: '${tournamentTime}' with URL time: '${urlTime}' (from "${actualTime}" -> "${formattedTime}")`);
                   
-                  // Exact match first
-                  if (tournamentTime === urlTime) {
+                  // Normalize both times by removing leading zeros for comparison
+                  const normalizedTournamentTime = tournamentTime.replace(/^0/, '');
+                  const normalizedUrlTime = urlTime.replace(/^0/, '');
+                  
+                  // Exact match with normalization
+                  if (tournamentTime === urlTime || normalizedTournamentTime === normalizedUrlTime) {
                     console.log('✓ Exact time match found!');
                     return true;
                   }
@@ -159,7 +163,7 @@ export const TournamentEntry = () => {
                     const uMinutes = uHour * 60 + uMin;
                     const timeDiff = Math.abs(tMinutes - uMinutes);
                     
-                    console.log(`Time difference: ${timeDiff} minutes`);
+                    console.log(`Time difference: ${timeDiff} minutes (${tHour}:${tMin} vs ${uHour}:${uMin})`);
                     if (timeDiff <= 30) {
                       console.log('✓ Flexible time match found (within 30 minutes)!');
                       return true;
