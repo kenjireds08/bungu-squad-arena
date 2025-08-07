@@ -185,6 +185,13 @@ export const TournamentEntry = () => {
                 );
                 console.log('Fallback tournament found:', activeTournament);
               }
+              
+              // Second fallback: try to find any tournament on the same date regardless of time
+              if (!activeTournament && formattedTime) {
+                console.log('No exact match found, trying any tournament on same date');
+                activeTournament = tournaments.find((t: any) => t.date === targetDate);
+                console.log('Date-only fallback tournament found:', activeTournament);
+              }
             } else if (decodedTournamentName) {
               // Find tournament by date and name (legacy support)
               activeTournament = tournaments.find((t: any) => 
@@ -244,12 +251,24 @@ export const TournamentEntry = () => {
           };
         } else {
           console.error('No tournament found for date:', date, 'time:', time);
+          console.error('Search parameters:', {
+            targetDate,
+            formattedTime,
+            decodedTournamentName,
+            availableTournaments: tournaments.length > 0 ? tournaments.map(t => ({
+              id: t.id,
+              date: t.date,
+              start_time: t.start_time,
+              tournament_name: t.tournament_name,
+              status: t.status
+            })) : 'No tournaments available'
+          });
           // Show error state instead of fallback data
           setIsLoading(false);
           toast({
             variant: "destructive",
             title: "大会が見つかりません",
-            description: `指定された日付・時間の大会が見つかりませんでした。${date} ${time || ''}`
+            description: `指定された日付・時間の大会が見つかりませんでした。日付: ${targetDate}, 時間: ${formattedTime || 'なし'}`
           });
           return;
         }
@@ -346,8 +365,15 @@ export const TournamentEntry = () => {
       });
       
       if (!entryResponse.ok) {
-        const errorData = await entryResponse.json();
-        throw new Error(errorData.error || 'Tournament entry failed');
+        let errorData;
+        try {
+          errorData = await entryResponse.json();
+        } catch (jsonError) {
+          console.error('Failed to parse error response:', jsonError);
+          errorData = { error: `HTTP ${entryResponse.status}: ${entryResponse.statusText}` };
+        }
+        console.error('Tournament entry API error:', entryResponse.status, errorData);
+        throw new Error(errorData.error || `Tournament entry failed (${entryResponse.status})`);
       }
       
       // Update tournament active status via API with real-time updates
@@ -371,6 +397,14 @@ export const TournamentEntry = () => {
       
     } catch (error) {
       console.error('Failed to enter tournament:', error);
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        tournament: tournament,
+        userId: userId,
+        nickname: nickname,
+        email: email
+      });
       toast({
         title: "エラー",
         description: `エントリーに失敗しました: ${error.message}`,
