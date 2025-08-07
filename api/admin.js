@@ -152,9 +152,27 @@ async function handleTournamentEntry(req, res) {
       return res.status(400).json({ error: 'Tournament is not available for entry' });
     }
 
-    // 2. プレイヤーが存在するかチェック
+    // 2. プレイヤーが存在するかチェック（一時ユーザーは自動作成）
     const players = await sheetsService.getPlayers();
-    const player = players.find(p => p.id === userId);
+    let player = players.find(p => p.id === userId);
+    
+    // TEMPORARY FIX: Auto-create temporary users
+    if (!player && userId.startsWith('temp_user_')) {
+      console.log('TEMP: Auto-creating temporary user:', userId);
+      const tempNickname = `参加者${Date.now().toString().slice(-4)}`;
+      const tempPlayerData = {
+        id: userId,
+        nickname: tempNickname,
+        email: `${userId}@temp.local`,
+        current_rating: 1500,
+        email_verified: true,
+        tournament_active: false
+      };
+      
+      await sheetsService.addPlayer(tempPlayerData);
+      player = tempPlayerData;
+      console.log('TEMP: Created temporary user successfully');
+    }
     
     if (!player) {
       return res.status(404).json({ error: 'Player not found' });

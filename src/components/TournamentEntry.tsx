@@ -292,12 +292,16 @@ export const TournamentEntry = () => {
     try {
       setIsEntering(true);
       
+      // TEMPORARY FIX: Skip email verification for tomorrow's tournament
       // Check if user is logged in
       const userId = localStorage.getItem('userId');
       if (!userId) {
-        // New user - show email verification form
-        setShowEmailForm(true);
-        return;
+        // TEMPORARY: Create anonymous user ID to bypass email verification
+        const tempUserId = `temp_user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        localStorage.setItem('userId', tempUserId);
+        localStorage.setItem('userNickname', `参加者${Date.now().toString().slice(-4)}`);
+        console.log('TEMP: Created temporary user ID:', tempUserId);
+        // Continue with tournament entry without email verification
       }
 
       // Specific tournament entry API call with tournament ID
