@@ -129,7 +129,7 @@ async function handleTournamentEntry(req, res) {
   }
 
   try {
-    const { userId, tournamentId } = req.body;
+    const { userId, tournamentId, tempNickname, tempEmail } = req.body;
 
     if (!userId || !tournamentId) {
       return res.status(400).json({ error: 'userId and tournamentId are required' });
@@ -159,11 +159,12 @@ async function handleTournamentEntry(req, res) {
     // TEMPORARY FIX: Auto-create temporary users
     if (!player && userId.startsWith('temp_user_')) {
       console.log('TEMP: Auto-creating temporary user:', userId);
-      const tempNickname = `参加者${Date.now().toString().slice(-4)}`;
+      const finalNickname = tempNickname || `参加者${Date.now().toString().slice(-4)}`;
+      const finalEmail = tempEmail || `${userId}@temp.local`;
       const tempPlayerData = {
         id: userId,
-        nickname: tempNickname,
-        email: `${userId}@temp.local`,
+        nickname: finalNickname,
+        email: finalEmail,
         current_rating: 1500,
         email_verified: true,
         tournament_active: false
@@ -171,7 +172,7 @@ async function handleTournamentEntry(req, res) {
       
       await sheetsService.addPlayer(tempPlayerData);
       player = tempPlayerData;
-      console.log('TEMP: Created temporary user successfully');
+      console.log('TEMP: Created temporary user successfully with nickname:', finalNickname, 'email:', finalEmail);
     }
     
     if (!player) {

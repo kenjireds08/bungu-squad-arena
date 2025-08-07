@@ -2,7 +2,7 @@ const SheetsService = require('./lib/sheets');
 
 // In-memory cache and deduplication for tournaments
 if (!globalThis.tournamentsCache) {
-  globalThis.tournamentsCache = { data: null, timestamp: 0, ttl: 30000 };
+  globalThis.tournamentsCache = { data: null, timestamp: 0, ttl: 3000 };
 }
 
 // In-flight request deduplication

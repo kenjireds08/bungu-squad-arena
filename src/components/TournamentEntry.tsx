@@ -288,20 +288,45 @@ export const TournamentEntry = () => {
       });
       return;
     }
+
+    // Validate required fields for QR entries
+    if (isFromQR && (!nickname || !email)) {
+      toast({
+        title: "入力エラー",
+        description: "ニックネームとメールアドレスを入力してください",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Simple email validation for QR entries
+    if (isFromQR && email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        toast({
+          title: "メールアドレスエラー",
+          description: "正しいメールアドレスを入力してください",
+          variant: "destructive"
+        });
+        return;
+      }
+    }
     
     try {
       setIsEntering(true);
       
-      // TEMPORARY FIX: Skip email verification for tomorrow's tournament
+      // TEMPORARY FIX: Skip email verification for tournament
       // Check if user is logged in
-      const userId = localStorage.getItem('userId');
+      let userId = localStorage.getItem('userId');
       if (!userId) {
         // TEMPORARY: Create anonymous user ID to bypass email verification
         const tempUserId = `temp_user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         localStorage.setItem('userId', tempUserId);
-        localStorage.setItem('userNickname', `参加者${Date.now().toString().slice(-4)}`);
-        console.log('TEMP: Created temporary user ID:', tempUserId);
-        // Continue with tournament entry without email verification
+        // Use user-provided nickname and email for QR entries
+        localStorage.setItem('userNickname', nickname || `参加者${Date.now().toString().slice(-4)}`);
+        localStorage.setItem('userEmail', email || `${tempUserId}@temp.local`);
+        console.log('TEMP: Created temporary user ID:', tempUserId, 'with nickname:', nickname);
+        userId = tempUserId;
       }
 
       // Specific tournament entry API call with tournament ID
@@ -313,7 +338,10 @@ export const TournamentEntry = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           userId: userId,
-          tournamentId: tournament.id 
+          tournamentId: tournament.id,
+          // Include nickname and email for temp user creation
+          tempNickname: nickname,
+          tempEmail: email
         })
       });
       
@@ -670,8 +698,64 @@ export const TournamentEntry = () => {
                 </div>
               )}
 
-              {/* Login/Signup buttons */}
-              {!showEmailForm && !emailSent && (
+              {/* QR Code Direct Entry - Skip email verification */}
+              {isFromQR && !showEmailForm && !emailSent && (
+                <div className="space-y-4">
+                  <div className="text-center">
+                    <p className="text-sm text-muted-foreground mb-3">
+                      QRコードからのエントリーです。<br />
+                      ニックネームとメールアドレスで登録して大会にエントリーします。
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div>
+                      <Label htmlFor="nickname">ニックネーム *</Label>
+                      <Input
+                        id="nickname"
+                        type="text"
+                        placeholder="表示名を入力"
+                        value={nickname}
+                        onChange={(e) => setNickname(e.target.value)}
+                        required
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="email">メールアドレス *</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="your-email@example.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                      />
+                    </div>
+                  </div>
+                  
+                  <Button 
+                    onClick={handleEntry}
+                    disabled={isEntering || !nickname || !email}
+                    className="w-full"
+                  >
+                    {isEntering ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        エントリー中...
+                      </>
+                    ) : (
+                      <>
+                        <Trophy className="h-4 w-4 mr-2" />
+                        登録して大会にエントリー
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
+
+              {/* Login/Signup buttons for non-QR entries */}
+              {!isFromQR && !showEmailForm && !emailSent && (
                 <div className="space-y-2">
                   <div className="text-center">
                     <p className="text-xs text-muted-foreground mb-3">
