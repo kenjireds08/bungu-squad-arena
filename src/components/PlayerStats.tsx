@@ -49,8 +49,19 @@ export const PlayerStats = ({ onClose, currentUserId = "player_001" }: PlayerSta
           try {
             const matchResponse = await fetch(`/api/matches?playerId=${currentUserId}`);
             if (matchResponse.ok) {
-              const matches = await matchResponse.json();
-              matchHistory = matches.filter(m => m.match_status === 'approved');
+              const matchData = await matchResponse.json();
+              
+              // Check if API returned success:false
+              if (matchData.success === false) {
+                console.warn('Match data unavailable:', matchData.message);
+                matchHistory = [];
+              } else if (Array.isArray(matchData)) {
+                matchHistory = matchData.filter(m => m.match_status === 'approved');
+              } else if (matchData.data && Array.isArray(matchData.data)) {
+                matchHistory = matchData.data.filter(m => m.match_status === 'approved');
+              } else {
+                matchHistory = [];
+              }
               
               // Calculate average opponent rating
               if (matchHistory.length > 0) {
@@ -126,6 +137,8 @@ export const PlayerStats = ({ onClose, currentUserId = "player_001" }: PlayerSta
             }
           } catch (error) {
             console.error('Failed to load match history:', error);
+            // Don't retry on error, just use empty data
+            matchHistory = [];
           }
           
           // Calculate stats from available data

@@ -400,10 +400,9 @@ module.exports = async function handler(req, res) {
           
           // 302 Redirect for successful enrollment
           return res.redirect(302, redirectUrl);
-        }
-        
-        // 通常の認証（QRコード以外）の場合はHTML表示
-        return res.status(200).send(`
+        } else {
+          // 通常の認証（QRコード以外）の場合はHTML表示
+          return res.status(200).send(`
             <html>
               <head>
                 <title>QRコード読み取り完了</title>
@@ -529,19 +528,6 @@ module.exports = async function handler(req, res) {
                   //   window.location.href = '/tournament-waiting';
                   // }, 3000);
                 </script>
-              </body>
-            </html>
-          `);
-        } else {
-          // 通常の認証完了画面（QRコード以外からの登録）
-          return res.status(200).send(`
-            <html>
-              <head><title>認証完了</title></head>
-              <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
-                <h1 style="color: #28a745;">🎉 認証完了！</h1>
-                <p>メールアドレスの認証が完了しました。</p>
-                <p>ログインして大会に参加できます。</p>
-                <a href="/" style="display: inline-block; background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin: 10px;">ログインページへ</a>
               </body>
             </html>
           `);
