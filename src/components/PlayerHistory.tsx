@@ -58,84 +58,42 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
 
   const loadTournamentHistory = async (userMatches: any[]) => {
     try {
-      // First try to get daily archive
-      let archiveData = [];
-      try {
-        const archiveResponse = await fetch('/api/tournaments?action=get-daily-archive');
-        if (archiveResponse.ok) {
-          archiveData = await archiveResponse.json();
-        }
-      } catch (error) {
-        console.warn('Failed to load tournament archive:', error);
-      }
-
-      // Also get regular tournaments
+      console.log('Loading tournament history with matches:', userMatches.length);
+      
+      // Get tournaments
       const tournamentsResponse = await fetch('/api/tournaments');
       if (tournamentsResponse.ok) {
         const tournamentsData = await tournamentsResponse.json();
+        console.log('Fetched tournaments:', tournamentsData.length);
         
-        // Create tournament participation based on matches
+        // Find tournaments this user participated in based on matches
+        const tournamentIds = [...new Set(userMatches.map((match: any) => match.tournament_id).filter(Boolean))];
+        console.log('Tournament IDs from matches:', tournamentIds);
+        
         const participatedTournaments = tournamentsData.filter((tournament: any) => {
-          return userMatches.some((match: any) => match.tournament_id === tournament.id);
+          return tournamentIds.includes(tournament.id);
         });
         
-        // If no direct match found, try matching by date
-        if (participatedTournaments.length === 0 && userMatches.length > 0) {
-          // Get unique dates from matches
-          const matchDates = [...new Set(userMatches.map((m: any) => {
-            if (m.match_start_time) {
-              // Extract date from "8月1日 21:11" format
-              const dateMatch = m.match_start_time.match(/(\d{4}-\d{2}-\d{2})|(\d+月\d+日)/);
-              if (dateMatch) {
-                if (dateMatch[2]) {
-                  // Convert "8月1日" to "2025-08-01"
-                  const [month, day] = dateMatch[2].match(/\d+/g);
-                  return `2025-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-                }
-                return dateMatch[1];
-              }
-            }
-            return null;
-          }).filter(date => date !== null))];
+        console.log('Participated tournaments found:', participatedTournaments.length);
+        
+        const userTournaments = participatedTournaments.map((tournament: any) => {
+          // Count user's matches in this tournament
+          const tournamentMatches = userMatches.filter(m => m.tournament_id === tournament.id);
           
-          // Find tournaments matching these dates
-          matchDates.forEach(date => {
-            const tournamentsOnDate = tournamentsData.filter((t: any) => t.date === date);
-            participatedTournaments.push(...tournamentsOnDate);
-          });
-        }
+          return {
+            archive_id: tournament.id,
+            tournament_date: tournament.date,
+            tournament_name: tournament.tournament_name || tournament.name || 'BUNGU SQUAD大会',
+            total_participants_that_day: tournament.current_participants || 0,
+            entry_timestamp: tournament.date,
+            matches_count: tournamentMatches.length
+          };
+        });
         
-        const userTournaments = await Promise.all(
-          participatedTournaments.map(async (tournament: any) => {
-            let actualParticipants = 0;
-            
-            try {
-              const participantsResponse = await fetch(`/api/matches?tournamentId=${tournament.id}`);
-              if (participantsResponse.ok) {
-                const tournamentMatches = await participantsResponse.json();
-                const playerSet = new Set();
-                tournamentMatches.forEach((match: any) => {
-                  if (match.player1_id) playerSet.add(match.player1_id);
-                  if (match.player2_id) playerSet.add(match.player2_id);
-                });
-                actualParticipants = playerSet.size;
-              }
-            } catch (error) {
-              console.error('Error counting participants:', error);
-            }
-            
-            return {
-              archive_id: tournament.id,
-              tournament_date: tournament.date,
-              tournament_name: tournament.tournament_name || tournament.name || 'BUNGU SQUAD大会',
-              total_participants_that_day: actualParticipants || tournament.current_participants || 0,
-              entry_timestamp: tournament.date
-            };
-          })
-        );
-        
+        console.log('Final tournament archive:', userTournaments);
         setTournamentArchive(userTournaments);
       } else {
+        console.error('Failed to fetch tournaments:', tournamentsResponse.status);
         setTournamentArchive([]);
       }
     } catch (error) {
@@ -145,14 +103,20 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
   };
 
   const loadPlayerHistory = async () => {
+    console.log('Loading player history for user:', currentUserId);
     setIsLoading(true);
     
     try {
       // 1. Load matches with error handling
       try {
-        const matchResponse = await fetch(`/api/matches?playerId=${currentUserId}`);
+        const matchUrl = `/api/matches?playerId=${currentUserId}`;
+        console.log('Fetching matches from:', matchUrl);
+        const matchResponse = await fetch(matchUrl);
+        console.log('Match response status:', matchResponse.status);
+        
         if (matchResponse.ok) {
           const matchData = await matchResponse.json();
+          console.log('Match data received:', matchData);
           
           // Basic validation and filtering - relaxed to show historical data
           const validMatches = Array.isArray(matchData) ? matchData.filter((match: any) => {
@@ -164,6 +128,8 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
                    match.winner_id && // Must have a winner
                    match.match_start_time; // Must have timestamp
           }) : [];
+          
+          console.log('Valid matches after filtering:', validMatches.length);
           
           // Load rating changes for each match
           const matchesWithRating = await Promise.all(

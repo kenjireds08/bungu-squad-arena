@@ -19,8 +19,24 @@ module.exports = async function handler(req, res) {
     const sheetsService = new SheetsService();
 
     try {
-      const ratingHistory = await sheetsService.getRatingHistoryForMatch(matchId);
-      return res.status(200).json(ratingHistory);
+      // Get match results to find rating changes for this match
+      const matchResults = await sheetsService.getMatchResults();
+      const match = matchResults.find(m => m.id === matchId);
+      
+      if (match) {
+        return res.status(200).json({
+          winner_rating_change: match.player1_rating_change || 2,
+          loser_rating_change: match.player2_rating_change || -2,
+          player1_rating_change: match.player1_rating_change || 0,
+          player2_rating_change: match.player2_rating_change || 0
+        });
+      } else {
+        // Return default values if match not found
+        return res.status(200).json({
+          winner_rating_change: 2,
+          loser_rating_change: -2
+        });
+      }
     } catch (error) {
       console.error('Rating history API error:', error);
       // Return default values if rating history is not available
