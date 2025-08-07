@@ -116,8 +116,14 @@ module.exports = async function handler(req, res) {
             res.setHeader('X-From-Cache', 'stale');
             return res.status(200).json(cachedData.data);
           }
-          // If no cache available, throw error to be handled by main catch block
-          throw error;
+          // Return empty array instead of 500 error for statistics tab
+          console.error('Matches API error, returning empty result:', error.message);
+          return res.status(200).json({
+            success: false,
+            data: [],
+            error: error.message,
+            message: 'データの取得に失敗しました'
+          });
         }
       }
 
@@ -376,6 +382,16 @@ module.exports = async function handler(req, res) {
       res.setHeader('Retry-After', '15');
       return res.status(429).json({ 
         error: 'API rate limit exceeded. Please try again in 15 seconds.' 
+      });
+    }
+    
+    // For GET requests (statistics), return 200 with success:false to avoid breaking UI
+    if (req.method === 'GET') {
+      return res.status(200).json({ 
+        success: false, 
+        data: [],
+        error: error.message || 'Internal server error',
+        message: 'データの取得に失敗しました' 
       });
     }
     

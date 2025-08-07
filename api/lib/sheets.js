@@ -1375,6 +1375,174 @@ class SheetsService {
     }
   }
 
+  async getMatchHistory(playerId) {
+    await this.authenticate();
+    
+    try {
+      console.log('🔍 Fetching match history for player:', playerId);
+      
+      // Get both tournament matches and historical match results
+      const [tournamentMatches, matchResults] = await Promise.all([
+        this.getTournamentMatches(null), // Get all tournament matches
+        this.getMatchResults() // Get historical match results
+      ]);
+      
+      console.log('🔍 Total tournament matches:', tournamentMatches.length);
+      console.log('🔍 Total match results:', matchResults.length);
+      
+      const playerHistory = [];
+      
+      // Add tournament matches where player participated
+      for (const match of tournamentMatches) {
+        if (match.player1_id === playerId || match.player2_id === playerId) {
+          const isPlayer1 = match.player1_id === playerId;
+          const opponent = isPlayer1 ? 
+            { id: match.player2_id, name: match.player2_name } : 
+            { id: match.player1_id, name: match.player1_name };
+          
+          let result = 'pending';
+          let ratingChange = 0;
+          
+          if (match.status === 'completed' && match.winner_id) {
+            if (match.winner_id === playerId) {
+              result = 'win';
+            } else if (match.winner_id === opponent.id) {
+              result = 'lose';
+            }
+          }
+          
+          playerHistory.push({
+            match_id: match.match_id,
+            tournament_id: match.tournament_id,
+            opponent: opponent,
+            game_type: match.game_type || 'trump',
+            result: result,
+            rating_change: ratingChange, // TODO: Calculate from actual rating changes
+            timestamp: match.match_end_time || match.created_at || '',
+            match_type: 'tournament'
+          });
+        }
+      }
+      
+      // Add historical matches from MatchResults sheet
+      for (const result of matchResults) {
+        if (result.player1_id === playerId || result.player2_id === playerId) {
+          const isPlayer1 = result.player1_id === playerId;
+          const opponent = isPlayer1 ? 
+            { id: result.player2_id, name: result.player2_name || 'Unknown' } : 
+            { id: result.player1_id, name: result.player1_name || 'Unknown' };
+          
+          let matchResult = 'unknown';
+          let ratingChange = 0;
+          
+          if (result.result) {
+            if (result.result === 'win' && isPlayer1) {
+              matchResult = 'win';
+              ratingChange = result.player1_rating_change || 0;
+            } else if (result.result === 'win' && !isPlayer1) {
+              matchResult = 'lose';
+              ratingChange = result.player2_rating_change || 0;
+            } else if (result.result === 'loss' && isPlayer1) {
+              matchResult = 'lose';
+              ratingChange = result.player1_rating_change || 0;
+            } else if (result.result === 'loss' && !isPlayer1) {
+              matchResult = 'win';
+              ratingChange = result.player2_rating_change || 0;
+            }
+          }
+          
+          playerHistory.push({
+            match_id: result.match_id || `result_${result.id}`,
+            tournament_id: result.tournament_id || null,
+            opponent: opponent,
+            game_type: result.game_type || 'trump',
+            result: matchResult,
+            rating_change: ratingChange,
+            timestamp: result.created_at || '',
+            match_type: result.tournament_id ? 'tournament' : 'casual'
+          });
+        }
+      }
+      
+      // Sort by timestamp (newest first)
+      playerHistory.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      
+      console.log('🔍 Player history compiled:', {
+        playerId: playerId,
+        totalMatches: playerHistory.length,
+        wins: playerHistory.filter(h => h.result === 'win').length,
+        losses: playerHistory.filter(h => h.result === 'lose').length
+      });
+      
+      return playerHistory;
+      
+    } catch (error) {
+      console.error('❌ Error fetching match history:', error);
+      
+      // Handle specific errors
+      if (error.code === 404) {
+        return []; // Return empty array if sheets not found
+      } else if (error.code === 403) {
+        throw new Error('Permission denied accessing match history');
+      } else if (error.code === 429) {
+        throw new Error('API rate limit exceeded');
+      } else {
+        // Return empty array instead of throwing to prevent 500 errors
+        console.warn('Returning empty match history due to error:', error.message);
+        return [];
+      }
+    }
+  }
+
+  async getAllMatches() {
+    // Fallback method for general match fetching
+    try {
+      return await this.getTournamentMatches(null);
+    } catch (error) {
+      console.error('Error in getAllMatches:', error);
+      return [];
+    }
+  }
+
+  async getMatchResults() {
+    await this.authenticate();
+    
+    try {
+      const { headers, idx } = await this._getHeaders('MatchResults!1:1');
+      
+      const resp = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'MatchResults!A:Z'
+      });
+      const rows = resp.data.values || [];
+      if (rows.length <= 1) return [];
+      
+      const results = [];
+      for (let i = 1; i < rows.length; i++) {
+        const r = rows[i];
+        results.push({
+          id: r[idx('id')] || `result_${i}`,
+          match_id: r[idx('match_id')] || '',
+          tournament_id: r[idx('tournament_id')] || '',
+          player1_id: r[idx('player1_id')] || '',
+          player1_name: r[idx('player1_name')] || '',
+          player2_id: r[idx('player2_id')] || '',
+          player2_name: r[idx('player2_name')] || '',
+          result: r[idx('result')] || '',
+          game_type: r[idx('game_type')] || 'trump',
+          player1_rating_change: parseInt(r[idx('player1_rating_change')] || '0'),
+          player2_rating_change: parseInt(r[idx('player2_rating_change')] || '0'),
+          created_at: r[idx('created_at')] || ''
+        });
+      }
+      return results;
+      
+    } catch (error) {
+      console.error('Error fetching match results:', error);
+      return []; // Return empty array instead of throwing
+    }
+  }
+
   async addMatchResult(matchData) {
     await this.authenticate();
     

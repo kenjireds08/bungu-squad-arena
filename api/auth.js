@@ -39,35 +39,87 @@ module.exports = async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
       }
       
-      const { email, password } = req.body;
-      
-      // Server-side admin authentication
-      const adminEmails = [
-        'kenji.reds08@gmail.com',
-        'mr.warabisako@gmail.com', 
-        'yosshio@example.com'
-      ];
-      
-      const adminPassword = process.env.ADMIN_PASSWORD || 'bungu-2025';
-      
-      if (!adminEmails.includes(email) || password !== adminPassword) {
-        return res.status(401).json({ error: 'Invalid admin credentials' });
-      }
+      try {
+        const { email, password } = req.body;
+        
+        console.log('🔍 Admin login attempt:', {
+          email: email,
+          hasPassword: !!password,
+          passwordLength: password?.length,
+          timestamp: new Date().toISOString()
+        });
+        
+        // Server-side admin authentication
+        const adminEmails = [
+          'kenji.reds08@gmail.com',
+          'mr.warabisako@gmail.com', 
+          'yosshio@example.com'
+        ];
+        
+        const adminPassword = process.env.ADMIN_PASSWORD || 'bungu-2025';
+        console.log('🔍 Admin password from env:', { 
+          hasEnvPassword: !!process.env.ADMIN_PASSWORD,
+          envPasswordLength: process.env.ADMIN_PASSWORD?.length,
+          fallbackPassword: !process.env.ADMIN_PASSWORD ? 'bungu-2025' : '[ENV]'
+        });
+        
+        if (!email || !password) {
+          console.warn('❌ Missing email or password in admin login');
+          return res.status(400).json({ error: 'Email and password are required' });
+        }
+        
+        if (!adminEmails.includes(email)) {
+          console.warn('❌ Email not in admin list:', email);
+          return res.status(401).json({ error: 'Invalid admin credentials' });
+        }
+        
+        if (password !== adminPassword) {
+          console.warn('❌ Password mismatch for admin:', {
+            email: email,
+            expectedPassword: adminPassword,
+            receivedPassword: password,
+            match: password === adminPassword
+          });
+          return res.status(401).json({ error: 'Invalid admin credentials' });
+        }
 
-      // Get user data from sheets
-      const players = await sheets.getPlayers();
-      const user = players.find(p => p.email.toLowerCase() === email.toLowerCase());
-      
-      if (!user) {
-        return res.status(404).json({ error: 'Admin user not found in system' });
-      }
+        console.log('✅ Admin credentials verified, fetching user data...');
+        
+        // Get user data from sheets
+        const players = await sheets.getPlayers();
+        const user = players.find(p => p.email.toLowerCase() === email.toLowerCase());
+        
+        if (!user) {
+          console.warn('❌ Admin user not found in Players sheet:', email);
+          return res.status(404).json({ error: 'Admin user not found in system' });
+        }
 
-      return res.status(200).json({
-        success: true,
-        user: user,
-        isAdmin: true,
-        message: 'Admin authentication successful'
-      });
+        console.log('✅ Admin login successful:', {
+          email: user.email,
+          nickname: user.nickname,
+          userId: user.id
+        });
+
+        return res.status(200).json({
+          success: true,
+          user: user,
+          isAdmin: true,
+          message: 'Admin authentication successful'
+        });
+        
+      } catch (adminError) {
+        console.error('❌ Admin login error:', {
+          error: adminError.message,
+          stack: adminError.stack,
+          email: req.body?.email
+        });
+        
+        // Return 401 instead of 500 for authentication errors
+        return res.status(401).json({ 
+          error: 'Authentication failed', 
+          details: process.env.NODE_ENV !== 'production' ? adminError.message : undefined 
+        });
+      }
       
     } else if (action === 'send-verification') {
       // メール認証リクエスト処理
