@@ -159,6 +159,8 @@ async function handleTournamentEntry(req, res) {
     // TEMPORARY FIX: Auto-create temporary users
     if (!player && userId.startsWith('temp_user_')) {
       console.log('TEMP: Auto-creating temporary user:', userId);
+      console.log('TEMP: Nickname:', tempNickname, 'Email:', tempEmail);
+      
       const finalNickname = tempNickname || `参加者${Date.now().toString().slice(-4)}`;
       const finalEmail = tempEmail || `${userId}@temp.local`;
       const tempPlayerData = {
@@ -170,9 +172,16 @@ async function handleTournamentEntry(req, res) {
         tournament_active: false
       };
       
-      await sheetsService.addPlayer(tempPlayerData);
-      player = tempPlayerData;
-      console.log('TEMP: Created temporary user successfully with nickname:', finalNickname, 'email:', finalEmail);
+      console.log('TEMP: Creating player with data:', tempPlayerData);
+      
+      try {
+        await sheetsService.addPlayer(tempPlayerData);
+        player = tempPlayerData;
+        console.log('TEMP: Created temporary user successfully with nickname:', finalNickname, 'email:', finalEmail);
+      } catch (addPlayerError) {
+        console.error('TEMP: Failed to create temporary user:', addPlayerError);
+        throw new Error(`Failed to create temporary user: ${addPlayerError.message}`);
+      }
     }
     
     if (!player) {

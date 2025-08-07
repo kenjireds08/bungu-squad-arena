@@ -374,6 +374,13 @@ export const TournamentEntry = () => {
       console.log('Entering tournament:', tournament.id, 'for user:', userId);
       
       // Call tournament-specific entry API
+      console.log('Making tournament entry API call with data:', {
+        userId: userId,
+        tournamentId: tournament.id,
+        tempNickname: nickname,
+        tempEmail: email
+      });
+      
       const entryResponse = await fetch('/api/admin?action=tournament-entry', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -385,6 +392,8 @@ export const TournamentEntry = () => {
           tempEmail: email
         })
       });
+      
+      console.log('Tournament entry API response status:', entryResponse.status);
       
       if (!entryResponse.ok) {
         let errorData;
@@ -415,8 +424,8 @@ export const TournamentEntry = () => {
       // Auto-redirect to waiting room immediately after showing success message
       console.log('Setting timeout for waiting room transition...');
       setTimeout(() => {
-        console.log('Timeout executed, setting showWaitingRoom to true');
-        setShowWaitingRoom(true);
+        console.log('Timeout executed, navigating to tournament waiting page');
+        navigate('/tournament-waiting');
       }, 2000); // Reduced from 3000ms to 2000ms
       
     } catch (error) {
@@ -541,7 +550,7 @@ export const TournamentEntry = () => {
             <h2 className="text-xl font-bold mb-2">エントリー完了！</h2>
             <p className="text-muted-foreground mb-4">
               {tournament.name}にエントリーしました。<br />
-              3秒後に待機画面に移動します...
+              2秒後に待機画面に移動します...
             </p>
             <div className="animate-pulse">
               <Loader2 className="h-6 w-6 animate-spin mx-auto" />

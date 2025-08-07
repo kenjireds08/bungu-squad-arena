@@ -1,8 +1,8 @@
 // BUNGU SQUAD Service Worker for PWA functionality with camera support
 // Update version to force SW update - Change this whenever you need to force update
-const SW_VERSION = '2.7.0'; // Fix: Tournament day - clear old module cache
-const CACHE_NAME = 'bungu-squad-v2-7-0';
-const STATIC_CACHE = 'bungu-squad-static-v2-7-0';
+const SW_VERSION = '2.8.0'; // Fix: QR entry flow - clear JS module cache
+const CACHE_NAME = 'bungu-squad-v2-8-0';
+const STATIC_CACHE = 'bungu-squad-static-v2-8-0';
 
 // Debug flag - only show logs in development (localhost)
 const DEBUG = self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1';
