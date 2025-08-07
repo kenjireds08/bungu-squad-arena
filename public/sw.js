@@ -1,8 +1,8 @@
 // BUNGU SQUAD Service Worker for PWA functionality with camera support
 // Update version to force SW update - Change this whenever you need to force update
-const SW_VERSION = '2.8.0'; // Fix: QR entry flow - clear JS module cache
-const CACHE_NAME = 'bungu-squad-v2-8-0';
-const STATIC_CACHE = 'bungu-squad-static-v2-8-0';
+const SW_VERSION = '2.9.0'; // CRITICAL: Force complete cache clear for MIME type fix
+const CACHE_NAME = 'bungu-squad-v2-9-0';
+const STATIC_CACHE = 'bungu-squad-static-v2-9-0';
 
 // Debug flag - only show logs in development (localhost)
 const DEBUG = self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1';
@@ -39,19 +39,18 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Activate event - clean up old caches and claim clients
+// Activate event - clean up ALL old caches and claim clients
 self.addEventListener('activate', (event) => {
   if (DEBUG) console.log(`SW v${SW_VERSION} activating...`);
   event.waitUntil(
     caches.keys()
       .then((cacheNames) => {
+        // Delete ALL caches to force fresh start
         return Promise.all(
-          cacheNames
-            .filter((cacheName) => cacheName !== CACHE_NAME && cacheName !== STATIC_CACHE)
-            .map((cacheName) => {
-              if (DEBUG) console.log(`Deleting old cache: ${cacheName}`);
-              return caches.delete(cacheName);
-            })
+          cacheNames.map((cacheName) => {
+            if (DEBUG) console.log(`Deleting cache: ${cacheName}`);
+            return caches.delete(cacheName);
+          })
         );
       })
       .then(() => {
@@ -138,7 +137,17 @@ self.addEventListener('fetch', (event) => {
     url.pathname.endsWith('.woff2');
 
   if (isAssetRequest) {
-    // For assets: Try network first, fallback to cache, never HTML
+    // CRITICAL: Never cache JS files to avoid MIME type issues
+    if (url.pathname.endsWith('.js')) {
+      event.respondWith(
+        fetch(event.request).catch(() => {
+          return new Response('Not Found', { status: 404 });
+        })
+      );
+      return;
+    }
+    
+    // For other assets: Try network first, fallback to cache, never HTML
     event.respondWith(
       fetch(event.request)
         .then((response) => {
