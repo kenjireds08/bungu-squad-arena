@@ -63,9 +63,9 @@ export const QRCodeDisplay = ({ tournamentId, tournamentName, tournamentDate, on
   }, [tournamentId]);
   
   // Create URL with date and time: /tournament/2025-08-03/15-30 (replace : with -)
-  // Use the production domain instead of current origin
+  // TEMPORARY: Use Vercel domain to avoid SSL issues during tournament
   const urlTime = (tournamentTime || '09-30').replace(':', '-'); // Default to 09-30 instead of 00-00
-  const baseUrl = 'https://ranking.bungu-squad.jp'; // Use production domain
+  const baseUrl = 'https://bungu-squad-arena.vercel.app'; // Use stable Vercel domain
   let entryUrl = `${baseUrl}/tournament/${tournamentDate}/${urlTime}?from_qr=true`;
   
   const handleCopyUrl = async () => {
