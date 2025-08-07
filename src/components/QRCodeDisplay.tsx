@@ -17,56 +17,10 @@ interface QRCodeDisplayProps {
 export const QRCodeDisplay = ({ tournamentId, tournamentName, tournamentDate, onClose, isOpen }: QRCodeDisplayProps) => {
   const [copied, setCopied] = useState(false);
   
-  // Generate entry URL for the tournament using date and time instead of name
-  // This avoids encoding issues with Japanese characters and provides unique URLs for multiple tournaments per day
-  
-  // Get tournament time from tournamentId or fetch from API
-  // For now, we'll use current time as fallback, but ideally get actual tournament time
-  const [tournamentTime, setTournamentTime] = useState<string>('');
-  
-  useEffect(() => {
-    // Fetch tournament details to get the actual start time
-    const fetchTournamentTime = async () => {
-      try {
-        const response = await fetch('/api/tournaments');
-        if (response.ok) {
-          const tournaments = await response.json();
-          const tournament = tournaments.find((t: any) => t.id.toString() === tournamentId);
-          if (tournament && tournament.start_time) {
-            // Extract time portion (HH:MM) from start_time
-            const timeMatch = tournament.start_time.match(/(\d{2}:\d{2})/);
-            if (timeMatch) {
-              setTournamentTime(timeMatch[1]);
-            } else {
-              // If no match, try to parse it differently
-              console.log('Tournament start_time format:', tournament.start_time);
-              // Fallback: if start_time is like "9:30", pad it to "09:30"
-              const simpleTimeMatch = tournament.start_time.match(/(\d{1,2}:\d{2})/);
-              if (simpleTimeMatch) {
-                const [hours, minutes] = simpleTimeMatch[1].split(':');
-                const paddedTime = `${hours.padStart(2, '0')}:${minutes}`;
-                setTournamentTime(paddedTime);
-              }
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Failed to fetch tournament time:', error);
-        // Fallback to current time if fetch fails
-        const now = new Date();
-        const timeStr = now.toTimeString().slice(0, 5); // HH:MM format
-        setTournamentTime(timeStr);
-      }
-    };
-    
-    fetchTournamentTime();
-  }, [tournamentId]);
-  
-  // Create URL with date and time: /tournament/2025-08-03/15-30 (replace : with -)
-  // Use production domain - SSL issues resolved
-  const urlTime = (tournamentTime || '09-30').replace(':', '-'); // Default to 09-30 instead of 00-00
+  // Generate entry URL using tournament ID - more reliable than time-based URLs
+  // This avoids time format issues and provides unique URLs
   const baseUrl = 'https://ranking.bungu-squad.jp'; // Use production domain
-  let entryUrl = `${baseUrl}/tournament/${tournamentDate}/${urlTime}?from_qr=true`;
+  let entryUrl = `${baseUrl}/tournament/${tournamentId}?from_qr=true`;
   
   const handleCopyUrl = async () => {
     try {

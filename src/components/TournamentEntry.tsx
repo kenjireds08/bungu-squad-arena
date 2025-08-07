@@ -109,108 +109,117 @@ export const TournamentEntry = () => {
             const tournaments = await tournamentsResponse.json();
             console.log('All tournaments:', tournaments);
             
-            // Find tournament by date and name if provided, otherwise find today's active tournament
-            const targetDate = date || new Date().toISOString().split('T')[0];
-            
-            if (formattedTime) {
-              // Find tournament by date and time (new preferred method)
-              console.log('Searching for tournament with date:', targetDate, 'and time:', formattedTime);
-              console.log('Available tournaments:', tournaments.map(t => ({
-                date: t.date,
-                start_time: t.start_time,
-                name: t.tournament_name,
-                status: t.status
-              })));
-              
-              activeTournament = tournaments.find((t: any) => {
-                console.log(`Checking tournament: ${t.tournament_name}, date: ${t.date}, time: ${t.start_time}, status: ${t.status}`);
-                console.log(`Tournament full object:`, JSON.stringify(t, null, 2));
-                
-                if (t.date !== targetDate) {
-                  console.log(`Date mismatch: ${t.date} !== ${targetDate}`);
-                  return false;
-                }
-                
-                if (t.status !== 'active' && t.status !== 'upcoming') {
-                  console.log(`Status mismatch: ${t.status} not active/upcoming`);
-                  return false;
-                }
-                
-                // Extract time from start_time and compare with flexibility
-                if (t.start_time) {
-                  console.log(`Raw start_time: "${t.start_time}", type: ${typeof t.start_time}`);
-                  // Directly compare with start_time since it's already in HH:MM format
-                  const tournamentTime = t.start_time.trim();
-                  const urlTime = formattedTime.trim();
-                  console.log(`Comparing tournament time: '${tournamentTime}' with URL time: '${urlTime}' (from "${actualTime}" -> "${formattedTime}")`);
-                  
-                  // Normalize both times by removing leading zeros for comparison
-                  const normalizedTournamentTime = tournamentTime.replace(/^0/, '');
-                  const normalizedUrlTime = urlTime.replace(/^0/, '');
-                  
-                  // Exact match with normalization
-                  if (tournamentTime === urlTime || normalizedTournamentTime === normalizedUrlTime) {
-                    console.log('✓ Exact time match found!');
-                    return true;
-                  }
-                  
-                  // Flexible matching: ±30 minutes
-                  try {
-                    const [tHour, tMin] = tournamentTime.split(':').map(Number);
-                    const [uHour, uMin] = urlTime.split(':').map(Number);
-                    
-                    const tMinutes = tHour * 60 + tMin;
-                    const uMinutes = uHour * 60 + uMin;
-                    const timeDiff = Math.abs(tMinutes - uMinutes);
-                    
-                    console.log(`Time difference: ${timeDiff} minutes (${tHour}:${tMin} vs ${uHour}:${uMin})`);
-                    if (timeDiff <= 30) {
-                      console.log('✓ Flexible time match found (within 30 minutes)!');
-                      return true;
-                    } else {
-                      console.log('✗ Time difference too large');
-                    }
-                  } catch (error) {
-                    console.error('Error parsing time for flexible matching:', error);
-                  }
-                } else {
-                  console.log('✗ No start_time found');
-                }
-                return false;
-              });
-              console.log('Found tournament by date and time:', activeTournament);
-              
-              // Fallback: if no match found with time, try to find same-day active tournament
-              if (!activeTournament) {
-                console.log('No time match found, trying fallback to same-day active tournament');
-                activeTournament = tournaments.find((t: any) => 
-                  t.date === targetDate && 
-                  (t.status === 'active' || t.status === 'upcoming')
-                );
-                console.log('Fallback tournament found:', activeTournament);
-              }
-              
-              // Second fallback: try to find any tournament on the same date regardless of time
-              if (!activeTournament && formattedTime) {
-                console.log('No exact match found, trying any tournament on same date');
-                activeTournament = tournaments.find((t: any) => t.date === targetDate);
-                console.log('Date-only fallback tournament found:', activeTournament);
-              }
-            } else if (decodedTournamentName) {
-              // Find tournament by date and name (legacy support)
-              activeTournament = tournaments.find((t: any) => 
-                t.date === targetDate && 
-                t.name === decodedTournamentName &&
-                (t.status === 'active' || t.status === 'upcoming')
-              );
-              console.log('Found tournament by date and name:', activeTournament);
-            } else {
-              // Fallback: find tournament by date only
-              activeTournament = tournaments.find((t: any) => 
-                t.date === targetDate && (t.status === 'active' || t.status === 'upcoming')
-              );
-              console.log('Found tournament by date only:', activeTournament);
+            // Priority 1: Find tournament by ID if provided (most reliable)
+            if (tournamentId && tournamentId.startsWith('tournament_')) {
+              console.log('Searching for tournament by ID:', tournamentId);
+              activeTournament = tournaments.find((t: any) => t.id === tournamentId);
+              console.log('Found tournament by ID:', activeTournament);
             }
+            
+            // Priority 2: Find tournament by date and time/name (legacy support)
+            if (!activeTournament) {
+              const targetDate = date || new Date().toISOString().split('T')[0];
+              
+              if (formattedTime) {
+                  // Find tournament by date and time (new preferred method)
+                  console.log('Searching for tournament with date:', targetDate, 'and time:', formattedTime);
+                  console.log('Available tournaments:', tournaments.map(t => ({
+                    date: t.date,
+                    start_time: t.start_time,
+                    name: t.tournament_name,
+                    status: t.status
+                  })));
+                  
+                  activeTournament = tournaments.find((t: any) => {
+                    console.log(`Checking tournament: ${t.tournament_name}, date: ${t.date}, time: ${t.start_time}, status: ${t.status}`);
+                    console.log(`Tournament full object:`, JSON.stringify(t, null, 2));
+                    
+                    if (t.date !== targetDate) {
+                      console.log(`Date mismatch: ${t.date} !== ${targetDate}`);
+                      return false;
+                    }
+                    
+                    if (t.status !== 'active' && t.status !== 'upcoming') {
+                      console.log(`Status mismatch: ${t.status} not active/upcoming`);
+                      return false;
+                    }
+                    
+                    // Extract time from start_time and compare with flexibility
+                    if (t.start_time) {
+                      console.log(`Raw start_time: "${t.start_time}", type: ${typeof t.start_time}`);
+                      // Directly compare with start_time since it's already in HH:MM format
+                      const tournamentTime = t.start_time.trim();
+                      const urlTime = formattedTime.trim();
+                      console.log(`Comparing tournament time: '${tournamentTime}' with URL time: '${urlTime}' (from "${actualTime}" -> "${formattedTime}")`);
+                      
+                      // Normalize both times by removing leading zeros for comparison
+                      const normalizedTournamentTime = tournamentTime.replace(/^0/, '');
+                      const normalizedUrlTime = urlTime.replace(/^0/, '');
+                      
+                      // Exact match with normalization
+                      if (tournamentTime === urlTime || normalizedTournamentTime === normalizedUrlTime) {
+                        console.log('✓ Exact time match found!');
+                        return true;
+                      }
+                      
+                      // Flexible matching: ±30 minutes
+                      try {
+                        const [tHour, tMin] = tournamentTime.split(':').map(Number);
+                        const [uHour, uMin] = urlTime.split(':').map(Number);
+                        
+                        const tMinutes = tHour * 60 + tMin;
+                        const uMinutes = uHour * 60 + uMin;
+                        const timeDiff = Math.abs(tMinutes - uMinutes);
+                        
+                        console.log(`Time difference: ${timeDiff} minutes (${tHour}:${tMin} vs ${uHour}:${uMin})`);
+                        if (timeDiff <= 30) {
+                          console.log('✓ Flexible time match found (within 30 minutes)!');
+                          return true;
+                        } else {
+                          console.log('✗ Time difference too large');
+                        }
+                      } catch (error) {
+                        console.error('Error parsing time for flexible matching:', error);
+                      }
+                    } else {
+                      console.log('✗ No start_time found');
+                    }
+                    return false;
+                  });
+                  console.log('Found tournament by date and time:', activeTournament);
+                  
+                  // Fallback: if no match found with time, try to find same-day active tournament
+                  if (!activeTournament) {
+                    console.log('No time match found, trying fallback to same-day active tournament');
+                    activeTournament = tournaments.find((t: any) => 
+                      t.date === targetDate && 
+                      (t.status === 'active' || t.status === 'upcoming')
+                    );
+                    console.log('Fallback tournament found:', activeTournament);
+                  }
+                  
+                  // Second fallback: try to find any tournament on the same date regardless of time
+                  if (!activeTournament && formattedTime) {
+                    console.log('No exact match found, trying any tournament on same date');
+                    activeTournament = tournaments.find((t: any) => t.date === targetDate);
+                    console.log('Date-only fallback tournament found:', activeTournament);
+                  }
+                } else if (decodedTournamentName) {
+                  // Find tournament by date and name (legacy support)
+                  activeTournament = tournaments.find((t: any) => 
+                    t.date === targetDate && 
+                    t.name === decodedTournamentName &&
+                    (t.status === 'active' || t.status === 'upcoming')
+                  );
+                  console.log('Found tournament by date and name:', activeTournament);
+                } else {
+                  // Fallback: find tournament by date only
+                  activeTournament = tournaments.find((t: any) => 
+                    t.date === targetDate && (t.status === 'active' || t.status === 'upcoming')
+                  );
+                  console.log('Found tournament by date only:', activeTournament);
+                }
+              }
             console.log('Today\'s active tournament:', activeTournament);
           }
         } catch (error) {
