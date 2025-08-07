@@ -357,16 +357,18 @@ export const TournamentEntry = () => {
       setIsEntering(true);
       
       // TEMPORARY FIX: Skip email verification for tournament
-      // Check if user is logged in
+      // TEMPORARY FIX: Always create new temp user for QR entries to avoid conflicts
       let userId = localStorage.getItem('userId');
-      if (!userId) {
+      
+      // For QR entries, always create a fresh temp user to avoid ID conflicts
+      if (isFromQR || !userId || !userId.startsWith('temp_user_')) {
         // TEMPORARY: Create anonymous user ID to bypass email verification
         const tempUserId = `temp_user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         localStorage.setItem('userId', tempUserId);
         // Use user-provided nickname and email for QR entries
         localStorage.setItem('userNickname', nickname || `参加者${Date.now().toString().slice(-4)}`);
         localStorage.setItem('userEmail', email || `${tempUserId}@temp.local`);
-        console.log('TEMP: Created temporary user ID:', tempUserId, 'with nickname:', nickname);
+        console.log('TEMP: Created fresh temporary user ID for QR entry:', tempUserId, 'with nickname:', nickname);
         userId = tempUserId;
       }
 
