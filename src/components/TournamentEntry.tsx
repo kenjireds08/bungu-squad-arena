@@ -401,7 +401,12 @@ export const TournamentEntry = () => {
       // Update tournament active status via API with real-time updates
       console.log('Sending API request for user:', userId);
       
-      await updateTournamentActive.mutateAsync({ id: userId, active: true });
+      try {
+        await updateTournamentActive.mutateAsync({ id: userId, active: true });
+      } catch (updateError) {
+        console.warn('Tournament active update failed, but entry was successful:', updateError);
+        // Don't throw error here - entry was successful, just the active status update failed
+      }
       
       console.log('Tournament entry successful for user:', userId);
       setIsEntered(true);

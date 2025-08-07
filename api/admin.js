@@ -165,7 +165,7 @@ async function handleTournamentEntry(req, res) {
         id: userId,
         nickname: finalNickname,
         email: finalEmail,
-        current_rating: 1500,
+        current_rating: 1200,
         email_verified: true,
         tournament_active: false
       };
