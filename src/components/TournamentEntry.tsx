@@ -27,6 +27,15 @@ export const TournamentEntry = () => {
     time?: string;
     timeOrName?: string;
   }>();
+  
+  // Handle tournament ID from different route patterns
+  const actualTournamentId = tournamentId?.startsWith('tournament_') 
+    ? tournamentId 
+    : tournamentId?.includes('tournament_') 
+    ? `tournament_${tournamentId.split('tournament_')[1]}` 
+    : tournamentId;
+  
+  console.log('TournamentEntry route params:', { tournamentId, actualTournamentId, date, timeOrName });
   const searchParams = new URLSearchParams(window.location.search);
   const isFromQR = searchParams.has('qr') || searchParams.has('from_qr'); // Check if accessed via QR code
   
@@ -110,9 +119,9 @@ export const TournamentEntry = () => {
             console.log('All tournaments:', tournaments);
             
             // Priority 1: Find tournament by ID if provided (most reliable)
-            if (tournamentId && tournamentId.startsWith('tournament_')) {
-              console.log('Searching for tournament by ID:', tournamentId);
-              activeTournament = tournaments.find((t: any) => t.id === tournamentId);
+            if (actualTournamentId) {
+              console.log('Searching for tournament by ID:', actualTournamentId);
+              activeTournament = tournaments.find((t: any) => t.id === actualTournamentId);
               console.log('Found tournament by ID:', activeTournament);
             }
             

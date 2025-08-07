@@ -36,6 +36,8 @@ const App = () => {
               <Route path="/tournament-entry/:tournamentId" element={<TournamentEntry />} />
               <Route path="/tour" element={<TournamentEntry />} />
               {/* More specific routes should come first */}
+              <Route path="/tournament/tournament_:tournamentId" element={<TournamentEntry />} />
+              <Route path="/tournament/:tournamentId" element={<TournamentEntry />} />
               <Route path="/tournament/:date/:timeOrName" element={<TournamentEntry />} />
               <Route path="/tournament/:date" element={<TournamentEntry />} />
               <Route path="/tournament-waiting" element={<TournamentWaitingPage />} />
