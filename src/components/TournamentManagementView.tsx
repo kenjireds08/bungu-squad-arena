@@ -38,6 +38,8 @@ interface Match {
   created_at: string;
   completed_at: string;
   approved_at: string;
+  player1_rating_change?: number;
+  player2_rating_change?: number;
 }
 
 export const TournamentManagementView = ({ onClose, tournamentId, tournamentName, initialTab = 'overview' }: TournamentManagementViewProps) => {
@@ -166,17 +168,17 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
       });
 
       // バッジ付与結果に応じて異なるメッセージ表示
-      if (result?.badgeAdded === true) {
+      if ((result as any)?.badgeAdded === true) {
         toast({
           title: "試合結果を確定しました",
           description: "レーティングが更新され、カード+バッジを付与しました。次の試合に進行できます。",
         });
-      } else if (result?.badgeAdded === false) {
+      } else if ((result as any)?.badgeAdded === false) {
         toast({
           title: "試合結果を確定しました", 
           description: "レーティングが更新されました。バッジは付与済みのため追加されませんでした。",
         });
-      } else if (result?.ratingUpdate && typeof result.badgeAdded === 'undefined') {
+      } else if (result?.ratingUpdate && typeof (result as any).badgeAdded === 'undefined') {
         // バッジ対象外のゲーム（カード+以外）
         toast({
           title: "試合結果を確定しました",

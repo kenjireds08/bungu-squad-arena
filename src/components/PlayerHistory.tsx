@@ -58,6 +58,18 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
 
   const loadTournamentHistory = async (userMatches: any[]) => {
     try {
+      // First try to get daily archive
+      let archiveData = [];
+      try {
+        const archiveResponse = await fetch('/api/tournaments?action=get-daily-archive');
+        if (archiveResponse.ok) {
+          archiveData = await archiveResponse.json();
+        }
+      } catch (error) {
+        console.warn('Failed to load tournament archive:', error);
+      }
+
+      // Also get regular tournaments
       const tournamentsResponse = await fetch('/api/tournaments');
       if (tournamentsResponse.ok) {
         const tournamentsData = await tournamentsResponse.json();
@@ -142,37 +154,68 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
         if (matchResponse.ok) {
           const matchData = await matchResponse.json();
           
-          // Basic validation and filtering
+          // Basic validation and filtering - relaxed to show historical data
           const validMatches = Array.isArray(matchData) ? matchData.filter((match: any) => {
             // Filter out invalid/test data
             return match && 
                    match.id && 
                    match.player1_id && 
                    match.player2_id &&
-                   match.match_status === 'approved' && // Only show completed matches
                    match.winner_id && // Must have a winner
-                   match.match_start_time && // Must have timestamp
-                   !match.match_start_time.includes('7月31日') && // Exclude fake July 31 data
-                   new Date(match.match_start_time) > new Date('2025-07-31'); // Only show data after July 31
+                   match.match_start_time; // Must have timestamp
           }) : [];
           
           // Load rating changes for each match
           const matchesWithRating = await Promise.all(
             validMatches.map(async (match: any) => {
               try {
-                // Rating history API temporarily disabled to prevent rate limit
-                console.log('Rating history fetch disabled for match:', match.id);
+                const response = await fetch(`/api/rating-history?matchId=${match.id}`);
+                if (response.ok) {
+                  const ratingData = await response.json();
+                  
+                  // HOTFIX: API returns reversed values, so we swap them
+                  const actualWinnerChange = ratingData.loser_rating_change || 2;
+                  const actualLoserChange = ratingData.winner_rating_change || -2;
+                  
+                  // Apply correct rating changes based on player position
+                  let player1_rating_change, player2_rating_change;
+                  
+                  if (match.winner_id === match.player1_id) {
+                    player1_rating_change = actualWinnerChange; // winner gets positive
+                    player2_rating_change = actualLoserChange;  // loser gets negative
+                  } else {
+                    player1_rating_change = actualLoserChange;  // loser gets negative
+                    player2_rating_change = actualWinnerChange; // winner gets positive
+                  }
+                  
+                  return {
+                    ...match,
+                    player1_rating_change,
+                    player2_rating_change
+                  };
+                } else {
+                  // Fallback to default values
+                  const player1_rating_change = match.winner_id === match.player1_id ? 2 : -2;
+                  const player2_rating_change = match.winner_id === match.player2_id ? 2 : -2;
+                  
+                  return {
+                    ...match,
+                    player1_rating_change,
+                    player2_rating_change
+                  };
+                }
+              } catch (error) {
+                console.error('Rating fetch error for match:', match.id, error);
+                // Fallback to default values
+                const player1_rating_change = match.winner_id === match.player1_id ? 2 : -2;
+                const player2_rating_change = match.winner_id === match.player2_id ? 2 : -2;
                 
-                // Return match without rating changes (temporary measure)
                 return {
                   ...match,
-                  player1_rating_change: 0,
-                  player2_rating_change: 0
+                  player1_rating_change,
+                  player2_rating_change
                 };
-              } catch (error) {
-                console.error('Rating fetch error for match:', match.id);
               }
-              return match;
             })
           );
           
