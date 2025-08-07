@@ -423,6 +423,68 @@ class SheetsService {
     }
   }
 
+  async addPlayer(playerData) {
+    await this.authenticate();
+    
+    try {
+      const { headers, idx } = await this._getHeaders('Players!1:1');
+      
+      // Get current sheet data to append to
+      const response = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'Players!A:Z'
+      });
+      
+      const rows = response.data.values || [];
+      
+      // Create new row with player data
+      const newRow = [];
+      
+      // Map all the player fields to their respective columns
+      newRow[idx('id')] = playerData.id || `player_${Date.now()}`;
+      newRow[idx('nickname')] = playerData.nickname || '';
+      newRow[idx('email')] = playerData.email || '';
+      newRow[idx('current_rating')] = playerData.current_rating || 1500;
+      newRow[idx('annual_wins')] = playerData.annual_wins || 0;
+      newRow[idx('annual_losses')] = playerData.annual_losses || 0;
+      newRow[idx('total_wins')] = playerData.total_wins || 0;
+      newRow[idx('total_losses')] = playerData.total_losses || 0;
+      newRow[idx('champion_badges')] = playerData.champion_badges || '';
+      newRow[idx('trump_rule_experienced')] = playerData.trump_rule_experienced ? 'TRUE' : 'FALSE';
+      newRow[idx('first_trump_game_date')] = playerData.first_trump_game_date || '';
+      newRow[idx('cardplus_rule_experienced')] = playerData.cardplus_rule_experienced ? 'TRUE' : 'FALSE';
+      newRow[idx('first_cardplus_game_date')] = playerData.first_cardplus_game_date || '';
+      newRow[idx('registration_date')] = playerData.registration_date || new Date().toISOString().split('T')[0];
+      newRow[idx('profile_image_url')] = playerData.profile_image_url || '';
+      newRow[idx('is_active')] = playerData.is_active !== false ? 'true' : 'false';
+      newRow[idx('last_activity_date')] = playerData.last_activity_date || new Date().toISOString().split('T')[0];
+      newRow[idx('player_status')] = playerData.player_status || 'active';
+      newRow[idx('notification_preferences')] = playerData.notification_preferences || '{}';
+      newRow[idx('device_tokens')] = playerData.device_tokens || '[]';
+      newRow[idx('last_login')] = playerData.last_login || new Date().toISOString();
+      newRow[idx('profile_image_uploaded')] = playerData.profile_image_uploaded ? 'true' : 'false';
+      newRow[idx('preferred_language')] = playerData.preferred_language || 'ja';
+      newRow[idx('tournament_active')] = playerData.tournament_active ? 'TRUE' : 'FALSE';
+      newRow[idx('email_verified')] = playerData.email_verified ? 'TRUE' : 'FALSE';
+      
+      // Add new row to the sheet
+      rows.push(newRow);
+      
+      // Update the sheet with new data
+      await this.sheets.spreadsheets.values.update({
+        spreadsheetId: this.spreadsheetId,
+        range: 'Players!A:Z',
+        valueInputOption: 'USER_ENTERED',
+        requestBody: { values: rows }
+      });
+      
+      return playerData.id || `player_${Date.now()}`;
+    } catch (error) {
+      console.error('Error adding player:', error);
+      throw new Error(`Failed to add player: ${error.message}`);
+    }
+  }
+
   async updatePlayer(playerId, updates) {
     await this.authenticate();
     
