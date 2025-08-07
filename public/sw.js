@@ -1,8 +1,8 @@
 // BUNGU SQUAD Service Worker for PWA functionality with camera support
 // Update version to force SW update - Change this whenever you need to force update
-const SW_VERSION = '2.5.1'; // Fix: Resolve response.clone() errors
-const CACHE_NAME = 'bungu-squad-v2-5-1';
-const STATIC_CACHE = 'bungu-squad-static-v2-5-1';
+const SW_VERSION = '2.6.0'; // Fix: Prevent infinite API retry loops
+const CACHE_NAME = 'bungu-squad-v2-6-0';
+const STATIC_CACHE = 'bungu-squad-static-v2-6-0';
 
 // Debug flag - only show logs in development (localhost)
 const DEBUG = self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1';
@@ -98,10 +98,25 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(event.request.url);
   
-  // API endpoints: Never cache, always fetch fresh
+  // API endpoints: Never cache, always fetch fresh and NEVER retry
   if (url.pathname.startsWith('/api/')) {
     if (DEBUG) console.log(`SW v${SW_VERSION}: Bypassing cache for API: ${url.pathname}`);
-    event.respondWith(fetch(event.request));
+    event.respondWith(
+      fetch(event.request)
+        .catch(error => {
+          console.error(`SW v${SW_VERSION}: API fetch failed for ${url.pathname}:`, error);
+          // Return error response instead of retrying
+          return new Response(JSON.stringify({ 
+            success: false, 
+            error: 'Network error',
+            message: 'ネットワークエラーが発生しました'
+          }), {
+            status: 503,
+            statusText: 'Service Unavailable',
+            headers: { 'Content-Type': 'application/json' }
+          });
+        })
+    );
     return;
   }
 

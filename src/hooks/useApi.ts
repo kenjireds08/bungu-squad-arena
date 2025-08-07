@@ -104,7 +104,8 @@ export const useRankings = () => {
     queryFn: api.getPlayers,
     staleTime: 1000 * 30,
     refetchInterval: false,
-    retry: 1,
+    retry: false, // Completely disable retries
+    refetchOnWindowFocus: false, // Disable refetch on window focus
   });
   
   // playersをrankings形式にソート・変換
@@ -190,9 +191,19 @@ export const useDeleteTournament = () => {
 export const useMatches = (playerId?: string, enablePolling = false) => {
   return useQuery({
     queryKey: ['matches', playerId],
-    queryFn: () => api.getMatches(playerId),
+    queryFn: () => {
+      // Early return if no valid playerId
+      if (!playerId || playerId === 'undefined' || playerId === 'null') {
+        console.warn('Invalid playerId for matches query:', playerId);
+        return [];
+      }
+      return api.getMatches(playerId);
+    },
+    enabled: !!playerId && playerId !== 'undefined' && playerId !== 'null', // Only run if valid playerId
     staleTime: enablePolling ? 1000 * 5 : 1000 * 60 * 5, // 5 seconds when polling, 5 minutes otherwise
     refetchInterval: enablePolling ? 1000 * 10 : false, // Poll every 10 seconds when enabled
+    retry: false, // Disable retries
+    refetchOnWindowFocus: false, // Disable refetch on window focus
   });
 };;
 

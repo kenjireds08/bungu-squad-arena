@@ -33,6 +33,13 @@ export const PlayerStats = ({ onClose, currentUserId = "player_001" }: PlayerSta
 
   useEffect(() => {
     const loadPlayerStats = async () => {
+      // Early return if no userId
+      if (!currentUserId) {
+        console.warn('No userId provided for statistics');
+        setIsLoading(false);
+        return;
+      }
+      
       try {
         setIsLoading(true);
         
@@ -47,20 +54,26 @@ export const PlayerStats = ({ onClose, currentUserId = "player_001" }: PlayerSta
           let monthlyStats = [];
           
           try {
-            const matchResponse = await fetch(`/api/matches?playerId=${currentUserId}`);
-            if (matchResponse.ok) {
-              const matchData = await matchResponse.json();
-              
-              // Check if API returned success:false
-              if (matchData.success === false) {
-                console.warn('Match data unavailable:', matchData.message);
-                matchHistory = [];
-              } else if (Array.isArray(matchData)) {
-                matchHistory = matchData.filter(m => m.match_status === 'approved');
-              } else if (matchData.data && Array.isArray(matchData.data)) {
-                matchHistory = matchData.data.filter(m => m.match_status === 'approved');
-              } else {
-                matchHistory = [];
+            // Skip fetch if no valid userId
+            if (!currentUserId || currentUserId === 'undefined' || currentUserId === 'null') {
+              console.warn('Invalid userId for match fetch:', currentUserId);
+              matchHistory = [];
+            } else {
+              const matchResponse = await fetch(`/api/matches?playerId=${currentUserId}`);
+              if (matchResponse.ok) {
+                const matchData = await matchResponse.json();
+                
+                // Check if API returned success:false
+                if (matchData.success === false) {
+                  console.warn('Match data unavailable:', matchData.message);
+                  matchHistory = [];
+                } else if (Array.isArray(matchData)) {
+                  matchHistory = matchData.filter(m => m.match_status === 'approved');
+                } else if (matchData.data && Array.isArray(matchData.data)) {
+                  matchHistory = matchData.data.filter(m => m.match_status === 'approved');
+                } else {
+                  matchHistory = [];
+                }
               }
               
               // Calculate average opponent rating
