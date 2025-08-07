@@ -169,7 +169,7 @@ async function handleTournamentEntry(req, res) {
         email: finalEmail,
         current_rating: 1200,
         email_verified: true,
-        tournament_active: false
+        tournament_active: true  // Set to true so player is tournament active from creation
       };
       
       console.log('TEMP: Creating player with data:', tempPlayerData);
@@ -222,12 +222,18 @@ async function handleTournamentEntry(req, res) {
     }
 
     // 4. 大会参加者リストに追加（TournamentParticipantsが真実の源）
-    await sheetsService.addTournamentParticipant({
-      player_id: userId,
-      tournament_id: tournamentId,
-      registered_at: new Date().toISOString(),
-      status: 'registered'
-    });
+    try {
+      await sheetsService.addTournamentParticipant({
+        player_id: userId,
+        tournament_id: tournamentId,
+        registered_at: new Date().toISOString(),
+        status: 'registered'
+      });
+      console.log(`Added tournament participant: ${userId} -> ${tournamentId}`);
+    } catch (participantError) {
+      console.error(`Failed to add tournament participant:`, participantError);
+      throw new Error(`Tournament participant registration failed: ${participantError.message}`);
+    }
 
     // 5. Playersシートのtournament_activeも更新（互換性のため）
     try {
