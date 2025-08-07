@@ -401,12 +401,9 @@ export const TournamentEntry = () => {
       // Update tournament active status via API with real-time updates
       console.log('Sending API request for user:', userId);
       
-      try {
-        await updateTournamentActive.mutateAsync({ id: userId, active: true });
-      } catch (updateError) {
-        console.warn('Tournament active update failed, but entry was successful:', updateError);
-        // Don't throw error here - entry was successful, just the active status update failed
-      }
+      // Skip updateTournamentActive API call since it's causing issues
+      // The tournament entry is already successful via the admin API
+      console.log('Skipping tournament active update - entry already successful');
       
       console.log('Tournament entry successful for user:', userId);
       setIsEntered(true);
@@ -415,12 +412,12 @@ export const TournamentEntry = () => {
         description: `${tournament.name}にエントリーしました！`,
       });
       
-      // Auto-redirect to waiting room
+      // Auto-redirect to waiting room immediately after showing success message
       console.log('Setting timeout for waiting room transition...');
       setTimeout(() => {
         console.log('Timeout executed, setting showWaitingRoom to true');
         setShowWaitingRoom(true);
-      }, 3000);
+      }, 2000); // Reduced from 3000ms to 2000ms
       
     } catch (error) {
       console.error('Failed to enter tournament:', error);

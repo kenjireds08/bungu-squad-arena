@@ -221,7 +221,13 @@ async function handleTournamentEntry(req, res) {
     });
 
     // 5. Playersシートのtournament_activeも更新（互換性のため）
-    await sheetsService.updateTournamentActive(userId, true);
+    try {
+      await sheetsService.updateTournamentActive(userId, true);
+      console.log(`Updated tournament_active for player ${userId}`);
+    } catch (activeUpdateError) {
+      console.warn(`Failed to update tournament_active for ${userId}, but continuing:`, activeUpdateError.message);
+      // Don't fail the entire operation if this update fails
+    }
 
     console.log(`Successfully registered player ${userId} for tournament ${tournamentId}`);
 
