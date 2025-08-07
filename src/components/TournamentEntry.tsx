@@ -381,16 +381,29 @@ export const TournamentEntry = () => {
         tempEmail: email
       });
       
-      const entryResponse = await fetch('/api/admin?action=tournament-entry', {
+      const requestUrl = '/api/admin?action=tournament-entry';
+      const requestBody = { 
+        userId: userId,
+        tournamentId: tournament.id,
+        // Include nickname and email for temp user creation
+        tempNickname: nickname,
+        tempEmail: email
+      };
+      
+      console.log('DETAILED REQUEST INFO:', {
+        method: 'POST',
+        url: requestUrl,
+        fullUrl: window.location.origin + requestUrl,
+        headers: { 'Content-Type': 'application/json' },
+        body: requestBody,
+        bodyString: JSON.stringify(requestBody),
+        userAgent: navigator.userAgent
+      });
+      
+      const entryResponse = await fetch(requestUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          userId: userId,
-          tournamentId: tournament.id,
-          // Include nickname and email for temp user creation
-          tempNickname: nickname,
-          tempEmail: email
-        })
+        body: JSON.stringify(requestBody)
       });
       
       console.log('Tournament entry API response status:', entryResponse.status);
