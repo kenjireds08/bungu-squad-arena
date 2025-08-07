@@ -54,23 +54,30 @@ export const PlayerStats = ({ onClose, currentUserId = "player_001" }: PlayerSta
         
         console.log('[PlayerStats] Loading stats for user:', currentUserId, 'User data:', currentUser);
         
-        // Create basic stats from user data without complex API calls
+        // Use actual data from the database
+        const annualGames = (currentUser.annual_wins || 0) + (currentUser.annual_losses || 0);
+        const totalGames = (currentUser.total_wins || 0) + (currentUser.total_losses || 0);
+        
+        // Use annual stats for current year display
+        const winRate = annualGames > 0 
+          ? ((currentUser.annual_wins || 0) / annualGames) * 100 
+          : 0;
+        
         const stats: PlayerStatsData = {
           currentRating: currentUser.current_rating || 1500,
-          highestRating: currentUser.current_rating || 1500, // Simplified - no separate highest rating field
-          totalGames: (currentUser.total_wins || 0) + (currentUser.total_losses || 0),
-          winRate: ((currentUser.total_wins || 0) + (currentUser.total_losses || 0)) > 0 
-            ? ((currentUser.total_wins || 0) / ((currentUser.total_wins || 0) + (currentUser.total_losses || 0))) * 100 
-            : 0,
-          wins: currentUser.total_wins || 0,
-          losses: currentUser.total_losses || 0,
-          averageOpponentRating: 1500, // Default value
-          recentForm: [1, 0, 1, 1, 0, 1, 0, 1, 1, 0], // Mock recent form
+          highestRating: currentUser.highest_rating || currentUser.current_rating || 1500,
+          totalGames: totalGames,
+          winRate: winRate,
+          wins: currentUser.annual_wins || 0,  // Use annual wins for display
+          losses: currentUser.annual_losses || 0,  // Use annual losses for display
+          averageOpponentRating: 1500, // This would need match history calculation
+          recentForm: [], // Will be empty until we fetch actual match history
           monthlyStats: [
             { month: '4月', games: 0, wins: 0, rating: currentUser.current_rating || 1500 },
-            { month: '5月', games: 2, wins: 1, rating: currentUser.current_rating || 1500 },
-            { month: '6月', games: 3, wins: 2, rating: currentUser.current_rating || 1500 },
-            { month: '7月', games: 5, wins: 3, rating: currentUser.current_rating || 1500 }
+            { month: '5月', games: 0, wins: 0, rating: currentUser.current_rating || 1500 },
+            { month: '6月', games: 0, wins: 0, rating: currentUser.current_rating || 1500 },
+            { month: '7月', games: 0, wins: 0, rating: currentUser.current_rating || 1500 },
+            { month: '8月', games: annualGames, wins: currentUser.annual_wins || 0, rating: currentUser.current_rating || 1500 }
           ]
         };
         
