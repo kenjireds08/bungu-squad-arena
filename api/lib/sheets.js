@@ -441,7 +441,8 @@ class SheetsService {
       const newRow = [];
       
       // Map all the player fields to their respective columns
-      newRow[idx('id')] = playerData.id || `player_${Date.now()}`;
+      // FIXED: Use 'player_id' instead of 'id' to match spreadsheet header
+      newRow[idx('player_id')] = playerData.id || `player_${Date.now()}`;
       newRow[idx('nickname')] = playerData.nickname || '';
       newRow[idx('email')] = playerData.email || '';
       newRow[idx('current_rating')] = playerData.current_rating || 1500;
