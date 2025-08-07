@@ -175,11 +175,24 @@ async function handleTournamentEntry(req, res) {
       console.log('TEMP: Creating player with data:', tempPlayerData);
       
       try {
-        await sheetsService.addPlayer(tempPlayerData);
+        console.log('TEMP: About to call sheetsService.addPlayer...');
+        const addResult = await sheetsService.addPlayer(tempPlayerData);
+        console.log('TEMP: addPlayer result:', addResult);
         player = tempPlayerData;
         console.log('TEMP: Created temporary user successfully with nickname:', finalNickname, 'email:', finalEmail);
+        
+        // Verify player was actually added
+        console.log('TEMP: Verifying player was added to sheet...');
+        const allPlayers = await sheetsService.getPlayers();
+        const addedPlayer = allPlayers.find(p => p.id === userId);
+        if (addedPlayer) {
+          console.log('TEMP: Player verified in sheet:', addedPlayer.nickname);
+        } else {
+          console.error('TEMP: Player NOT found in sheet after adding!');
+        }
       } catch (addPlayerError) {
         console.error('TEMP: Failed to create temporary user:', addPlayerError);
+        console.error('TEMP: Error stack:', addPlayerError.stack);
         throw new Error(`Failed to create temporary user: ${addPlayerError.message}`);
       }
     }
