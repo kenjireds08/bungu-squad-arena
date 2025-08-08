@@ -442,6 +442,11 @@ class SheetsService {
       
       // Map all the player fields to their respective columns
       // FIXED: Use 'player_id' instead of 'id' to match spreadsheet header
+      console.log('DEBUG: Headers mapping:', headers);
+      console.log('DEBUG: tournament_active column index:', idx('tournament_active'));
+      console.log('DEBUG: last_login column index:', idx('last_login'));
+      console.log('DEBUG: playerData.tournament_active:', playerData.tournament_active);
+      
       newRow[idx('player_id')] = playerData.id || `player_${Date.now()}`;
       newRow[idx('nickname')] = playerData.nickname || '';
       newRow[idx('email')] = playerData.email || '';
@@ -467,6 +472,9 @@ class SheetsService {
       newRow[idx('preferred_language')] = playerData.preferred_language || 'ja';
       newRow[idx('tournament_active')] = playerData.tournament_active ? 'TRUE' : 'FALSE';
       newRow[idx('email_verified')] = playerData.email_verified ? 'TRUE' : 'FALSE';
+      
+      console.log('DEBUG: Final newRow array:', newRow);
+      console.log('DEBUG: tournament_active value at index', idx('tournament_active'), ':', newRow[idx('tournament_active')]);
       
       // Add new row to the sheet
       rows.push(newRow);
