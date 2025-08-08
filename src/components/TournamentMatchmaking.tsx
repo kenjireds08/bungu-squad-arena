@@ -260,30 +260,62 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
     try {
       setIsGenerating(true);
       
-      // Save tournament matches to backend
-      const response = await fetch('/api/matches', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action: 'saveTournamentMatches',
-          tournamentId: tournamentId,
-          matches: matches
-        }),
-      });
+      // Check if tournament already has matches (for appending)
+      const existingMatchesResponse = await fetch(`/api/matches?tournamentId=${tournamentId}`);
+      const existingMatches = existingMatchesResponse.ok ? await existingMatchesResponse.json() : [];
+      
+      if (existingMatches.length > 0) {
+        // Append matches to existing tournament
+        const appendPromises = matches.map(async (match) => {
+          const matchData = {
+            player1_id: match.player1?.id,
+            player2_id: match.player2?.id,
+            game_type: match.gameType || 'trump',
+          };
+          
+          return fetch('/api/matches', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'saveTournamentMatches',
+              tournamentId: tournamentId,
+              matches: [matchData],
+            }),
+          });
+        });
+        
+        await Promise.all(appendPromises);
+        
+        toast({ 
+          title: "試合を追加しました",
+          description: `${matches.length}試合を既存の組み合わせに追加しました。`
+        });
+      } else {
+        // Create new tournament matches (original behavior)
+        const response = await fetch('/api/matches', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            action: 'saveTournamentMatches',
+            tournamentId: tournamentId,
+            matches: matches
+          }),
+        });
 
-      if (!response.ok) {
-        throw new Error('Failed to save tournament matches');
+        if (!response.ok) {
+          throw new Error('Failed to save tournament matches');
+        }
+
+        const result = await response.json();
+        console.log('Tournament matches saved:', result);
+
+        toast({ 
+          title: "組み合わせが確定しました",
+          description: `${result.matchCount}試合の組み合わせを保存しました。参加者にプッシュ通知を送信しました。`
+        });
       }
-
-      const result = await response.json();
-      console.log('Tournament matches saved:', result);
-
-      toast({ 
-        title: "組み合わせが確定しました",
-        description: `${result.matchCount}試合の組み合わせを保存しました。参加者にプッシュ通知を送信しました。`
-      });
       
       // Close the matchmaking screen after successful save
       setTimeout(() => {

@@ -259,17 +259,25 @@ export const TournamentMatchesEditor = ({ onClose, tournamentId, tournamentName 
       const result = await response.json();
       console.log('DEBUG: Add match response:', result);
 
-      if (response.ok && result.success !== false) {
+      if (response.ok) {
+        // APIが成功した場合の詳細チェック
+        if (result.success === false) {
+          console.log('DEBUG: API returned success:false:', result);
+          throw new Error(result.message || result.error || 'Failed to add match');
+        }
+        
         console.log('DEBUG: Match added successfully');
         toast({
           title: '追加完了',
           description: '新しい試合を追加しました',
         });
+        
+        // 試合一覧を再読み込み
         await fetchMatches();
         setShowAddMatch(false);
       } else {
-        console.log('DEBUG: Match add failed:', result);
-        throw new Error(result.message || 'Failed to add match');
+        console.log('DEBUG: HTTP error:', response.status, result);
+        throw new Error(result.message || result.error || `HTTP Error: ${response.status}`);
       }
     } catch (error) {
       console.error('Failed to add match:', error);
