@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -698,6 +699,17 @@ const AddMatchDialog = ({ isOpen, onClose, onAdd, activePlayers, isSaving }: {
     game_type: 'trump',
   });
 
+  // Reset form when dialog closes
+  useEffect(() => {
+    if (!isOpen) {
+      setNewMatch({
+        player1_id: '',
+        player2_id: '',
+        game_type: 'trump',
+      });
+    }
+  }, [isOpen]);
+
   const handleAdd = () => {
     console.log('DEBUG: AddMatchDialog handleAdd called', { newMatch, isSaving });
     
@@ -800,12 +812,8 @@ const AddMatchDialog = ({ isOpen, onClose, onAdd, activePlayers, isSaving }: {
           </Button>
           <Button 
             variant="fantasy" 
-            onClick={() => {
-              alert('Button clicked!'); // 緊急デバッグ用
-              console.log('EMERGENCY DEBUG: Button clicked', {isSaving});
-              handleAdd();
-            }} 
-            disabled={false} // 緊急対応: disabled を無効化
+            onClick={handleAdd} 
+            disabled={isSaving}
           >
             {isSaving ? '追加中...' : '追加'}
           </Button>
