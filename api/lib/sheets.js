@@ -1571,6 +1571,28 @@ class SheetsService {
             }
           }
           
+          // Calculate rating change for this player
+          let ratingChange = 0;
+          if (result.player1_rating_change && result.player2_rating_change) {
+            // If both rating changes are available, use the appropriate one
+            if (isReporter) {
+              ratingChange = parseInt(result.player1_rating_change) || 0;
+            } else {
+              ratingChange = parseInt(result.player2_rating_change) || 0;
+            }
+          } else {
+            // Try to get from TournamentMatches sheet if available
+            const tournamentMatch = tournamentMatches.find(tm => tm.match_id === result.match_id);
+            if (tournamentMatch) {
+              const isPlayer1InTournament = tournamentMatch.player1_id === playerId;
+              if (isPlayer1InTournament) {
+                ratingChange = parseInt(tournamentMatch.player1_rating_change) || 0;
+              } else {
+                ratingChange = parseInt(tournamentMatch.player2_rating_change) || 0;
+              }
+            }
+          }
+          
           const matchId = result.match_id || `result_${result.id}`;
           processedMatchIds.add(matchId);
           
@@ -1580,7 +1602,7 @@ class SheetsService {
             opponent: { id: opponentId, name: opponentName },
             game_type: result.game_rule || 'trump',
             result: matchResult,
-            rating_change: 0, // TODO: Calculate from rating history
+            rating_change: ratingChange,
             timestamp: result.reported_at || result.match_end_time || '',
             match_type: result.tournament_id ? 'tournament' : 'casual'
           });
@@ -1598,12 +1620,20 @@ class SheetsService {
             { id: match.player1_id, name: match.player1_name };
           
           let result = 'pending';
+          let ratingChange = 0;
           
           if (match.status === 'completed' && match.winner_id) {
             if (match.winner_id === playerId) {
               result = 'win';
             } else if (match.winner_id === opponent.id) {
               result = 'lose';
+            }
+            
+            // Get rating change from tournament match data
+            if (isPlayer1) {
+              ratingChange = parseInt(match.player1_rating_change) || 0;
+            } else {
+              ratingChange = parseInt(match.player2_rating_change) || 0;
             }
           }
           
@@ -1613,7 +1643,7 @@ class SheetsService {
             opponent: opponent,
             game_type: match.game_type || 'trump',
             result: result,
-            rating_change: 0,
+            rating_change: ratingChange,
             timestamp: match.match_end_time || match.created_at || '',
             match_type: 'tournament'
           });
