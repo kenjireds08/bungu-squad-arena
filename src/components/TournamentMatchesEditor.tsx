@@ -230,12 +230,12 @@ export const TournamentMatchesEditor = ({ onClose, tournamentId, tournamentName 
       setIsSaving(true);
       
       const matchData = {
-        tournament_id: tournamentId,
-        match_number: (matches.length + 1).toString(),
         player1_id: newMatch.player1_id,
         player2_id: newMatch.player2_id,
-        game_type: newMatch.game_type,
+        game_type: newMatch.game_type || 'trump',
       };
+
+      console.log('Adding single match:', matchData);
 
       const response = await fetch('/api/matches', {
         method: 'POST',
@@ -247,7 +247,10 @@ export const TournamentMatchesEditor = ({ onClose, tournamentId, tournamentName 
         }),
       });
 
-      if (response.ok) {
+      const result = await response.json();
+      console.log('Add match response:', result);
+
+      if (response.ok && result.success !== false) {
         toast({
           title: '追加完了',
           description: '新しい試合を追加しました',
@@ -255,13 +258,13 @@ export const TournamentMatchesEditor = ({ onClose, tournamentId, tournamentName 
         await fetchMatches();
         setShowAddMatch(false);
       } else {
-        throw new Error('Failed to add match');
+        throw new Error(result.message || 'Failed to add match');
       }
     } catch (error) {
       console.error('Failed to add match:', error);
       toast({
         title: 'エラー',
-        description: '試合の追加に失敗しました',
+        description: `試合の追加に失敗しました: ${error.message}`,
         variant: 'destructive',
       });
     } finally {
