@@ -1332,6 +1332,60 @@ class SheetsService {
     }
   }
 
+  // Add single tournament match (for appending to existing tournament)
+  async addSingleTournamentMatch(tournamentId, matchData) {
+    try {
+      await this.authenticate();
+      await this.createTournamentMatchesSheet();
+      
+      // Get existing matches to determine next match number
+      const existingMatches = await this.getTournamentMatches(tournamentId);
+      const nextMatchNumber = existingMatches.length + 1;
+      
+      // Generate match ID and prepare row data
+      const matchId = `${tournamentId}_${nextMatchNumber}_${Date.now()}`;
+      const now = new Date().toISOString();
+      
+      const rowData = [
+        matchId,
+        tournamentId,
+        '1', // round
+        matchData.player1_id,
+        matchData.player1_name,
+        matchData.player2_id,
+        matchData.player2_name,
+        matchData.game_type || 'trump',
+        'scheduled',
+        '', // winner_id
+        '', // result_details
+        now, // created_at
+        '', // completed_at
+        '' // approved_at
+      ];
+      
+      // Append to TournamentMatches sheet
+      await this.sheets.spreadsheets.values.append({
+        spreadsheetId: this.spreadsheetId,
+        range: 'TournamentMatches!A:N',
+        valueInputOption: 'RAW',
+        requestBody: {
+          values: [rowData]
+        }
+      });
+      
+      console.log(`Added single match ${matchId} to tournament ${tournamentId}`);
+      
+      return {
+        success: true,
+        matchId: matchId,
+        message: '試合を追加しました'
+      };
+    } catch (error) {
+      console.error('Error adding single tournament match:', error);
+      throw error;
+    }
+  }
+
   async saveTournamentMatches(tournamentId, matches) {
     await this.authenticate();
     const { headers, idx } = await this._getHeaders('TournamentMatches!1:1');
