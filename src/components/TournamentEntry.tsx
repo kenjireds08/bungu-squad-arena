@@ -132,7 +132,7 @@ export const TournamentEntry = () => {
               if (formattedTime) {
                   // Find tournament by date and time (new preferred method)
                   console.log('Searching for tournament with date:', targetDate, 'and time:', formattedTime);
-                  console.log('Available tournaments:', tournaments.map(t => ({
+                  console.log('Available tournaments:', tournaments.map((t: any) => ({
                     date: t.date,
                     start_time: t.start_time,
                     name: t.tournament_name,
@@ -273,24 +273,19 @@ export const TournamentEntry = () => {
           };
         } else {
           console.error('No tournament found for date:', date, 'time:', time);
+          const searchDate = date || new Date().toISOString().split('T')[0];
           console.error('Search parameters:', {
-            targetDate,
+            targetDate: searchDate,
             formattedTime,
             decodedTournamentName,
-            availableTournaments: tournaments.length > 0 ? tournaments.map(t => ({
-              id: t.id,
-              date: t.date,
-              start_time: t.start_time,
-              tournament_name: t.tournament_name,
-              status: t.status
-            })) : 'No tournaments available'
+            availableTournaments: 'No tournaments available'
           });
           // Show error state instead of fallback data
           setIsLoading(false);
           toast({
             variant: "destructive",
             title: "大会が見つかりません",
-            description: `指定された日付・時間の大会が見つかりませんでした。日付: ${targetDate}, 時間: ${formattedTime || 'なし'}`
+            description: `指定された日付・時間の大会が見つかりませんでした。日付: ${searchDate}, 時間: ${formattedTime || 'なし'}`
           });
           return;
         }
@@ -450,11 +445,12 @@ export const TournamentEntry = () => {
       
     } catch (error) {
       console.error('Failed to enter tournament:', error);
+      const localUserId = localStorage.getItem('userId');
       console.error('Error details:', {
-        message: error.message,
-        stack: error.stack,
+        message: (error as Error).message,
+        stack: (error as Error).stack,
         tournament: tournament,
-        userId: userId,
+        userId: localUserId,
         nickname: nickname,
         email: email
       });
