@@ -235,7 +235,7 @@ export const TournamentMatchesEditor = ({ onClose, tournamentId, tournamentName 
         game_type: newMatch.game_type || 'trump',
       };
 
-      console.log('Adding single match:', matchData);
+      console.log('DEBUG: Adding single match:', matchData);
 
       const response = await fetch('/api/matches', {
         method: 'POST',
@@ -248,7 +248,7 @@ export const TournamentMatchesEditor = ({ onClose, tournamentId, tournamentName 
       });
 
       const result = await response.json();
-      console.log('Add match response:', result);
+      console.log('DEBUG: Add match response:', result);
 
       if (response.ok && result.success !== false) {
         toast({
