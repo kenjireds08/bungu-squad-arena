@@ -1,4 +1,5 @@
 const { google } = require('googleapis');
+const RatingCalculator = require('./rating');
 
 // Global memory cache for same instance
 const cache = globalThis.__cache ?? (globalThis.__cache = new Map());
@@ -2140,6 +2141,50 @@ class SheetsService {
     if (idx('status') >= 0) rows[hit][idx('status')] = status;
     if (idx('match_status') >= 0) rows[hit][idx('match_status')] = status;
     if (winnerId && idx('winner_id') >= 0) rows[hit][idx('winner_id')] = winnerId;
+    
+    // Calculate rating changes when match is completed with a winner
+    if (winnerId && (status === 'completed' || status === 'approved')) {
+      const player1Id = rows[hit][idx('player1_id')] || '';
+      const player2Id = rows[hit][idx('player2_id')] || '';
+      const loserId = winnerId === player1Id ? player2Id : player1Id;
+      
+      // Get current ratings
+      const [winner, loser] = await Promise.all([
+        this.getPlayer(winnerId),
+        this.getPlayer(loserId)
+      ]);
+      
+      if (winner && loser) {
+        const ratingCalculator = new RatingCalculator();
+        const ratingResult = ratingCalculator.calculateBothPlayersRating(
+          winner.current_rating || 1200,
+          loser.current_rating || 1200
+        );
+        
+        // Update rating changes in the match record
+        if (winnerId === player1Id) {
+          if (idx('player1_rating_before') >= 0) rows[hit][idx('player1_rating_before')] = winner.current_rating || 1200;
+          if (idx('player2_rating_before') >= 0) rows[hit][idx('player2_rating_before')] = loser.current_rating || 1200;
+          if (idx('player1_rating_after') >= 0) rows[hit][idx('player1_rating_after')] = ratingResult.winner.newRating;
+          if (idx('player2_rating_after') >= 0) rows[hit][idx('player2_rating_after')] = ratingResult.loser.newRating;
+          if (idx('player1_rating_change') >= 0) rows[hit][idx('player1_rating_change')] = ratingResult.winner.ratingChange;
+          if (idx('player2_rating_change') >= 0) rows[hit][idx('player2_rating_change')] = ratingResult.loser.ratingChange;
+        } else {
+          if (idx('player1_rating_before') >= 0) rows[hit][idx('player1_rating_before')] = loser.current_rating || 1200;
+          if (idx('player2_rating_before') >= 0) rows[hit][idx('player2_rating_before')] = winner.current_rating || 1200;
+          if (idx('player1_rating_after') >= 0) rows[hit][idx('player1_rating_after')] = ratingResult.loser.newRating;
+          if (idx('player2_rating_after') >= 0) rows[hit][idx('player2_rating_after')] = ratingResult.winner.newRating;
+          if (idx('player1_rating_change') >= 0) rows[hit][idx('player1_rating_change')] = ratingResult.loser.ratingChange;
+          if (idx('player2_rating_change') >= 0) rows[hit][idx('player2_rating_change')] = ratingResult.winner.ratingChange;
+        }
+        
+        // Update player ratings
+        await this.updatePlayerRating(winnerId, ratingResult.winner.newRating);
+        await this.updatePlayerRating(loserId, ratingResult.loser.newRating);
+        
+        console.log(`Rating updated: ${winnerId} ${ratingResult.winner.ratingChange > 0 ? '+' : ''}${ratingResult.winner.ratingChange}, ${loserId} ${ratingResult.loser.ratingChange}`);
+      }
+    }
     
     // 試合完了時の日時フィールドを更新
     if (status === 'completed' || status === 'approved') {
