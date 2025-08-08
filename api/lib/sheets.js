@@ -1338,38 +1338,58 @@ class SheetsService {
       await this.authenticate();
       await this.createTournamentMatchesSheet();
       
+      // Get headers to ensure proper field mapping
+      const { headers, idx } = await this._getHeaders('TournamentMatches!1:1');
+      
       // Get existing matches to determine next match number
       const existingMatches = await this.getTournamentMatches(tournamentId);
       const nextMatchNumber = existingMatches.length + 1;
       
       // Generate match ID and prepare row data
-      const matchId = `${tournamentId}_${nextMatchNumber}_${Date.now()}`;
+      const matchId = `${tournamentId}_match_${nextMatchNumber}_${Date.now()}`;
       const now = new Date().toISOString();
       
-      const rowData = [
-        matchId,
-        tournamentId,
-        '1', // round
-        matchData.player1_id,
-        matchData.player1_name,
-        matchData.player2_id,
-        matchData.player2_name,
-        matchData.game_type || 'trump',
-        'scheduled',
-        '', // winner_id
-        '', // result_details
-        now, // created_at
-        '', // completed_at
-        '' // approved_at
-      ];
+      // Create row data matching new header format
+      const row = new Array(headers.length).fill('');
+      
+      // Helper function for safe field setting
+      const setField = (fieldName, value) => {
+        const i = idx(fieldName);
+        if (i >= 0) row[i] = value;
+      };
+
+      setField('match_id', matchId);
+      setField('tournament_id', tournamentId);
+      setField('player1_id', matchData.player1_id);
+      setField('player2_id', matchData.player2_id);
+      setField('table_number', '');
+      setField('match_status', 'scheduled');
+      setField('game_type', matchData.game_type || 'trump');
+      setField('created_at', now);
+      setField('winner_id', '');
+      setField('loser_id', '');
+      setField('match_start_time', '');
+      setField('match_end_time', '');
+      setField('reported_by', '');
+      setField('reported_at', '');
+      setField('approved_by', '');
+      setField('approved_at', '');
+      setField('player1_rating_before', '');
+      setField('player2_rating_before', '');
+      setField('player1_rating_after', '');
+      setField('player2_rating_after', '');
+      setField('player1_rating_change', '');
+      setField('player2_rating_change', '');
+      setField('notes', '');
+      setField('created_by', 'admin');
       
       // Append to TournamentMatches sheet
       await this.sheets.spreadsheets.values.append({
         spreadsheetId: this.spreadsheetId,
-        range: 'TournamentMatches!A:N',
-        valueInputOption: 'RAW',
+        range: 'TournamentMatches!A:X',
+        valueInputOption: 'USER_ENTERED',
         requestBody: {
-          values: [rowData]
+          values: [row]
         }
       });
       
@@ -1394,13 +1414,8 @@ class SheetsService {
       // Ensure tournament matches sheet exists
       await this.createTournamentMatchesSheet();
       
-      // Try to delete existing matches for this tournament
-      try {
-        await this.deleteTournamentMatches(tournamentId);
-        console.log(`Existing matches deleted for tournament ${tournamentId}`);
-      } catch (deleteError) {
-        console.warn(`Failed to delete existing matches for ${tournamentId}, continuing with append:`, deleteError.message);
-      }
+      // Skip deletion - append new matches to existing ones
+      console.log(`Appending new matches to existing tournament ${tournamentId} matches`);
       
       const timestamp = new Date().toISOString();
       const values = matches.map((match, index) => {
@@ -1411,20 +1426,33 @@ class SheetsService {
         set('tournament_id', tournamentId);
         set('player1_id', match.player1.id);
         set('player2_id', match.player2.id);
+        set('table_number', '');
+        set('match_status', 'scheduled'); // Use correct field name
         set('game_type', match.gameType);
-        set('status', 'scheduled');
-        set('match_status', 'scheduled');
         set('created_at', timestamp);
-        // Set table_number as the match number for display purposes
-        if (idx('table_number') >= 0) set('table_number', `match_${index + 1}`);
-        if (idx('round') >= 0) set('round', 'player_00');
+        set('winner_id', '');
+        set('loser_id', '');
+        set('match_start_time', '');
+        set('match_end_time', '');
+        set('reported_by', '');
+        set('reported_at', '');
+        set('approved_by', '');
+        set('approved_at', '');
+        set('player1_rating_before', '');
+        set('player2_rating_before', '');
+        set('player1_rating_after', '');
+        set('player2_rating_after', '');
+        set('player1_rating_change', '');
+        set('player2_rating_change', '');
+        set('notes', '');
+        set('created_by', 'admin');
 
         return row;
       });
 
       await this.sheets.spreadsheets.values.append({
         spreadsheetId: this.spreadsheetId,
-        range: 'TournamentMatches!A:Z',
+        range: 'TournamentMatches!A:X',
         valueInputOption: 'USER_ENTERED',
         requestBody: { values }
       });
