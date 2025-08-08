@@ -802,10 +802,10 @@ const AddMatchDialog = ({ isOpen, onClose, onAdd, activePlayers, isSaving }: {
             variant="fantasy" 
             onClick={() => {
               alert('Button clicked!'); // 緊急デバッグ用
-              console.log('EMERGENCY DEBUG: Button clicked');
+              console.log('EMERGENCY DEBUG: Button clicked', {isSaving});
               handleAdd();
             }} 
-            disabled={isSaving}
+            disabled={false} // 緊急対応: disabled を無効化
           >
             {isSaving ? '追加中...' : '追加'}
           </Button>
