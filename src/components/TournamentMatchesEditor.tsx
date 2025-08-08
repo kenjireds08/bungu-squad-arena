@@ -798,7 +798,15 @@ const AddMatchDialog = ({ isOpen, onClose, onAdd, activePlayers, isSaving }: {
           <Button variant="outline" onClick={onClose}>
             キャンセル
           </Button>
-          <Button variant="fantasy" onClick={handleAdd} disabled={isSaving}>
+          <Button 
+            variant="fantasy" 
+            onClick={() => {
+              alert('Button clicked!'); // 緊急デバッグ用
+              console.log('EMERGENCY DEBUG: Button clicked');
+              handleAdd();
+            }} 
+            disabled={isSaving}
+          >
             {isSaving ? '追加中...' : '追加'}
           </Button>
         </DialogFooter>
