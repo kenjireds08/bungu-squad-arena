@@ -79,6 +79,20 @@ module.exports = async function handler(req, res) {
           return res.status(200).json(pendingResults);
         }
         
+        // Debug endpoint to check rating data in TournamentMatches
+        if (getAction === 'debugRatings') {
+          const matches = await sheetsService.getTournamentMatches(null);
+          const matchesWithRatings = matches.filter(m => 
+            m.player1_rating_change || m.player2_rating_change
+          );
+          return res.status(200).json({
+            totalMatches: matches.length,
+            matchesWithRatings: matchesWithRatings.length,
+            sampleData: matchesWithRatings.slice(0, 3),
+            allMatches: matches.slice(0, 5) // First 5 for debugging
+          });
+        }
+        
         // Check cache first
         const now = Date.now();
         const cache = globalThis.matchesCache;
@@ -246,6 +260,31 @@ module.exports = async function handler(req, res) {
           return res.status(200).json({
             success: true,
             message: '試合が開始されました'
+          });
+        } else if (action === 'recalculateRatings') {
+          // Recalculate ratings for existing matches
+          const matches = await sheetsService.getTournamentMatches(null);
+          const completedMatches = matches.filter(m => m.winner_id && m.winner_id.trim());
+          
+          console.log(`Found ${completedMatches.length} completed matches to recalculate`);
+          
+          let updatedCount = 0;
+          for (const match of completedMatches) {
+            try {
+              // Trigger rating calculation by updating the match status
+              await sheetsService.updateMatchStatus(match.match_id, 'approved', match.winner_id);
+              updatedCount++;
+              console.log(`Updated ratings for match ${match.match_id}`);
+            } catch (error) {
+              console.warn(`Failed to update match ${match.match_id}:`, error.message);
+            }
+          }
+          
+          return res.status(200).json({
+            success: true,
+            message: `Rating recalculation completed for ${updatedCount} matches`,
+            totalMatches: completedMatches.length,
+            updated: updatedCount
           });
         } else if (action === 'adminDirectInput') {
           // 管理者が直接試合結果を入力・承認（matchResults.jsから移植）
