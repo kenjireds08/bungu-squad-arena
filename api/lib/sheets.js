@@ -1507,7 +1507,9 @@ class SheetsService {
           match_end_time:   r[idx('match_end_time')] || '',
           reported_at:      r[idx('reported_at')] || '',
           approved_by:      r[idx('approved_by')] || '',
-          approved_at:      r[idx('approved_at')] || ''
+          approved_at:      r[idx('approved_at')] || '',
+          player1_rating_change: r[idx('player1_rating_change')] || '',
+          player2_rating_change: r[idx('player2_rating_change')] || ''
         });
       }
       return out;
@@ -1574,6 +1576,12 @@ class SheetsService {
           
           // Calculate rating change for this player
           let ratingChange = 0;
+          console.log(`DEBUG: MatchResults data for ${playerId}:`, {
+            player1_rating_change: result.player1_rating_change,
+            player2_rating_change: result.player2_rating_change,
+            isReporter
+          });
+          
           if (result.player1_rating_change && result.player2_rating_change) {
             // If both rating changes are available, use the appropriate one
             if (isReporter) {
@@ -1581,6 +1589,7 @@ class SheetsService {
             } else {
               ratingChange = parseInt(result.player2_rating_change) || 0;
             }
+            console.log(`DEBUG: Using MatchResults rating change:`, ratingChange);
           } else {
             // Try to get from TournamentMatches sheet if available
             const tournamentMatch = tournamentMatches.find(tm => tm.match_id === result.match_id);
@@ -1588,9 +1597,13 @@ class SheetsService {
               const isPlayer1InTournament = tournamentMatch.player1_id === playerId;
               if (isPlayer1InTournament) {
                 ratingChange = parseInt(tournamentMatch.player1_rating_change) || 0;
+                console.log(`DEBUG: Using TournamentMatches player1 rating change:`, tournamentMatch.player1_rating_change, '→', ratingChange);
               } else {
                 ratingChange = parseInt(tournamentMatch.player2_rating_change) || 0;
+                console.log(`DEBUG: Using TournamentMatches player2 rating change:`, tournamentMatch.player2_rating_change, '→', ratingChange);
               }
+            } else {
+              console.log(`DEBUG: No tournament match found for match_id:`, result.match_id);
             }
           }
           
@@ -1611,9 +1624,19 @@ class SheetsService {
       }
       
       // Priority 2: Add tournament matches not yet in MatchResults (scheduled/pending matches)
+      console.log(`DEBUG: Processing ${tournamentMatches.length} tournament matches for player ${playerId}`);
       for (const match of tournamentMatches) {
         if ((match.player1_id === playerId || match.player2_id === playerId) && 
             !processedMatchIds.has(match.match_id)) {
+          
+          console.log(`DEBUG: Processing tournament match:`, {
+            match_id: match.match_id,
+            player1_id: match.player1_id,
+            player2_id: match.player2_id,
+            winner_id: match.winner_id,
+            player1_rating_change: match.player1_rating_change,
+            player2_rating_change: match.player2_rating_change
+          });
           
           const isPlayer1 = match.player1_id === playerId;
           const opponent = isPlayer1 ? 
@@ -1634,8 +1657,10 @@ class SheetsService {
             // Get rating change from tournament match data
             if (isPlayer1) {
               ratingChange = parseInt(match.player1_rating_change) || 0;
+              console.log(`DEBUG: Player1 rating change for ${playerId}:`, match.player1_rating_change, '→', ratingChange);
             } else {
               ratingChange = parseInt(match.player2_rating_change) || 0;
+              console.log(`DEBUG: Player2 rating change for ${playerId}:`, match.player2_rating_change, '→', ratingChange);
             }
           }
           
