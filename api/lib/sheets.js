@@ -1579,39 +1579,35 @@ class SheetsService {
       
       // Add historical matches from MatchResults sheet
       for (const result of matchResults) {
-        if (result.player1_id === playerId || result.player2_id === playerId) {
-          const isPlayer1 = result.player1_id === playerId;
-          const opponent = isPlayer1 ? 
-            { id: result.player2_id, name: result.player2_name || 'Unknown' } : 
-            { id: result.player1_id, name: result.player1_name || 'Unknown' };
+        if (result.player_id === playerId || result.opponent_id === playerId) {
+          const isReporter = result.player_id === playerId;
+          const opponentId = isReporter ? result.opponent_id : result.player_id;
+          
+          // Get opponent name from players data
+          const players = await this.getPlayers();
+          const opponent = players.find(p => p.id === opponentId);
+          const opponentName = opponent?.nickname || 'Unknown';
           
           let matchResult = 'unknown';
-          let ratingChange = 0;
           
           if (result.result) {
-            if (result.result === 'win' && isPlayer1) {
-              matchResult = 'win';
-              ratingChange = result.player1_rating_change || 0;
-            } else if (result.result === 'win' && !isPlayer1) {
-              matchResult = 'lose';
-              ratingChange = result.player2_rating_change || 0;
-            } else if (result.result === 'loss' && isPlayer1) {
-              matchResult = 'lose';
-              ratingChange = result.player1_rating_change || 0;
-            } else if (result.result === 'loss' && !isPlayer1) {
-              matchResult = 'win';
-              ratingChange = result.player2_rating_change || 0;
+            if (isReporter) {
+              // Current user reported this result
+              matchResult = result.result; // 'win' or 'loss'
+            } else {
+              // Opponent reported this result, so invert
+              matchResult = result.result === 'win' ? 'lose' : 'win';
             }
           }
           
           playerHistory.push({
             match_id: result.match_id || `result_${result.id}`,
             tournament_id: result.tournament_id || null,
-            opponent: opponent,
-            game_type: result.game_type || 'trump',
+            opponent: { id: opponentId, name: opponentName },
+            game_type: result.game_rule || 'trump',
             result: matchResult,
-            rating_change: ratingChange,
-            timestamp: result.created_at || '',
+            rating_change: 0, // TODO: Calculate from rating history
+            timestamp: result.reported_at || result.match_end_time || '',
             match_type: result.tournament_id ? 'tournament' : 'casual'
           });
         }
@@ -1673,19 +1669,25 @@ class SheetsService {
       const results = [];
       for (let i = 1; i < rows.length; i++) {
         const r = rows[i];
+        // Use correct field names from MatchResults sheet
+        const playerId = r[idx('player_id')] || '';
+        const opponentId = r[idx('opponent_id')] || '';
+        const result = r[idx('result')] || '';
+        
         results.push({
-          id: r[idx('id')] || `result_${i}`,
+          id: r[idx('result_id')] || `result_${i}`,
           match_id: r[idx('match_id')] || '',
           tournament_id: r[idx('tournament_id')] || '',
-          player1_id: r[idx('player1_id')] || '',
-          player1_name: r[idx('player1_name')] || '',
-          player2_id: r[idx('player2_id')] || '',
-          player2_name: r[idx('player2_name')] || '',
-          result: r[idx('result')] || '',
-          game_type: r[idx('game_type')] || 'trump',
-          player1_rating_change: parseInt(r[idx('player1_rating_change')] || '0'),
-          player2_rating_change: parseInt(r[idx('player2_rating_change')] || '0'),
-          created_at: r[idx('created_at')] || ''
+          player_id: playerId,
+          opponent_id: opponentId,
+          result: result,
+          game_rule: r[idx('game_rule')] || 'trump',
+          match_start_time: r[idx('match_start_time')] || '',
+          match_end_time: r[idx('match_end_time')] || '',
+          reported_by: r[idx('reported_by')] || '',
+          reported_at: r[idx('reported_at')] || '',
+          approved_by: r[idx('approved_by')] || '',
+          approved_at: r[idx('approved_at')] || ''
         });
       }
       return results;
