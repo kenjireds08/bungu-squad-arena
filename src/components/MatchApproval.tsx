@@ -23,11 +23,7 @@ interface PendingMatch {
   opponentName: string;
 }
 
-interface MatchApprovalProps {
-  onBack?: () => void;
-}
-
-export const MatchApproval = ({ onBack }: MatchApprovalProps = {}) => {
+export const MatchApproval = () => {
   const [selectedMatch, setSelectedMatch] = useState<PendingMatch | null>(null);
   const [isApproving, setIsApproving] = useState(false);
   const { data: pendingMatches, isLoading, error, refetch } = usePendingMatchResults();

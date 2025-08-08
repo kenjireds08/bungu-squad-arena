@@ -5,5 +5,5 @@ interface AdminApprovalsProps {
 }
 
 export const AdminApprovals = ({ onBack }: AdminApprovalsProps) => {
-  return <MatchApproval onBack={onBack} />;
+  return <MatchApproval />;
 };

@@ -43,8 +43,19 @@ interface TournamentMatchesViewProps {
 }
 
 export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: TournamentMatchesViewProps) => {
-  // ... keep existing code
-  return null; // Placeholder
+  // Placeholder implementation - this component needs to be properly implemented
+  return (
+    <div className="min-h-screen bg-gradient-parchment">
+      <div className="container mx-auto px-4 py-6">
+        <div className="text-center">
+          <h1>Tournament Matches View</h1>
+          <p>Tournament ID: {tournamentId}</p>
+          <p>User ID: {currentUserId}</p>
+          <button onClick={onClose}>Close</button>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export const TournamentMatchesEditor = ({ onClose, tournamentId, tournamentName }: TournamentMatchesEditorProps) => {
