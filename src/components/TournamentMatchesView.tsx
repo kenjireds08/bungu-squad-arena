@@ -43,17 +43,144 @@ interface TournamentMatchesViewProps {
 }
 
 export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: TournamentMatchesViewProps) => {
-  // Placeholder implementation - this component needs to be properly implemented
-  return (
-    <div className="min-h-screen bg-gradient-parchment">
-      <div className="container mx-auto px-4 py-6">
-        <div className="text-center">
-          <h1>Tournament Matches View</h1>
-          <p>Tournament ID: {tournamentId}</p>
-          <p>User ID: {currentUserId}</p>
-          <button onClick={onClose}>Close</button>
+  const [matches, setMatches] = useState<Match[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { data: players } = useRankings();
+
+  // Get player matches
+  useEffect(() => {
+    const fetchMatches = async () => {
+      try {
+        setIsLoading(true);
+        const response = await fetch(`/api/matches?tournamentId=${tournamentId}`);
+        if (response.ok) {
+          const data = await response.json();
+          // Filter matches for current user
+          const userMatches = data.filter((match: Match) => 
+            match.player1_id === currentUserId || match.player2_id === currentUserId
+          );
+          setMatches(userMatches);
+        }
+      } catch (error) {
+        console.error('Failed to fetch matches:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchMatches();
+  }, [tournamentId, currentUserId]);
+
+  const getOpponentInfo = (match: Match) => {
+    const isPlayer1 = match.player1_id === currentUserId;
+    return {
+      id: isPlayer1 ? match.player2_id : match.player1_id,
+      name: isPlayer1 ? match.player2_name : match.player1_name
+    };
+  };
+
+  const getMatchResult = (match: Match) => {
+    if (!match.winner_id) return null;
+    return match.winner_id === currentUserId ? 'win' : 'lose';
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'scheduled': return 'bg-muted text-muted-foreground';
+      case 'in_progress': return 'bg-info text-info-foreground';
+      case 'completed': return 'bg-warning text-warning-foreground';
+      case 'approved': return 'bg-success text-success-foreground';
+      default: return 'bg-muted text-muted-foreground';
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'scheduled': return '待機中';
+      case 'in_progress': return '対戦中';
+      case 'completed': return '結果報告済';
+      case 'approved': return '完了';
+      default: return '不明';
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-parchment flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="text-muted-foreground">試合データを読み込み中...</p>
         </div>
       </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-parchment">
+      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-fantasy-frame shadow-soft">
+        <div className="container mx-auto px-4 py-3">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={onClose}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div className="flex items-center gap-2">
+              <Users className="h-6 w-6 text-primary" />
+              <h1 className="text-xl font-bold text-foreground">あなたの試合</h1>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main className="container mx-auto px-4 py-6 space-y-6">
+        {matches.length === 0 ? (
+          <Card className="border-fantasy-frame shadow-soft">
+            <CardContent className="p-8 text-center">
+              <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+              <p className="text-muted-foreground mb-4">この大会での試合はありません</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-3">
+            {matches.map((match) => {
+              const opponent = getOpponentInfo(match);
+              const result = getMatchResult(match);
+              
+              return (
+                <Card key={match.match_id} className="border-fantasy-frame shadow-soft">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="space-y-1">
+                        <h3 className="font-semibold text-foreground">
+                          vs {opponent.name}
+                        </h3>
+                        <div className="flex items-center gap-2">
+                          <Badge className={getStatusColor(match.status)}>
+                            {getStatusText(match.status)}
+                          </Badge>
+                          <span className="text-sm text-muted-foreground">
+                            {match.game_type === 'trump' ? '♠️ トランプ' : '➕ カード+'}
+                          </span>
+                        </div>
+                      </div>
+                      {result && (
+                        <Badge variant={result === 'win' ? 'default' : 'destructive'}>
+                          {result === 'win' ? '勝利' : '敗北'}
+                        </Badge>
+                      )}
+                    </div>
+                    
+                    {match.created_at && (
+                      <p className="text-xs text-muted-foreground">
+                        作成: {new Date(match.created_at).toLocaleString('ja-JP')}
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </main>
     </div>
   );
 };
