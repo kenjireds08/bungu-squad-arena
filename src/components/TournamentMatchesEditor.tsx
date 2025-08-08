@@ -226,8 +226,16 @@ export const TournamentMatchesEditor = ({ onClose, tournamentId, tournamentName 
   };
 
   const handleAddMatch = async (newMatch: Partial<Match>) => {
+    console.log('DEBUG: handleAddMatch called', { isSaving, newMatch });
+    
+    if (isSaving) {
+      console.log('DEBUG: Already saving, returning');
+      return;
+    }
+
     try {
       setIsSaving(true);
+      console.log('DEBUG: setIsSaving(true) called');
       
       const matchData = {
         player1_id: newMatch.player1_id,
@@ -251,6 +259,7 @@ export const TournamentMatchesEditor = ({ onClose, tournamentId, tournamentName 
       console.log('DEBUG: Add match response:', result);
 
       if (response.ok && result.success !== false) {
+        console.log('DEBUG: Match added successfully');
         toast({
           title: '追加完了',
           description: '新しい試合を追加しました',
@@ -258,6 +267,7 @@ export const TournamentMatchesEditor = ({ onClose, tournamentId, tournamentName 
         await fetchMatches();
         setShowAddMatch(false);
       } else {
+        console.log('DEBUG: Match add failed:', result);
         throw new Error(result.message || 'Failed to add match');
       }
     } catch (error) {
@@ -268,6 +278,7 @@ export const TournamentMatchesEditor = ({ onClose, tournamentId, tournamentName 
         variant: 'destructive',
       });
     } finally {
+      console.log('DEBUG: setIsSaving(false) called in finally');
       setIsSaving(false);
     }
   };
@@ -688,6 +699,8 @@ const AddMatchDialog = ({ isOpen, onClose, onAdd, activePlayers, isSaving }: {
   });
 
   const handleAdd = () => {
+    console.log('DEBUG: AddMatchDialog handleAdd called', { newMatch, isSaving });
+    
     if (!newMatch.player1_id || !newMatch.player2_id) {
       toast({
         title: 'エラー',
@@ -706,6 +719,7 @@ const AddMatchDialog = ({ isOpen, onClose, onAdd, activePlayers, isSaving }: {
       return;
     }
 
+    console.log('DEBUG: About to call onAdd with:', newMatch);
     onAdd(newMatch);
   };
 
