@@ -1622,7 +1622,8 @@ class SheetsService {
           let result = 'pending';
           let ratingChange = 0;
           
-          if (match.status === 'completed' && match.winner_id) {
+          // Check if match has a winner (regardless of status)
+          if (match.winner_id) {
             if (match.winner_id === playerId) {
               result = 'win';
             } else if (match.winner_id === opponent.id) {

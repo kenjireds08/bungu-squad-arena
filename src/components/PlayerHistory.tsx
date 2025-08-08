@@ -80,11 +80,25 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
           // Count user's matches in this tournament
           const tournamentMatches = userMatches.filter(m => m.tournament_id === tournament.id);
           
+          // Use current_participants from tournament data, fallback to calculating from matches
+          let actualParticipants = tournament.current_participants || 0;
+          
+          // If no current_participants data, try to estimate from user matches (limited view)
+          if (actualParticipants === 0) {
+            const tournamentUserMatches = userMatches.filter(m => m.tournament_id === tournament.id);
+            const participantSet = new Set();
+            tournamentUserMatches.forEach((match: any) => {
+              participantSet.add(match.player1_id);
+              participantSet.add(match.player2_id);
+            });
+            actualParticipants = participantSet.size;
+          }
+          
           return {
             archive_id: tournament.id,
             tournament_date: tournament.date,
             tournament_name: tournament.tournament_name || tournament.name || 'BUNGU SQUAD大会',
-            total_participants_that_day: tournament.max_participants || 0, // Use max_participants instead
+            total_participants_that_day: actualParticipants || tournament.current_participants || 0,
             entry_timestamp: tournament.created_at || tournament.date,
             matches_count: tournamentMatches.length
           };
