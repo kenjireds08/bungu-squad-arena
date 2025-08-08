@@ -2,95 +2,70 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { ArrowLeft, Edit, Trash2, Plus, Save, Users, Spade, Plus as PlusIcon, AlertCircle, RefreshCw, XCircle } from 'lucide-react';
-import { useRankings } from '@/hooks/useApi';
+import { ArrowLeft, Trophy, Medal, Award, Users } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 
-interface TournamentMatchesEditorProps {
+interface Tournament {
+  id: string;
+  name: string;
+  date: string;
+  status: string;
+}
+
+interface TournamentResultsViewProps {
   onClose: () => void;
-  tournamentId: string;
-  tournamentName: string;
+  tournament: Tournament;
 }
 
 interface Match {
   match_id: string;
-  tournament_id: string;
-  match_number: string;
-  player1_id: string;
   player1_name: string;
-  player2_id: string;
   player2_name: string;
-  game_type: 'trump' | 'cardplus';
-  status: 'scheduled' | 'in_progress' | 'completed' | 'approved' | 'cancelled' | 'invalid';
   winner_id: string;
-  result_details: string;
-  created_at: string;
-  completed_at: string;
-  approved_at: string;
-  winner_rating_change?: number;
-  loser_rating_change?: number;
+  player1_id: string;
+  player2_id: string;
+  status: string;
+  game_type: string;
 }
 
-export const TournamentMatchesEditor = ({ onClose, tournamentId, tournamentName }: TournamentMatchesEditorProps) => {
+interface PlayerResult {
+  player_id: string;
+  player_name: string;
+  wins: number;
+  losses: number;
+  total_matches: number;
+  win_rate: number;
+  final_rating: number;
+  rating_change: number;
+}
+
+export const TournamentResultsView = ({ onClose, tournament }: TournamentResultsViewProps) => {
   const [matches, setMatches] = useState<Match[]>([]);
+  const [playerResults, setPlayerResults] = useState<PlayerResult[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [editingMatch, setEditingMatch] = useState<Match | null>(null);
-  const [showAddMatch, setShowAddMatch] = useState(false);
-  const [deleteMatchId, setDeleteMatchId] = useState<string | null>(null);
-  const [cancelMatchId, setCancelMatchId] = useState<string | null>(null);
-  const [ratingChanges, setRatingChanges] = useState<Map<string, {winner_rating_change: number, loser_rating_change: number}>>(new Map());
-  const { data: players } = useRankings();
-  
-  // Get active players for dropdowns
-  const activePlayers = players?.filter(p => p.tournament_active) || [];
 
-  // Fetch rating changes for completed matches
-  const fetchRatingChanges = async (matchList: Match[]) => {
-    const newRatingChanges = new Map();
-    
-    for (const match of matchList) {
-      if (match.status === 'approved' || match.status === 'completed') {
-        try {
-          // Rating history API temporarily disabled to prevent rate limit
-          console.log('Rating history fetch disabled for match:', match.match_id);
-          
-          // Set default rating changes (temporary measure)
-          newRatingChanges.set(match.match_id, {
-            winner_rating_change: 0,
-            loser_rating_change: 0
-          });
-        } catch (error) {
-          console.warn(`Rating history disabled for ${match.match_id}:`, error);
-        }
-      }
-    }
-    
-    setRatingChanges(newRatingChanges);
-  };
+  useEffect(() => {
+    fetchTournamentResults();
+  }, [tournament.id]);
 
-  // Fetch current matches
-  const fetchMatches = async () => {
+  const fetchTournamentResults = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(`/api/matches?tournamentId=${tournamentId}`);
-      if (response.ok) {
-        const data = await response.json();
-        setMatches(data);
+      
+      // Fetch tournament matches
+      const matchesResponse = await fetch(`/api/matches?tournamentId=${tournament.id}`);
+      if (matchesResponse.ok) {
+        const matchesData = await matchesResponse.json();
+        setMatches(matchesData);
         
-        // Fetch rating changes for completed matches
-        await fetchRatingChanges(data);
+        // Calculate player results
+        calculatePlayerResults(matchesData);
       }
     } catch (error) {
-      console.error('Failed to fetch matches:', error);
+      console.error('Failed to fetch tournament results:', error);
       toast({
         title: 'エラー',
-        description: '組み合わせの読み込みに失敗しました',
+        description: '大会結果の読み込みに失敗しました',
         variant: 'destructive',
       });
     } finally {
@@ -98,244 +73,92 @@ export const TournamentMatchesEditor = ({ onClose, tournamentId, tournamentName 
     }
   };
 
-  useEffect(() => {
-    fetchMatches();
-  }, [tournamentId]);
-
-  const handleEditMatch = (match: Match) => {
-    setEditingMatch(match);
-  };
-
-  const handleSaveMatch = async () => {
-    if (!editingMatch) return;
-
-    try {
-      setIsSaving(true);
-      
-      const updateData: any = {
-        player1_id: editingMatch.player1_id,
-        player2_id: editingMatch.player2_id,
-        game_type: editingMatch.game_type,
-      };
-
-      // Add winner information if this is a completed match
-      if (editingMatch.status === 'completed' || editingMatch.status === 'approved') {
-        if (editingMatch.winner_id === 'invalid') {
-          updateData.status = 'invalid';
-          updateData.winner_id = '';
-        } else if (editingMatch.winner_id) {
-          updateData.winner_id = editingMatch.winner_id;
-          updateData.status = 'completed';
-        }
-      }
-      
-      const response = await fetch(`/api/matches?matchId=${editingMatch.match_id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updateData),
-      });
-
-      if (response.ok) {
-        toast({
-          title: '保存完了',
-          description: '試合情報を更新しました',
-        });
-        await fetchMatches();
-        setEditingMatch(null);
-      } else {
-        throw new Error('Failed to save match');
-      }
-    } catch (error) {
-      console.error('Failed to save match:', error);
-      toast({
-        title: 'エラー',
-        description: '試合情報の保存に失敗しました',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleDeleteMatch = async () => {
-    if (!deleteMatchId) return;
-
-    try {
-      setIsSaving(true);
-      
-      const response = await fetch(`/api/matches?matchId=${deleteMatchId}`, {
-        method: 'DELETE',
-      });
-
-      if (response.ok) {
-        toast({
-          title: '削除完了',
-          description: '試合を削除しました',
-        });
-        await fetchMatches();
-        setDeleteMatchId(null);
-      } else {
-        throw new Error('Failed to delete match');
-      }
-    } catch (error) {
-      console.error('Failed to delete match:', error);
-      toast({
-        title: 'エラー',
-        description: '試合の削除に失敗しました',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleCancelMatch = async () => {
-    if (!cancelMatchId) return;
-
-    try {
-      setIsSaving(true);
-      
-      const response = await fetch(`/api/matches?matchId=${cancelMatchId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          status: 'cancelled'
-        }),
-      });
-
-      if (response.ok) {
-        toast({
-          title: 'キャンセル完了',
-          description: '試合をキャンセルしました',
-        });
-        await fetchMatches();
-        setCancelMatchId(null);
-      } else {
-        throw new Error('Failed to cancel match');
-      }
-    } catch (error) {
-      console.error('Failed to cancel match:', error);
-      toast({
-        title: 'エラー',
-        description: '試合のキャンセルに失敗しました',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleAddMatch = async (newMatch: Partial<Match>) => {
-    console.log('DEBUG: handleAddMatch called', { isSaving, newMatch });
+  const calculatePlayerResults = (matchesData: Match[]) => {
+    const playerStats: { [key: string]: PlayerResult } = {};
     
-    if (isSaving) {
-      console.log('DEBUG: Already saving, returning');
-      return;
-    }
-
-    try {
-      setIsSaving(true);
-      console.log('DEBUG: setIsSaving(true) called');
-      
-      const matchData = {
-        player1_id: newMatch.player1_id,
-        player2_id: newMatch.player2_id,
-        game_type: newMatch.game_type || 'trump',
-      };
-
-      console.log('DEBUG: Adding single match:', matchData);
-
-      const response = await fetch('/api/matches', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'saveTournamentMatches',
-          tournamentId: tournamentId,
-          matches: [matchData],
-        }),
+    // Process each completed match
+    matchesData
+      .filter(match => match.status === 'approved' && match.winner_id)
+      .forEach(match => {
+        const { player1_id, player1_name, player2_id, player2_name, winner_id } = match;
+        
+        // Initialize player stats if not exists
+        if (!playerStats[player1_id]) {
+          playerStats[player1_id] = {
+            player_id: player1_id,
+            player_name: player1_name,
+            wins: 0,
+            losses: 0,
+            total_matches: 0,
+            win_rate: 0,
+            final_rating: 1200, // Default rating
+            rating_change: 0
+          };
+        }
+        
+        if (!playerStats[player2_id]) {
+          playerStats[player2_id] = {
+            player_id: player2_id,
+            player_name: player2_name,
+            wins: 0,
+            losses: 0,
+            total_matches: 0,
+            win_rate: 0,
+            final_rating: 1200, // Default rating
+            rating_change: 0
+          };
+        }
+        
+        // Update stats
+        playerStats[player1_id].total_matches++;
+        playerStats[player2_id].total_matches++;
+        
+        if (winner_id === player1_id) {
+          playerStats[player1_id].wins++;
+          playerStats[player2_id].losses++;
+        } else if (winner_id === player2_id) {
+          playerStats[player2_id].wins++;
+          playerStats[player1_id].losses++;
+        }
       });
-
-      const result = await response.json();
-      console.log('DEBUG: Add match response:', result);
-
-      if (response.ok && result.success !== false) {
-        console.log('DEBUG: Match added successfully');
-        toast({
-          title: '追加完了',
-          description: '新しい試合を追加しました',
-        });
-        await fetchMatches();
-        setShowAddMatch(false);
-      } else {
-        console.log('DEBUG: Match add failed:', result);
-        throw new Error(result.message || 'Failed to add match');
-      }
-    } catch (error) {
-      console.error('Failed to add match:', error);
-      toast({
-        title: 'エラー',
-        description: `試合の追加に失敗しました: ${error.message}`,
-        variant: 'destructive',
-      });
-    } finally {
-      console.log('DEBUG: setIsSaving(false) called in finally');
-      setIsSaving(false);
-    }
+    
+    // Calculate win rates and sort by performance
+    const results = Object.values(playerStats).map(player => ({
+      ...player,
+      win_rate: player.total_matches > 0 ? (player.wins / player.total_matches) * 100 : 0
+    })).sort((a, b) => {
+      // Sort by wins first, then by win rate
+      if (a.wins !== b.wins) return b.wins - a.wins;
+      return b.win_rate - a.win_rate;
+    });
+    
+    setPlayerResults(results);
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'scheduled':
-        return 'bg-muted text-muted-foreground';
-      case 'in_progress':
-        return 'bg-info text-info-foreground';
-      case 'completed':
-        return 'bg-warning text-warning-foreground';
-      case 'approved':
-        return 'bg-success text-success-foreground';
-      case 'cancelled':
-        return 'bg-destructive/20 text-destructive border border-destructive/30';
-      case 'invalid':
-        return 'bg-orange-100 text-orange-700 border border-orange-300';
+  const getRankIcon = (rank: number) => {
+    switch (rank) {
+      case 1:
+        return <Trophy className="h-6 w-6 text-yellow-500" />;
+      case 2:
+        return <Medal className="h-6 w-6 text-gray-400" />;
+      case 3:
+        return <Award className="h-6 w-6 text-amber-600" />;
       default:
-        return 'bg-muted text-muted-foreground';
+        return <div className="w-6 h-6 flex items-center justify-center text-sm font-bold">{rank}</div>;
     }
   };
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'scheduled':
-        return '待機中';
-      case 'in_progress':
-        return '対戦中';
-      case 'completed':
-        return '報告待ち';
-      case 'approved':
-        return '完了';
-      case 'cancelled':
-        return 'キャンセル済';
-      case 'invalid':
-        return '無効試合';
+  const getRankColor = (rank: number) => {
+    switch (rank) {
+      case 1:
+        return 'bg-yellow-50 border-yellow-200';
+      case 2:
+        return 'bg-gray-50 border-gray-200';
+      case 3:
+        return 'bg-amber-50 border-amber-200';
       default:
-        return '不明';
+        return 'bg-muted/30 border-border';
     }
-  };
-
-  const canEditMatch = (match: Match) => {
-    // Can edit scheduled matches, and completed/approved matches for admins
-    return match.status === 'scheduled' || 
-           (match.status === 'completed' || match.status === 'approved');
-  };
-
-  const canDeleteMatch = (match: Match) => {
-    // Can delete scheduled matches, and completed/approved matches for admins
-    return match.status === 'scheduled' || 
-           (match.status === 'completed' || match.status === 'approved');
-  };
-
-  const canCancelMatch = (match: Match) => {
-    // Can cancel matches that are scheduled or in progress
-    return match.status === 'scheduled' || match.status === 'in_progress';
   };
 
   if (isLoading) {
@@ -343,7 +166,7 @@ export const TournamentMatchesEditor = ({ onClose, tournamentId, tournamentName 
       <div className="min-h-screen bg-gradient-parchment flex items-center justify-center">
         <div className="text-center space-y-4">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground">読み込み中...</p>
+          <p className="text-muted-foreground">大会結果を読み込み中...</p>
         </div>
       </div>
     );
@@ -353,20 +176,14 @@ export const TournamentMatchesEditor = ({ onClose, tournamentId, tournamentName 
     <div className="min-h-screen bg-gradient-parchment">
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-fantasy-frame shadow-soft">
         <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" onClick={onClose}>
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-              <div className="flex items-center gap-2">
-                <Edit className="h-6 w-6 text-primary" />
-                <h1 className="text-xl font-bold text-foreground">組み合わせ編集</h1>
-              </div>
-            </div>
-            <Button variant="fantasy" onClick={() => setShowAddMatch(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              試合を追加
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={onClose}>
+              <ArrowLeft className="h-5 w-5" />
             </Button>
+            <div className="flex items-center gap-2">
+              <Trophy className="h-6 w-6 text-primary" />
+              <h1 className="text-xl font-bold text-foreground">大会結果</h1>
+            </div>
           </div>
         </div>
       </header>
@@ -375,442 +192,95 @@ export const TournamentMatchesEditor = ({ onClose, tournamentId, tournamentName 
         {/* Tournament Info */}
         <Card className="border-fantasy-frame shadow-soft">
           <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <h2 className="text-lg font-semibold">{tournamentName}</h2>
-                <p className="text-sm text-muted-foreground">
-                  合計 {matches.length} 試合
-                </p>
-              </div>
-              <Button variant="outline" size="sm" onClick={fetchMatches}>
-                <RefreshCw className="h-4 w-4 mr-2" />
-                更新
-              </Button>
+            <div className="text-center space-y-2">
+              <h2 className="text-2xl font-bold">{tournament.name}</h2>
+              <p className="text-muted-foreground">{tournament.date}</p>
+              <Badge variant="outline">
+                <Users className="h-4 w-4 mr-1" />
+                参加者 {playerResults.length}名
+              </Badge>
             </div>
           </CardContent>
         </Card>
 
-        {/* Matches List */}
-        <div className="space-y-3">
-          {matches.map((match) => (
-            <Card key={match.match_id} className="border-fantasy-frame shadow-soft">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-2 flex-1">
+        {/* Results Ranking */}
+        <Card className="border-fantasy-frame shadow-soft">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Trophy className="h-5 w-5 text-primary" />
+              最終順位
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {playerResults.length > 0 ? (
+              playerResults.map((player, index) => (
+                <div
+                  key={player.player_id}
+                  className={`p-4 rounded-lg border ${getRankColor(index + 1)}`}
+                >
+                  <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <span className="text-sm font-medium text-muted-foreground">
-                        試合 {match.match_number}
-                      </span>
-                      <Badge className={getStatusColor(match.status)}>
-                        {getStatusText(match.status)}
-                      </Badge>
-                      {match.game_type === 'trump' ? (
-                        <div className="flex items-center gap-1 text-primary">
-                          <Spade className="h-4 w-4" />
-                          <span className="text-sm">トランプ</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1 text-accent">
-                          <PlusIcon className="h-4 w-4" />
-                          <span className="text-sm">カード+</span>
-                        </div>
-                      )}
-                    </div>
-                    <p className="font-medium text-lg">
-                      {match.player1_name} vs {match.player2_name}
-                    </p>
-                    {match.winner_id && (
-                      <div className="space-y-1">
-                        <p className="text-sm text-success">
-                          勝者: {match.winner_id === match.player1_id ? match.player1_name : match.player2_name}
+                      {getRankIcon(index + 1)}
+                      <div>
+                        <p className="font-semibold text-lg">{player.player_name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {player.wins}勝 {player.losses}敗 (勝率: {player.win_rate.toFixed(1)}%)
                         </p>
-                        {/* レーティング変動表示 */}
-                        {(() => {
-                          const ratingChange = ratingChanges.get(match.match_id);
-                          if (ratingChange) {
-                            return (
-                              <div className="flex items-center gap-4 text-xs">
-                                <div className="flex items-center gap-1">
-                                  <span className="text-green-600 font-medium">
-                                    +{Math.abs(ratingChange.winner_rating_change)}
-                                  </span>
-                                  <span className="text-muted-foreground">
-                                    ({match.winner_id === match.player1_id ? match.player1_name : match.player2_name})
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  <span className="text-red-600 font-medium">
-                                    {ratingChange.loser_rating_change > 0 ? '-' : ''}{Math.abs(ratingChange.loser_rating_change)}
-                                  </span>
-                                  <span className="text-muted-foreground">
-                                    ({match.winner_id === match.player1_id ? match.player2_name : match.player1_name})
-                                  </span>
-                                </div>
-                              </div>
-                            );
-                          }
-                          return null;
-                        })()}
                       </div>
-                    )}
-                  </div>
-                  <div className="flex gap-2">
-                    {canEditMatch(match) && (
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleEditMatch(match)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                    )}
-                    {canCancelMatch(match) && (
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => setCancelMatchId(match.match_id)}
-                      >
-                        <XCircle className="h-4 w-4" />
-                      </Button>
-                    )}
-                    {canDeleteMatch(match) && (
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => setDeleteMatchId(match.match_id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-muted-foreground">試合数</p>
+                      <p className="font-bold">{player.total_matches}</p>
+                    </div>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {matches.length === 0 && (
-          <Card className="border-fantasy-frame shadow-soft">
-            <CardContent className="p-8 text-center">
-              <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-              <p className="text-muted-foreground mb-4">まだ組み合わせがありません</p>
-              <Button variant="fantasy" onClick={() => setShowAddMatch(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                最初の試合を追加
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Info for match management */}
-        {matches.some(m => m.status !== 'scheduled' && m.status !== 'cancelled') && (
-          <Card className="border-info shadow-soft">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <AlertCircle className="h-5 w-5 text-info" />
-                <p className="text-sm">
-                  開始済みの試合は編集できませんが、キャンセルは可能です
-                </p>
+              ))
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">まだ結果がありません</p>
               </div>
-            </CardContent>
-          </Card>
-        )}
-      </main>
+            )}
+          </CardContent>
+        </Card>
 
-      {/* Edit Match Dialog */}
-      <Dialog open={!!editingMatch} onOpenChange={() => setEditingMatch(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>試合編集 - 試合 {editingMatch?.match_number}</DialogTitle>
-          </DialogHeader>
-          {editingMatch && (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>プレイヤー1</Label>
-                <Select
-                  value={editingMatch.player1_id}
-                  onValueChange={(value) => setEditingMatch({ ...editingMatch, player1_id: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {activePlayers.map((player) => (
-                      <SelectItem key={player.id} value={player.id}>
-                        {player.nickname}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <Label>プレイヤー2</Label>
-                <Select
-                  value={editingMatch.player2_id}
-                  onValueChange={(value) => setEditingMatch({ ...editingMatch, player2_id: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {activePlayers.map((player) => (
-                      <SelectItem key={player.id} value={player.id}>
-                        {player.nickname}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <Label>ゲームタイプ</Label>
-                <Select
-                  value={editingMatch.game_type}
-                  onValueChange={(value) => setEditingMatch({ ...editingMatch, game_type: value as 'trump' | 'cardplus' })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="trump">
-                      <div className="flex items-center gap-2">
-                        <Spade className="h-4 w-4" />
-                        トランプルール
+        {/* Match Results Summary */}
+        <Card className="border-fantasy-frame shadow-soft">
+          <CardHeader>
+            <CardTitle>試合結果一覧</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {matches
+                .filter(match => match.status === 'approved' && match.winner_id)
+                .map((match) => (
+                  <div key={match.match_id} className="p-3 bg-muted/30 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium">
+                          {match.player1_name} vs {match.player2_name}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {match.game_type === 'trump' ? 'トランプ' : 'カード+'}
+                        </p>
                       </div>
-                    </SelectItem>
-                    <SelectItem value="cardplus">
-                      <div className="flex items-center gap-2">
-                        <PlusIcon className="h-4 w-4" />
-                        カード+ルール
+                      <div className="text-right">
+                        <p className="text-sm text-success font-medium">
+                          勝者: {match.winner_id === match.player1_id ? match.player1_name : match.player2_name}
+                        </p>
                       </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Winner selection for completed matches */}
-              {(editingMatch.status === 'completed' || editingMatch.status === 'approved') && (
-                <div className="space-y-2">
-                  <Label>試合結果</Label>
-                  <Select
-                    value={editingMatch.winner_id || 'none'}
-                    onValueChange={(value) => setEditingMatch({ 
-                      ...editingMatch, 
-                      winner_id: value === 'none' ? '' : value 
-                    })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">未決定</SelectItem>
-                      <SelectItem value={editingMatch.player1_id}>
-                        {editingMatch.player1_name} の勝利
-                      </SelectItem>
-                      <SelectItem value={editingMatch.player2_id}>
-                        {editingMatch.player2_name} の勝利
-                      </SelectItem>
-                      <SelectItem value="invalid">無効試合</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    </div>
+                  </div>
+                ))
+              }
+              {matches.filter(match => match.status === 'approved' && match.winner_id).length === 0 && (
+                <div className="text-center py-4">
+                  <p className="text-muted-foreground">完了した試合がありません</p>
                 </div>
               )}
             </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingMatch(null)}>
-              キャンセル
-            </Button>
-            <Button variant="fantasy" onClick={handleSaveMatch} disabled={isSaving}>
-              {isSaving ? '保存中...' : '保存'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Add Match Dialog */}
-      <AddMatchDialog
-        isOpen={showAddMatch}
-        onClose={() => setShowAddMatch(false)}
-        onAdd={handleAddMatch}
-        activePlayers={activePlayers}
-        isSaving={isSaving}
-      />
-
-      {/* Cancel Confirmation */}
-      <AlertDialog open={!!cancelMatchId} onOpenChange={() => setCancelMatchId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>試合をキャンセルしますか？</AlertDialogTitle>
-            <AlertDialogDescription>
-              この試合をキャンセルします。キャンセルされた試合は再開できません。
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>戻る</AlertDialogCancel>
-            <AlertDialogAction onClick={handleCancelMatch}>
-              キャンセル実行
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Delete Confirmation */}
-      <AlertDialog open={!!deleteMatchId} onOpenChange={() => setDeleteMatchId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>試合を削除しますか？</AlertDialogTitle>
-            <AlertDialogDescription>
-              この操作は取り消せません。
-              {(() => {
-                const match = matches.find(m => m.match_id === deleteMatchId);
-                if (match && (match.status === 'completed' || match.status === 'approved')) {
-                  return '完了済みの試合を削除すると、レーティング履歴も削除されます。';
-                }
-                return '本当に削除しますか？';
-              })()}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>キャンセル</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteMatch}>
-              削除
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+          </CardContent>
+        </Card>
+      </main>
     </div>
-  );
-};
-
-// Add Match Dialog Component
-const AddMatchDialog = ({ isOpen, onClose, onAdd, activePlayers, isSaving }: {
-  isOpen: boolean;
-  onClose: () => void;
-  onAdd: (match: Partial<Match>) => void;
-  activePlayers: any[];
-  isSaving: boolean;
-}) => {
-  const [newMatch, setNewMatch] = useState<Partial<Match>>({
-    player1_id: '',
-    player2_id: '',
-    game_type: 'trump',
-  });
-
-  const handleAdd = () => {
-    console.log('DEBUG: AddMatchDialog handleAdd called', { newMatch, isSaving });
-    
-    if (!newMatch.player1_id || !newMatch.player2_id) {
-      toast({
-        title: 'エラー',
-        description: '両方のプレイヤーを選択してください',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    if (newMatch.player1_id === newMatch.player2_id) {
-      toast({
-        title: 'エラー',
-        description: '同じプレイヤーを選択することはできません',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    console.log('DEBUG: About to call onAdd with:', newMatch);
-    onAdd(newMatch);
-  };
-
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>新しい試合を追加</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label>プレイヤー1</Label>
-            <Select
-              value={newMatch.player1_id}
-              onValueChange={(value) => setNewMatch({ ...newMatch, player1_id: value })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="プレイヤーを選択" />
-              </SelectTrigger>
-              <SelectContent>
-                {activePlayers.map((player) => (
-                  <SelectItem key={player.id} value={player.id}>
-                    {player.nickname}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="space-y-2">
-            <Label>プレイヤー2</Label>
-            <Select
-              value={newMatch.player2_id}
-              onValueChange={(value) => setNewMatch({ ...newMatch, player2_id: value })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="プレイヤーを選択" />
-              </SelectTrigger>
-              <SelectContent>
-                {activePlayers.map((player) => (
-                  <SelectItem key={player.id} value={player.id}>
-                    {player.nickname}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="space-y-2">
-            <Label>ゲームタイプ</Label>
-            <Select
-              value={newMatch.game_type}
-              onValueChange={(value) => setNewMatch({ ...newMatch, game_type: value as 'trump' | 'cardplus' })}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="trump">
-                  <div className="flex items-center gap-2">
-                    <Spade className="h-4 w-4" />
-                    トランプルール
-                  </div>
-                </SelectItem>
-                <SelectItem value="cardplus">
-                  <div className="flex items-center gap-2">
-                    <PlusIcon className="h-4 w-4" />
-                    カード+ルール
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            キャンセル
-          </Button>
-          <Button 
-            variant="fantasy" 
-            onClick={() => {
-              alert('Button clicked!'); // 緊急デバッグ用
-              console.log('EMERGENCY DEBUG: Button clicked', {isSaving});
-              handleAdd();
-            }} 
-            disabled={false} // 緊急対応: disabled を無効化
-          >
-            {isSaving ? '追加中...' : '追加'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 };

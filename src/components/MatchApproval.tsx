@@ -23,11 +23,15 @@ interface PendingMatch {
   opponentName: string;
 }
 
-export const MatchApproval = () => {
+interface MatchApprovalProps {
+  onBack?: () => void;
+}
+
+export const MatchApproval = ({ onBack }: MatchApprovalProps = {}) => {
   const [selectedMatch, setSelectedMatch] = useState<PendingMatch | null>(null);
   const [isApproving, setIsApproving] = useState(false);
   const { data: pendingMatches, isLoading, error, refetch } = usePendingMatchResults();
-  const { mutate: approveMatch, isLoading: isApprovalLoading } = useApproveMatchResult();
+  const { mutate: approveMatch, isPending: isApprovalLoading } = useApproveMatchResult();
 
   useEffect(() => {
     if (error) {
@@ -88,7 +92,7 @@ export const MatchApproval = () => {
                 <h1 className="text-xl font-bold text-foreground">試合結果承認</h1>
               </div>
             </div>
-            <Button variant="outline" size="sm" onClick={refetch}>
+            <Button variant="outline" size="sm" onClick={() => refetch()}>
               <CheckCheck className="h-4 w-4 mr-2" />
               更新
             </Button>

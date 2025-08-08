@@ -36,6 +36,17 @@ interface Match {
   loser_rating_change?: number;
 }
 
+interface TournamentMatchesViewProps {
+  onClose: () => void;
+  currentUserId: string;
+  tournamentId: string;
+}
+
+export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: TournamentMatchesViewProps) => {
+  // ... keep existing code
+  return null; // Placeholder
+};
+
 export const TournamentMatchesEditor = ({ onClose, tournamentId, tournamentName }: TournamentMatchesEditorProps) => {
   const [matches, setMatches] = useState<Match[]>([]);
   const [isLoading, setIsLoading] = useState(true);
