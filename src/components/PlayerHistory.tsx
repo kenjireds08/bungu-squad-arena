@@ -84,8 +84,8 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
             archive_id: tournament.id,
             tournament_date: tournament.date,
             tournament_name: tournament.tournament_name || tournament.name || 'BUNGU SQUAD大会',
-            total_participants_that_day: tournament.current_participants || 0,
-            entry_timestamp: tournament.date,
+            total_participants_that_day: tournament.max_participants || 0, // Use max_participants instead
+            entry_timestamp: tournament.created_at || tournament.date,
             matches_count: tournamentMatches.length
           };
         });
@@ -118,77 +118,36 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
           const matchData = await matchResponse.json();
           console.log('Match data received:', matchData);
           
-          // Basic validation and filtering - relaxed to show historical data
-          const validMatches = Array.isArray(matchData) ? matchData.filter((match: any) => {
-            // Filter out invalid/test data
-            return match && 
-                   match.id && 
-                   match.player1_id && 
-                   match.player2_id &&
-                   match.winner_id && // Must have a winner
-                   match.match_start_time; // Must have timestamp
+          // Convert API format to expected format
+          const convertedMatches = Array.isArray(matchData) ? matchData.map((match: any) => {
+            // Convert API response format to internal Match format
+            return {
+              id: match.match_id || match.id,
+              tournament_id: match.tournament_id,
+              player1_id: currentUserId, // Current user
+              player2_id: match.opponent?.id || match.player2_id,
+              winner_id: match.result === 'win' ? currentUserId : 
+                        match.result === 'lose' ? match.opponent?.id : 
+                        null, // null for pending matches
+              loser_id: match.result === 'win' ? match.opponent?.id :
+                        match.result === 'lose' ? currentUserId :
+                        null,
+              game_rule: match.game_type || 'trump',
+              match_start_time: match.timestamp || new Date().toISOString(),
+              match_end_time: match.timestamp,
+              player1_rating_change: match.rating_change || 0,
+              player2_rating_change: -(match.rating_change || 0), // Opposite for opponent
+              table_number: '',
+              notes: ''
+            };
           }) : [];
           
-          console.log('Valid matches after filtering:', validMatches.length);
+          console.log('Converted matches:', convertedMatches.length);
           
-          // Load rating changes for each match
-          const matchesWithRating = await Promise.all(
-            validMatches.map(async (match: any) => {
-              try {
-                const response = await fetch(`/api/rating-history?matchId=${match.id}`);
-                if (response.ok) {
-                  const ratingData = await response.json();
-                  
-                  // HOTFIX: API returns reversed values, so we swap them
-                  const actualWinnerChange = ratingData.loser_rating_change || 2;
-                  const actualLoserChange = ratingData.winner_rating_change || -2;
-                  
-                  // Apply correct rating changes based on player position
-                  let player1_rating_change, player2_rating_change;
-                  
-                  if (match.winner_id === match.player1_id) {
-                    player1_rating_change = actualWinnerChange; // winner gets positive
-                    player2_rating_change = actualLoserChange;  // loser gets negative
-                  } else {
-                    player1_rating_change = actualLoserChange;  // loser gets negative
-                    player2_rating_change = actualWinnerChange; // winner gets positive
-                  }
-                  
-                  return {
-                    ...match,
-                    player1_rating_change,
-                    player2_rating_change
-                  };
-                } else {
-                  // Fallback to default values
-                  const player1_rating_change = match.winner_id === match.player1_id ? 2 : -2;
-                  const player2_rating_change = match.winner_id === match.player2_id ? 2 : -2;
-                  
-                  return {
-                    ...match,
-                    player1_rating_change,
-                    player2_rating_change
-                  };
-                }
-              } catch (error) {
-                console.error('Rating fetch error for match:', match.id, error);
-                // Fallback to default values
-                const player1_rating_change = match.winner_id === match.player1_id ? 2 : -2;
-                const player2_rating_change = match.winner_id === match.player2_id ? 2 : -2;
-                
-                return {
-                  ...match,
-                  player1_rating_change,
-                  player2_rating_change
-                };
-              }
-            })
-          );
-          
-          setMatches(matchesWithRating);
+          setMatches(convertedMatches);
           
           // Continue with tournament loading after matches are ready
-          await loadTournamentHistory(matchesWithRating);
+          await loadTournamentHistory(convertedMatches);
         } else {
           setMatches([]);
           await loadTournamentHistory([]);
@@ -222,34 +181,28 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
   };
 
   const getOpponentName = (match: Match) => {
-    const opponentId = match.player1_id === currentUserId ? match.player2_id : match.player1_id;
+    const opponentId = match.player2_id; // opponent is always player2 in our converted format
     const opponent = players.find(p => p.id === opponentId);
     return opponent?.nickname || '不明';
   };
 
   const getOpponentRating = (match: Match) => {
     // Get actual opponent rating from players data
-    const opponentId = match.player1_id === currentUserId ? match.player2_id : match.player1_id;
+    const opponentId = match.player2_id; // opponent is always player2 in our converted format
     const opponent = players.find(p => p.id === opponentId);
     return opponent?.current_rating || 1200;
   };
 
   const getPlayerResult = (match: Match) => {
     if (match.winner_id === currentUserId) return '勝ち';
-    // If not winner, then loser (no draws in this system)
-    return '負け';
+    if (match.winner_id === match.player2_id) return '負け';
+    // No winner means pending/unknown
+    return '未定';
   };
 
   const getPlayerRatingChange = (match: Match) => {
-    // Check which position (player1 or player2) the current user is in
-    if (currentUserId === match.player1_id) {
-      // Current user is player1
-      return match.player1_rating_change || 0;
-    } else if (currentUserId === match.player2_id) {
-      // Current user is player2
-      return match.player2_rating_change || 0;
-    }
-    return 0;
+    // Current user is always player1 in our converted format
+    return match.player1_rating_change || 0;
   };
 
   const getGameTypeName = (gameRule: string) => {
@@ -480,7 +433,8 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Badge 
-                          variant={getPlayerResult(match) === "勝ち" ? "default" : "destructive"}
+                          variant={getPlayerResult(match) === "勝ち" ? "default" : 
+                                  getPlayerResult(match) === "負け" ? "destructive" : "outline"}
                           className={getPlayerResult(match) === "勝ち" ? "bg-success" : ""}
                         >
                           {getPlayerResult(match)}
