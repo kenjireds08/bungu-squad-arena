@@ -92,16 +92,19 @@ class SheetsService {
         }
       });
       
-      // Add headers
+      // Add headers - match actual Google Sheets format
       const headers = [
-        'match_id', 'tournament_id', 'round', 'player1_id', 'player1_name', 
-        'player2_id', 'player2_name', 'game_type', 'status', 'winner_id', 
-        'result_details', 'created_at', 'completed_at', 'approved_at'
+        'match_id', 'tournament_id', 'player1_id', 'player2_id', 'table_number', 
+        'match_status', 'game_type', 'created_at', 'winner_id', 'loser_id', 
+        'match_start_time', 'match_end_time', 'reported_by', 'reported_at', 
+        'approved_by', 'approved_at', 'player1_rating_before', 'player2_rating_before',
+        'player1_rating_after', 'player2_rating_after', 'player1_rating_change', 
+        'player2_rating_change', 'notes', 'created_by'
       ];
       
       await this.sheets.spreadsheets.values.update({
         spreadsheetId: this.spreadsheetId,
-        range: 'TournamentMatches!A1:N1',
+        range: 'TournamentMatches!A1:X1',
         valueInputOption: 'USER_ENTERED',
         requestBody: { values: [headers] }
       });
@@ -1332,6 +1335,68 @@ class SheetsService {
     }
   }
 
+  async addSingleTournamentMatch(tournamentId, matchData) {
+    await this.authenticate();
+    const { headers, idx } = await this._getHeaders('TournamentMatches!1:1');
+    
+    try {
+      // Ensure tournament matches sheet exists
+      await this.createTournamentMatchesSheet();
+      
+      // Generate match ID
+      const matchId = `${tournamentId}_match_${Date.now()}`;
+      const timestamp = new Date().toISOString();
+      
+      // Create row data matching actual Google Sheets format
+      const row = new Array(headers.length).fill('');
+      
+      // Set values using proper field names
+      row[idx('match_id')] = matchId;
+      row[idx('tournament_id')] = tournamentId;
+      row[idx('player1_id')] = matchData.player1_id;
+      row[idx('player2_id')] = matchData.player2_id;
+      row[idx('table_number')] = '';
+      row[idx('match_status')] = 'scheduled';
+      row[idx('game_type')] = matchData.game_type || 'trump';
+      row[idx('created_at')] = timestamp;
+      row[idx('winner_id')] = '';
+      row[idx('loser_id')] = '';
+      row[idx('match_start_time')] = '';
+      row[idx('match_end_time')] = '';
+      row[idx('reported_by')] = '';
+      row[idx('reported_at')] = '';
+      row[idx('approved_by')] = '';
+      row[idx('approved_at')] = '';
+      row[idx('player1_rating_before')] = '';
+      row[idx('player2_rating_before')] = '';
+      row[idx('player1_rating_after')] = '';
+      row[idx('player2_rating_after')] = '';
+      row[idx('player1_rating_change')] = '';
+      row[idx('player2_rating_change')] = '';
+      row[idx('notes')] = '';
+      row[idx('created_by')] = 'admin';
+      
+      // Append the new match
+      const result = await this.sheets.spreadsheets.values.append({
+        spreadsheetId: this.spreadsheetId,
+        range: 'TournamentMatches!A:X',
+        valueInputOption: 'USER_ENTERED',
+        requestBody: { values: [row] }
+      });
+      
+      console.log(`Single match added: ${matchId}`);
+      return { 
+        success: true, 
+        matchId,
+        message: '試合を追加しました'
+      };
+      
+    } catch (error) {
+      console.error('Error adding single tournament match:', error);
+      throw new Error(`Failed to add single tournament match: ${error.message}`);
+    }
+  }
+
   async saveTournamentMatches(tournamentId, matches) {
     await this.authenticate();
     const { headers, idx } = await this._getHeaders('TournamentMatches!1:1');
@@ -1340,13 +1405,8 @@ class SheetsService {
       // Ensure tournament matches sheet exists
       await this.createTournamentMatchesSheet();
       
-      // Try to delete existing matches for this tournament
-      try {
-        await this.deleteTournamentMatches(tournamentId);
-        console.log(`Existing matches deleted for tournament ${tournamentId}`);
-      } catch (deleteError) {
-        console.warn(`Failed to delete existing matches for ${tournamentId}, continuing with append:`, deleteError.message);
-      }
+      // Skip deletion - append new matches to existing ones
+      console.log(`Appending new matches to existing tournament ${tournamentId} matches`);
       
       const timestamp = new Date().toISOString();
       const values = matches.map((match, index) => {
@@ -1357,13 +1417,26 @@ class SheetsService {
         set('tournament_id', tournamentId);
         set('player1_id', match.player1.id);
         set('player2_id', match.player2.id);
+        set('table_number', '');
+        set('match_status', 'scheduled'); // Use correct field name
         set('game_type', match.gameType);
-        set('status', 'scheduled');
-        set('match_status', 'scheduled');
         set('created_at', timestamp);
-        // Set table_number as the match number for display purposes
-        if (idx('table_number') >= 0) set('table_number', `match_${index + 1}`);
-        if (idx('round') >= 0) set('round', 'player_00');
+        set('winner_id', '');
+        set('loser_id', '');
+        set('match_start_time', '');
+        set('match_end_time', '');
+        set('reported_by', '');
+        set('reported_at', '');
+        set('approved_by', '');
+        set('approved_at', '');
+        set('player1_rating_before', '');
+        set('player2_rating_before', '');
+        set('player1_rating_after', '');
+        set('player2_rating_after', '');
+        set('player1_rating_change', '');
+        set('player2_rating_change', '');
+        set('notes', '');
+        set('created_by', 'admin');
 
         return row;
       });
