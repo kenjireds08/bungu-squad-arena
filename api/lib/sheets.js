@@ -1544,47 +1544,18 @@ class SheetsService {
       console.log('🔍 Total match results:', matchResults.length);
       
       const playerHistory = [];
+      const processedMatchIds = new Set(); // Track processed matches to avoid duplicates
       
-      // Add tournament matches where player participated
-      for (const match of tournamentMatches) {
-        if (match.player1_id === playerId || match.player2_id === playerId) {
-          const isPlayer1 = match.player1_id === playerId;
-          const opponent = isPlayer1 ? 
-            { id: match.player2_id, name: match.player2_name } : 
-            { id: match.player1_id, name: match.player1_name };
-          
-          let result = 'pending';
-          let ratingChange = 0;
-          
-          if (match.status === 'completed' && match.winner_id) {
-            if (match.winner_id === playerId) {
-              result = 'win';
-            } else if (match.winner_id === opponent.id) {
-              result = 'lose';
-            }
-          }
-          
-          playerHistory.push({
-            match_id: match.match_id,
-            tournament_id: match.tournament_id,
-            opponent: opponent,
-            game_type: match.game_type || 'trump',
-            result: result,
-            rating_change: ratingChange, // TODO: Calculate from actual rating changes
-            timestamp: match.match_end_time || match.created_at || '',
-            match_type: 'tournament'
-          });
-        }
-      }
+      // Get players data once for name lookup
+      const players = await this.getPlayers();
       
-      // Add historical matches from MatchResults sheet
+      // Priority 1: Add historical matches from MatchResults sheet (completed matches)
       for (const result of matchResults) {
         if (result.player_id === playerId || result.opponent_id === playerId) {
           const isReporter = result.player_id === playerId;
           const opponentId = isReporter ? result.opponent_id : result.player_id;
           
           // Get opponent name from players data
-          const players = await this.getPlayers();
           const opponent = players.find(p => p.id === opponentId);
           const opponentName = opponent?.nickname || 'Unknown';
           
@@ -1600,8 +1571,11 @@ class SheetsService {
             }
           }
           
+          const matchId = result.match_id || `result_${result.id}`;
+          processedMatchIds.add(matchId);
+          
           playerHistory.push({
-            match_id: result.match_id || `result_${result.id}`,
+            match_id: matchId,
             tournament_id: result.tournament_id || null,
             opponent: { id: opponentId, name: opponentName },
             game_type: result.game_rule || 'trump',
@@ -1609,6 +1583,39 @@ class SheetsService {
             rating_change: 0, // TODO: Calculate from rating history
             timestamp: result.reported_at || result.match_end_time || '',
             match_type: result.tournament_id ? 'tournament' : 'casual'
+          });
+        }
+      }
+      
+      // Priority 2: Add tournament matches not yet in MatchResults (scheduled/pending matches)
+      for (const match of tournamentMatches) {
+        if ((match.player1_id === playerId || match.player2_id === playerId) && 
+            !processedMatchIds.has(match.match_id)) {
+          
+          const isPlayer1 = match.player1_id === playerId;
+          const opponent = isPlayer1 ? 
+            { id: match.player2_id, name: match.player2_name } : 
+            { id: match.player1_id, name: match.player1_name };
+          
+          let result = 'pending';
+          
+          if (match.status === 'completed' && match.winner_id) {
+            if (match.winner_id === playerId) {
+              result = 'win';
+            } else if (match.winner_id === opponent.id) {
+              result = 'lose';
+            }
+          }
+          
+          playerHistory.push({
+            match_id: match.match_id,
+            tournament_id: match.tournament_id,
+            opponent: opponent,
+            game_type: match.game_type || 'trump',
+            result: result,
+            rating_change: 0,
+            timestamp: match.match_end_time || match.created_at || '',
+            match_type: 'tournament'
           });
         }
       }
