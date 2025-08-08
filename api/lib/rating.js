@@ -5,7 +5,7 @@
 class RatingCalculator {
   constructor() {
     this.K_FACTOR = 32; // K-factor for rating changes
-    this.BASE_RATING = 1500; // Base rating for new players
+    this.BASE_RATING = 1200; // Base rating for new players
   }
 
   /**

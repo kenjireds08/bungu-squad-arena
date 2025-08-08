@@ -52,16 +52,19 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
     for (const match of matchList) {
       if (match.status === 'approved' || match.status === 'completed') {
         try {
-          // Rating history API temporarily disabled to prevent rate limit
-          console.log('Rating history fetch disabled for match:', match.match_id);
+          // レーティング変動データは既にmatchデータに含まれている
+          const isPlayer1Winner = match.winner_id === match.player1_id;
           
-          // Set default rating changes (temporary measure)
           newRatingChanges.set(match.match_id, {
-            winner_rating_change: 0,
-            loser_rating_change: 0
+            winner_rating_change: isPlayer1Winner 
+              ? (match.player1_rating_change || 0)
+              : (match.player2_rating_change || 0),
+            loser_rating_change: isPlayer1Winner 
+              ? (match.player2_rating_change || 0) 
+              : (match.player1_rating_change || 0)
           });
         } catch (error) {
-          console.warn(`Rating history disabled for ${match.match_id}:`, error);
+          console.warn(`Rating change calculation failed for ${match.match_id}:`, error);
         }
       }
     }

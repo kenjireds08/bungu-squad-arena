@@ -43,25 +43,21 @@ export const TournamentResultsView = ({ onClose, tournament }: TournamentResults
           // 完了した試合のみをフィルター
           const completedMatches = data.filter((match: Match) => match.status === 'approved');
           
-          // レーティング変更情報を取得
-          const matchesWithRating = await Promise.all(
-            completedMatches.map(async (match: Match) => {
-              try {
-                // Rating history API temporarily disabled to prevent rate limit
-                console.log('Rating history fetch disabled for match:', match.match_id);
-                
-                // Return match without rating changes (temporary measure)
-                return {
-                  ...match,
-                  winner_rating_change: 0,
-                  loser_rating_change: 0
-                };
-              } catch (error) {
-                console.log('Rating history disabled, using default values');
-              }
-              return match;
-            })
-          );
+          // レーティング変更情報を取得（データベースに既に保存済み）
+          const matchesWithRating = completedMatches.map((match: Match) => {
+            // winner_idとresultから勝者・敗者のレーティング変動を特定
+            const isPlayer1Winner = match.winner_id === match.player1_id;
+            
+            return {
+              ...match,
+              winner_rating_change: isPlayer1Winner 
+                ? (match.player1_rating_change || 0)
+                : (match.player2_rating_change || 0),
+              loser_rating_change: isPlayer1Winner 
+                ? (match.player2_rating_change || 0) 
+                : (match.player1_rating_change || 0)
+            };
+          });
           
           setMatches(matchesWithRating);
           

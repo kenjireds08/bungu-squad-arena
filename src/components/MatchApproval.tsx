@@ -213,6 +213,9 @@ export const MatchApproval = ({ onBack }: MatchApprovalProps) => {
                             <div className="text-xs text-muted-foreground">
                               {match.player1_rating_before}pt vs {match.player2_rating_before}pt
                             </div>
+                            <div className="text-xs text-muted-foreground mt-1">
+                              変動: {match.player1_rating_change > 0 ? '+' : ''}{match.player1_rating_change}pt vs {match.player2_rating_change > 0 ? '+' : ''}{match.player2_rating_change}pt
+                            </div>
                           </div>
                         </TableCell>
                         <TableCell>
