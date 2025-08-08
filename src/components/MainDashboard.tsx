@@ -83,8 +83,11 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
   // Find today's tournament specifically (must match today's date exactly)
   const todaysTournament = [...active, ...upcoming].find(t => t.date === today);
   
-  // Check if today's tournament is completed (ended)
-  const todaysCompletedTournament = completed.find(t => t.date === today);
+  // Check if today has ANY available tournaments (active or upcoming)
+  const todaysAvailableTournaments = [...active, ...upcoming].filter(t => t.date === today);
+  
+  // Only consider "completed" status if no tournaments are available today
+  const todaysCompletedTournament = todaysAvailableTournaments.length === 0 ? completed.find(t => t.date === today) : null;
   
   // Get next tournament with proper logic
   let nextTournament = todaysTournament;
@@ -152,6 +155,12 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
   };
 
   const handleTournamentEntry = () => {
+    setCurrentPage('qrscanner');
+  };
+
+  const handleDirectTournamentEntry = (tournament: any) => {
+    // Store selected tournament info for QR scanner to use
+    sessionStorage.setItem('selectedTournament', JSON.stringify(tournament));
     setCurrentPage('qrscanner');
   };
 
@@ -488,6 +497,25 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
                       </>
                     )}
                   </Button>
+                )}
+
+                {/* Show additional available tournaments for today */}
+                {todaysAvailableTournaments.length > 1 && (
+                  <div className="mt-4 space-y-2">
+                    <h3 className="font-semibold text-sm text-muted-foreground">その他の本日の大会</h3>
+                    {todaysAvailableTournaments.slice(1).map((tournament) => (
+                      <Button
+                        key={tournament.id}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDirectTournamentEntry(tournament)}
+                        className="w-full justify-start"
+                      >
+                        <Trophy className="h-4 w-4 mr-2" />
+                        {tournament.name} ({tournament.time}〜)
+                      </Button>
+                    ))}
+                  </div>
                 )}
 
                 {/* Additional tournaments display */}

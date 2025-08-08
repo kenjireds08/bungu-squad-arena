@@ -177,6 +177,18 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
     // Stop scanning immediately to prevent multiple detections
     stopCamera();
     
+    // Check if a specific tournament was selected
+    const selectedTournament = sessionStorage.getItem('selectedTournament');
+    let tournamentInfo = null;
+    if (selectedTournament) {
+      try {
+        tournamentInfo = JSON.parse(selectedTournament);
+        console.log('BUNGU SQUAD: 選択された大会:', tournamentInfo);
+      } catch (e) {
+        console.warn('BUNGU SQUAD: 大会情報の解析に失敗:', e);
+      }
+    }
+    
     // More flexible URL validation - check for tournament-entry anywhere in the URL
     const isTournamentUrl = data.includes('tournament-entry') || 
                            data.includes('tournaments') || 
@@ -187,9 +199,10 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
     if (isTournamentUrl) {
       setScanResult('success');
       
+      const tournamentName = tournamentInfo ? tournamentInfo.name : '大会';
       toast({
         title: "QRコード読み取り成功！",
-        description: "大会エントリーが完了しました",
+        description: `${tournamentName}のエントリーが完了しました`,
       });
       
       // Check if user is logged in to determine flow
@@ -210,8 +223,18 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
             
             if (response.ok) {
               console.log('BUNGU SQUAD: tournament_active更新成功');
-              // Navigate directly to tournament waiting screen
-              window.location.href = '/?page=tournament-waiting';
+              
+              // Determine target URL based on selected tournament
+              let targetUrl = '/?page=tournament-waiting';
+              if (tournamentInfo) {
+                // Navigate to specific tournament waiting screen
+                const date = tournamentInfo.date || new Date().toLocaleDateString('sv-SE');
+                const time = tournamentInfo.time || '18-00';
+                targetUrl = `/tournament/${tournamentInfo.id}/${date}/${time}?verified=1&from_qr=true`;
+              }
+              
+              console.log('BUNGU SQUAD: 遷移先URL:', targetUrl);
+              window.location.href = targetUrl;
             } else {
               console.error('BUNGU SQUAD: tournament_active更新失敗');
               // Fallback to tournament entry page
@@ -222,6 +245,9 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
             // Fallback to tournament entry page
             window.location.href = `/tournament-entry/current?from_qr=true`;
           }
+          
+          // Clean up selected tournament info
+          sessionStorage.removeItem('selectedTournament');
         }, 2000);
         
       } else {
@@ -235,13 +261,25 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
             // Add QR parameter to indicate this came from QR scan
             const separator = data.includes('?') ? '&' : '?';
             targetUrl = `${data}${separator}from_qr=true`;
+            
+            // If specific tournament was selected, add tournament info to URL
+            if (tournamentInfo) {
+              targetUrl += `&tournament_id=${tournamentInfo.id}&tournament_name=${encodeURIComponent(tournamentInfo.name)}`;
+            }
           } else {
             // Fallback to generic tournament entry with QR parameter
-            targetUrl = `/tournament-entry/current?from_qr=true`;
+            if (tournamentInfo) {
+              targetUrl = `/tournament-entry/${tournamentInfo.id}?from_qr=true`;
+            } else {
+              targetUrl = `/tournament-entry/current?from_qr=true`;
+            }
           }
           
           console.log('BUNGU SQUAD: QRコード読み取り後の遷移先:', targetUrl);
           window.location.href = targetUrl;
+          
+          // Clean up selected tournament info
+          sessionStorage.removeItem('selectedTournament');
         }, 2000);
       }
       
