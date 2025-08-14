@@ -51,8 +51,6 @@ interface AdminData {
 
 export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
   const [currentAdminPage, setCurrentAdminPage] = useState('dashboard');
-  const [adminData, setAdminData] = useState<AdminData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [selectedTournamentId, setSelectedTournamentId] = useState<string | null>(null);
   const { data: rankings, isLoading: rankingsLoading } = useRankings();
   const { data: tournaments, isLoading: tournamentsLoading } = useTournaments();
@@ -60,23 +58,13 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
   // Enable version-based polling for real-time updates
   useVersionPolling('current');
 
-  // Calculate admin data only when data is ready
-  useEffect(() => {
-    // Skip if still loading
-    if (rankingsLoading || tournamentsLoading) {
-      setIsLoading(true);
-      return;
-    }
-    
-    // Skip if data not available
+  // Directly calculate admin data without additional state
+  const isLoading = rankingsLoading || tournamentsLoading;
+  
+  const adminData = useMemo<AdminData | null>(() => {
+    // Skip if still loading or data not available
     if (!rankings || !tournaments) {
-      setIsLoading(false);
-      return;
-    }
-    
-    // Prevent multiple updates
-    if (adminData) {
-      return;
+      return null;
     }
     
     try {
@@ -113,13 +101,12 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
         ] // TODO: Get from activity log API
       };
 
-      setAdminData(data);
-      setIsLoading(false);
+      return data;
     } catch (error) {
       console.error('Failed to calculate admin data:', error);
-      setIsLoading(false);
+      return null;
     }
-  }, [rankingsLoading, tournamentsLoading]); // Only depend on loading states
+  }, [rankings, tournaments]);
 
   if (isLoading || !adminData) {
     return (

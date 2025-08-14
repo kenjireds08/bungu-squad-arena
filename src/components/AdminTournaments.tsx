@@ -58,7 +58,7 @@ export const AdminTournaments = ({ onBack, initialView = 'list', selectedTournam
       const activeCount = rankings.filter(player => player.tournament_active === true).length;
       setActiveParticipants(activeCount);
     }
-  }, [rankingsLoading]); // Only depend on loading state to prevent infinite loops
+  }, [rankingsLoading, rankings]); // Include rankings in dependencies
 
   // Handle selectedTournamentId - automatically navigate to tournament management
   useEffect(() => {
