@@ -1214,7 +1214,15 @@ class SheetsService {
   async deleteTournament(tournamentId) {
     await this.authenticate();
     
+    let deactivateResult = { playersDeactivated: 0 };
+    
     try {
+      // First, deactivate all participants before deleting
+      // This ensures players aren't left in an active state after tournament deletion
+      console.log(`Deactivating participants for tournament ${tournamentId} before deletion...`);
+      deactivateResult = await this.deactivateTournamentParticipants(tournamentId);
+      console.log(`Deactivated ${deactivateResult.playersDeactivated} players before deletion`);
+      
       // Ensure the sheet has the correct structure
       await this.ensureTournamentSheetStructure();
       
@@ -1271,8 +1279,12 @@ class SheetsService {
         }
       });
 
-      console.log(`Tournament deleted: ${tournamentId}`);
-      return { success: true, message: '大会を削除しました' };
+      console.log(`Tournament deleted: ${tournamentId}, deactivated ${deactivateResult.playersDeactivated} players`);
+      return { 
+        success: true, 
+        message: `大会を削除し、${deactivateResult.playersDeactivated}名のエントリー状態を解除しました`,
+        playersDeactivated: deactivateResult.playersDeactivated
+      };
     } catch (error) {
       console.error('Error deleting tournament:', error);
       // Return success:false instead of throwing to avoid 500 errors
