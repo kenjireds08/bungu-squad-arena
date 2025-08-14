@@ -60,11 +60,23 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
   // Enable version-based polling for real-time updates
   useVersionPolling('current');
 
-  // Memoize admin data calculation to prevent infinite loops
-  const calculatedAdminData = useMemo(() => {
-    // Skip if still loading or data not available
-    if (rankingsLoading || tournamentsLoading || !rankings || !tournaments) {
-      return null;
+  // Calculate admin data only when data is ready
+  useEffect(() => {
+    // Skip if still loading
+    if (rankingsLoading || tournamentsLoading) {
+      setIsLoading(true);
+      return;
+    }
+    
+    // Skip if data not available
+    if (!rankings || !tournaments) {
+      setIsLoading(false);
+      return;
+    }
+    
+    // Prevent multiple updates
+    if (adminData) {
+      return;
     }
     
     try {
@@ -101,20 +113,13 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
         ] // TODO: Get from activity log API
       };
 
-      return data;
+      setAdminData(data);
+      setIsLoading(false);
     } catch (error) {
       console.error('Failed to calculate admin data:', error);
-      return null;
-    }
-  }, [rankings, tournaments, rankingsLoading, tournamentsLoading]);
-
-  // Update adminData when calculated data changes
-  useEffect(() => {
-    if (calculatedAdminData) {
-      setAdminData(calculatedAdminData);
       setIsLoading(false);
     }
-  }, [calculatedAdminData]);
+  }, [rankingsLoading, tournamentsLoading]); // Only depend on loading states
 
   if (isLoading || !adminData) {
     return (
