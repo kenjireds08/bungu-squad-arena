@@ -31,7 +31,7 @@ export const AdminTournaments = ({ onBack, initialView = 'list', selectedTournam
   const [selectedTournament, setSelectedTournament] = useState<any>(null);
   const [showQRCode, setShowQRCode] = useState(false);
   const [activeParticipants, setActiveParticipants] = useState(0);
-  const { data: rankings } = useRankings();
+  const { data: rankings, isLoading: rankingsLoading } = useRankings();
   const { data: tournamentsData, isLoading: tournamentsLoading } = useTournaments();
   const createTournamentMutation = useCreateTournament();
   const updateTournamentMutation = useUpdateTournament();
