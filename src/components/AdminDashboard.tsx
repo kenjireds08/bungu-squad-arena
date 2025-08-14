@@ -61,54 +61,56 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
   useVersionPolling('current');
 
   useEffect(() => {
-    const loadAdminData = async () => {
-      try {
-        setIsLoading(true);
-        
-        if (rankings && tournaments) {
-          // Calculate active players (tournament_active = true)
-          const activePlayers = rankings.filter(player => player.tournament_active === true).length;
-          
-          // Calculate players registered this month
-          const thisMonth = new Date().getMonth();
-          const thisYear = new Date().getFullYear();
-          const newThisMonth = rankings.filter(player => {
-            if (!player.created_at) return false;
-            const createdDate = new Date(player.created_at);
-            return createdDate.getMonth() === thisMonth && createdDate.getFullYear() === thisYear;
-          }).length;
+    // Skip if still loading
+    if (rankingsLoading || tournamentsLoading) {
+      return;
+    }
+    
+    // Skip if data not available
+    if (!rankings || !tournaments) {
+      return;
+    }
+    
+    try {
+      // Calculate active players (tournament_active = true)
+      const activePlayers = rankings.filter(player => player.tournament_active === true).length;
+      
+      // Calculate players registered this month
+      const thisMonth = new Date().getMonth();
+      const thisYear = new Date().getFullYear();
+      const newThisMonth = rankings.filter(player => {
+        if (!player.created_at) return false;
+        const createdDate = new Date(player.created_at);
+        return createdDate.getMonth() === thisMonth && createdDate.getFullYear() === thisYear;
+      }).length;
 
-          // Calculate tournament stats
-          const activeTournaments = tournaments.filter(t => (t as any).status === 'active').length;
-          const upcomingTournaments = tournaments.filter(t => (t as any).status === 'upcoming').length;
+      // Calculate tournament stats
+      const activeTournaments = tournaments.filter(t => (t as any).status === 'active').length;
+      const upcomingTournaments = tournaments.filter(t => (t as any).status === 'upcoming').length;
 
-          const data: AdminData = {
-            tournaments: {
-              active: activeTournaments,
-              upcoming: upcomingTournaments,
-              total: tournaments.length
-            },
-            players: {
-              registered: rankings.length,
-              active: activePlayers,
-              newThisMonth: newThisMonth
-            },
-            pendingApprovals: 0, // TODO: Get from match results API
-            recentActivity: [
-              { type: 'system', description: 'システムが稼働中です', time: '現在' }
-            ] // TODO: Get from activity log API
-          };
+      const data: AdminData = {
+        tournaments: {
+          active: activeTournaments,
+          upcoming: upcomingTournaments,
+          total: tournaments.length
+        },
+        players: {
+          registered: rankings.length,
+          active: activePlayers,
+          newThisMonth: newThisMonth
+        },
+        pendingApprovals: 0, // TODO: Get from match results API
+        recentActivity: [
+          { type: 'system', description: 'システムが稼働中です', time: '現在' }
+        ] // TODO: Get from activity log API
+      };
 
-          setAdminData(data);
-        }
-      } catch (error) {
-        console.error('Failed to load admin data:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadAdminData();
+      setAdminData(data);
+      setIsLoading(false);
+    } catch (error) {
+      console.error('Failed to load admin data:', error);
+      setIsLoading(false);
+    }
   }, [rankings, tournaments, rankingsLoading, tournamentsLoading]);
 
   if (isLoading || !adminData) {
