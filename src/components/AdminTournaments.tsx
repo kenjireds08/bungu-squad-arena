@@ -54,11 +54,11 @@ export const AdminTournaments = ({ onBack, initialView = 'list', selectedTournam
 
   // Calculate active participants from rankings data
   useEffect(() => {
-    if (rankings) {
+    if (!rankingsLoading && rankings) {
       const activeCount = rankings.filter(player => player.tournament_active === true).length;
       setActiveParticipants(activeCount);
     }
-  }, [rankings]);
+  }, [rankingsLoading]); // Only depend on loading state to prevent infinite loops
 
   // Handle selectedTournamentId - automatically navigate to tournament management
   useEffect(() => {
