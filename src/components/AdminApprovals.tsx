@@ -1,3 +1,4 @@
+import React from 'react';
 import { MatchApproval } from './MatchApproval';
 
 interface AdminApprovalsProps {

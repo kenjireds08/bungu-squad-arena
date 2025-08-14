@@ -2356,7 +2356,7 @@ class SheetsService {
     await this.authenticate();
     
     try {
-      // Deactivate in TournamentParticipants sheet
+      // First, collect player IDs from TournamentParticipants sheet
       const { headers: participantHeaders, idx: participantIdx } = await this._getHeaders('TournamentParticipants!1:1');
       
       const participantResp = await this.sheets.spreadsheets.values.get({
@@ -2368,22 +2368,31 @@ class SheetsService {
       // Use _pickIdx for column flexibility
       const tournamentIdIdx = this._pickIdx(participantIdx, 'tournament_id', 'tour_id');
       const statusIdx = participantIdx('status');
+      const playerIdIdx = participantIdx('player_id');
       
       console.log(`[deactivateTournamentParticipants] Processing ${participantRows.length - 1} participants for tournament ${tournamentId}`);
-      console.log(`[deactivateTournamentParticipants] Column indices: tournamentId=${tournamentIdIdx}, status=${statusIdx}`);
+      console.log(`[deactivateTournamentParticipants] Column indices: tournamentId=${tournamentIdIdx}, status=${statusIdx}, playerId=${playerIdIdx}`);
       
+      // Collect player IDs from this tournament
+      const tournamentPlayerIds = [];
       let participantDeactivated = 0;
+      
       if (tournamentIdIdx >= 0) {
         for (let i = 1; i < participantRows.length; i++) {
           const rowTournamentId = participantRows[i][tournamentIdIdx];
-          console.log(`[deactivateTournamentParticipants] Row ${i}: tournamentId=${rowTournamentId}, target=${tournamentId}, match=${rowTournamentId === tournamentId}`);
           
           if (rowTournamentId === tournamentId) {
+            // Collect player ID for later deactivation in Players sheet
+            if (playerIdIdx >= 0 && participantRows[i][playerIdIdx]) {
+              tournamentPlayerIds.push(participantRows[i][playerIdIdx]);
+            }
+            
+            // Deactivate in TournamentParticipants sheet
             if (statusIdx >= 0) {
               const oldStatus = participantRows[i][statusIdx];
               participantRows[i][statusIdx] = 'inactive';
               participantDeactivated++;
-              console.log(`[deactivateTournamentParticipants] Deactivated participant row ${i}: ${oldStatus} → inactive`);
+              console.log(`[deactivateTournamentParticipants] Deactivated participant row ${i}: ${oldStatus} → inactive, playerId=${participantRows[i][playerIdIdx]}`);
             }
           }
         }
@@ -2400,40 +2409,60 @@ class SheetsService {
         console.warn('Tournament ID column not found in TournamentParticipants sheet');
       }
 
-      // Also deactivate in Players sheet (tournament_active = false)
+      // Now deactivate specific players in Players sheet using collected player IDs
       const { headers: playerHeaders, idx: playerIdx } = await this._getHeaders('Players!1:1');
       
       const playerResp = await this.sheets.spreadsheets.values.get({
         spreadsheetId: this.spreadsheetId,
-        range: 'Players!A:Z'
+        range: 'Players!A:AC'
       });
       const playerRows = playerResp.data.values || [];
       
-      const tournamentActiveIdx = playerIdx('tournament_active');
+      // Get player ID column index (should be column A, index 0)
+      const playerIdColumnIdx = playerIdx('id');
       
-      console.log(`[deactivateTournamentParticipants] Processing ${playerRows.length - 1} players, tournament_active column index: ${tournamentActiveIdx}`);
+      // Try multiple possible column names for tournament_active
+      let tournamentActiveIdx = playerIdx('tournament_active');
+      if (tournamentActiveIdx === -1) {
+        tournamentActiveIdx = playerIdx('reserved_1');  // Try reserved_1 as fallback
+      }
+      if (tournamentActiveIdx === -1) {
+        tournamentActiveIdx = 23;  // Use hardcoded index 23 (column X) as last resort
+        console.log(`[deactivateTournamentParticipants] Using hardcoded index 23 for tournament_active column`);
+      }
+      
+      console.log(`[deactivateTournamentParticipants] Processing ${tournamentPlayerIds.length} specific players from tournament`);
+      console.log(`[deactivateTournamentParticipants] Player IDs to deactivate:`, tournamentPlayerIds);
       
       let playerDeactivated = 0;
-      if (tournamentActiveIdx >= 0) {
+      if (tournamentActiveIdx >= 0 && playerIdColumnIdx >= 0) {
         for (let i = 1; i < playerRows.length; i++) {
-          const activeValue = playerRows[i][tournamentActiveIdx];
-          if (activeValue === 'true' || activeValue === true) {
-            playerRows[i][tournamentActiveIdx] = 'false';
-            playerDeactivated++;
-            console.log(`[deactivateTournamentParticipants] Deactivated player row ${i}: tournament_active ${activeValue} → false`);
+          const playerId = playerRows[i][playerIdColumnIdx];
+          
+          // Only deactivate players who participated in this tournament
+          if (tournamentPlayerIds.includes(playerId)) {
+            const activeValue = playerRows[i][tournamentActiveIdx];
+            // Check for various true representations (TRUE, true, 'true', 'TRUE')
+            if (activeValue === 'TRUE' || activeValue === 'true' || activeValue === true) {
+              playerRows[i][tournamentActiveIdx] = 'FALSE';  // Use uppercase FALSE for consistency
+              playerDeactivated++;
+              console.log(`[deactivateTournamentParticipants] Deactivated player ${playerId} (row ${i}): tournament_active ${activeValue} → FALSE`);
+            } else {
+              console.log(`[deactivateTournamentParticipants] Player ${playerId} (row ${i}) already inactive: ${activeValue}`);
+            }
           }
         }
         
         if (playerDeactivated > 0) {
           await this.sheets.spreadsheets.values.update({
             spreadsheetId: this.spreadsheetId,
-            range: 'Players!A:Z',
+            range: 'Players!A:AC',
             valueInputOption: 'USER_ENTERED',
             requestBody: { values: playerRows }
           });
         }
       } else {
-        console.warn('tournament_active column not found in Players sheet');
+        console.warn('tournament_active or player ID column not found in Players sheet');
       }
 
       console.log(`Deactivated ${participantDeactivated} tournament participants and ${playerDeactivated} players for tournament ${tournamentId}`);

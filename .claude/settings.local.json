@@ -53,7 +53,15 @@
       "mcp__serena__think_about_collected_information",
       "Bash(npm run read:sheet-structure:*)",
       "Bash(test:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(git checkout:*)",
+      "Bash(for file in src/components/AdminDirectInput.tsx src/components/AdminPlayers.tsx src/components/AdminSheets.tsx src/components/AdminTournaments.tsx)",
+      "Bash(do)",
+      "Bash(if ! grep -q \"import React\" \"$file\")",
+      "Bash(then)",
+      "Bash(echo:*)",
+      "Bash(fi)",
+      "Bash(done)"
     ],
     "deny": []
   }
