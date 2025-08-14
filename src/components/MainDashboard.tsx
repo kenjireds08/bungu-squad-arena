@@ -104,8 +104,9 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
   useEffect(() => {
     // Tournament notifications are now handled by PWA push notifications
     // No longer showing in-app popup notifications for tournaments
+    // Only set once on mount to prevent infinite loops
     setNotifications([]);
-  }, [nextTournament, acknowledgedTournaments]);
+  }, []); // Empty dependency array - only run once on mount
 
   // Check for PWA install prompt
   useEffect(() => {
