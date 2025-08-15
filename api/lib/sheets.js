@@ -305,7 +305,7 @@ class SheetsService {
           .catch(resetError => console.warn('Auto-reset failed:', resetError.message));
         
         return rows.map((row, index) => ({
-          id: row[0] || `player_${index + 1}`,
+          id: row[0] || `row${index + 2}`,
           nickname: row[1] || '',
           email: row[2] || '',
           current_rating: parseInt(row[3]) || 1500,
@@ -361,6 +361,33 @@ class SheetsService {
     return cached('rankings', 15000, async () => {
       try {
         const players = await this.getPlayers();
+        
+        // Get all matches to count player matches
+        let allMatches = [];
+        try {
+          const matchesResponse = await this.sheets.spreadsheets.values.get({
+            spreadsheetId: this.spreadsheetId,
+            range: 'TournamentMatches!A2:Z1000'
+          });
+          allMatches = matchesResponse.data.values || [];
+        } catch (error) {
+          console.warn('Could not fetch matches for counting:', error.message);
+        }
+        
+        // Count matches per player
+        const matchCounts = {};
+        allMatches.forEach(match => {
+          const player1Id = match[3]; // player1_id
+          const player2Id = match[5]; // player2_id
+          const status = match[8]; // status
+          
+          // Only count completed or approved matches
+          if (status === 'completed' || status === 'approved') {
+            matchCounts[player1Id] = (matchCounts[player1Id] || 0) + 1;
+            matchCounts[player2Id] = (matchCounts[player2Id] || 0) + 1;
+          }
+        });
+        
       const sortedPlayers = players.sort((a, b) => b.current_rating - a.current_rating);
       
       // Calculate ranks with ties
@@ -393,7 +420,8 @@ class SheetsService {
           ...player,
           rank: currentRank,
           rankDisplay: isTied ? `${currentRank}位タイ` : `${currentRank}位`,
-          champion_badges: badges
+          champion_badges: badges,
+          matches: matchCounts[player.id] || 0
         };
       });
     } catch (error) {

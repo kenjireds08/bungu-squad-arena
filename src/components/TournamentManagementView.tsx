@@ -812,18 +812,18 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
                           <div className="flex items-center gap-2">
                             <Trophy className="h-4 w-4 text-success" />
                             <span className="font-medium text-success">勝者: {winnerName}</span>
-                            {match.player1_rating_change && (
-                              <span className={`text-sm font-medium ${match.winner_id === match.player1_id ? 'text-success' : 'text-destructive'}`}>
-                                {match.winner_id === match.player1_id ? `+${match.player1_rating_change}` : `${match.player1_rating_change}`}
+                            {(match.winner_id === match.player1_id ? match.player1_rating_change : match.player2_rating_change) && (
+                              <span className="text-sm font-medium text-success">
+                                +{match.winner_id === match.player1_id ? match.player1_rating_change : match.player2_rating_change}
                               </span>
                             )}
                           </div>
                           <div className="flex items-center gap-2">
                             <div className="text-sm text-muted-foreground">
                               敗者: {loserName}
-                              {match.player2_rating_change && (
-                                <span className={`ml-1 font-medium ${match.winner_id === match.player2_id ? 'text-success' : 'text-destructive'}`}>
-                                  {match.winner_id === match.player2_id ? `+${match.player2_rating_change}` : `${match.player2_rating_change}`}
+                              {(match.winner_id === match.player1_id ? match.player2_rating_change : match.player1_rating_change) && (
+                                <span className="ml-1 font-medium text-destructive">
+                                  {match.winner_id === match.player1_id ? match.player2_rating_change : match.player1_rating_change}
                                 </span>
                               )}
                             </div>
