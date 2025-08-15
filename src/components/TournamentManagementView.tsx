@@ -97,10 +97,11 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
     return () => clearInterval(interval);
   }, [tournamentId]);
 
-  // Match statistics
-  const scheduledMatches = matches.filter(m => m.status === 'scheduled');
-  const inProgressMatches = matches.filter(m => m.status === 'in_progress');
-  const completedMatches = matches.filter(m => m.status === 'approved');
+  // Match statistics - ensure matches is an array
+  const matchesArray = Array.isArray(matches) ? matches : [];
+  const scheduledMatches = matchesArray.filter(m => m.status === 'scheduled');
+  const inProgressMatches = matchesArray.filter(m => m.status === 'in_progress');
+  const completedMatches = matchesArray.filter(m => m.status === 'approved');
   
   // 次に開始できる試合（順番に並んでいる最初のscheduled）
   const nextMatch = scheduledMatches.length > 0 ? scheduledMatches.sort((a, b) => {
@@ -209,7 +210,7 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
 
   // 代理入力ダイアログを表示
   const handleDirectInput = (matchId: string) => {
-    const match = matches.find(m => m.match_id === matchId);
+    const match = matchesArray.find(m => m.match_id === matchId);
     if (match) {
       setDirectInputMatch(match);
     }
@@ -335,7 +336,7 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
       
       const matchData = {
         tournament_id: tournamentId,
-        match_number: (matches.length + 1).toString(),
+        match_number: (matchesArray.length + 1).toString(),
         player1_id: newMatch.player1_id,
         player2_id: newMatch.player2_id,
         game_type: newMatch.game_type,
@@ -524,13 +525,13 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
                 <div className="mt-6">
                   <div className="flex justify-between text-sm mb-2">
                     <span>進行率</span>
-                    <span>{Math.round((completedMatches.length / (matches.length || 1)) * 100)}%</span>
+                    <span>{Math.round((completedMatches.length / (matchesArray.length || 1)) * 100)}%</span>
                   </div>
                   <div className="w-full bg-muted rounded-full h-2">
                     <div 
                       className="bg-primary h-2 rounded-full transition-all duration-500"
                       style={{ 
-                        width: `${(completedMatches.length / (matches.length || 1)) * 100}%` 
+                        width: `${(completedMatches.length / (matchesArray.length || 1)) * 100}%` 
                       }}
                     />
                   </div>
@@ -579,7 +580,7 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
                   <p className="text-muted-foreground">読み込み中...</p>
                 </CardContent>
               </Card>
-            ) : matches.length === 0 ? (
+            ) : matchesArray.length === 0 ? (
               <Card className="border-fantasy-frame shadow-soft">
                 <CardContent className="p-8 text-center">
                   <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
@@ -592,7 +593,7 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
               </Card>
             ) : (
               <div className="space-y-3">
-                {matches.map((match) => (
+                {matchesArray.map((match) => (
                   <Card key={match.match_id} className="border-fantasy-frame shadow-soft">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between">
@@ -652,7 +653,7 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
               </div>
             )}
 
-            {matches.some(m => m.status !== 'scheduled') && (
+            {matchesArray.some(m => m.status !== 'scheduled') && (
               <Card className="border-warning shadow-soft">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
