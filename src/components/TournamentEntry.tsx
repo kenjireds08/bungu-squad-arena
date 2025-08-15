@@ -29,11 +29,12 @@ export const TournamentEntry = () => {
   }>();
   
   // Handle tournament ID from different route patterns
+  // If tournamentId doesn't start with 'tournament_', add the prefix
   const actualTournamentId = tournamentId?.startsWith('tournament_') 
     ? tournamentId 
-    : tournamentId?.includes('tournament_') 
-    ? `tournament_${tournamentId.split('tournament_')[1]}` 
-    : tournamentId;
+    : tournamentId 
+    ? `tournament_${tournamentId}` 
+    : null;
   
   console.log('TournamentEntry route params:', { tournamentId, actualTournamentId, date, timeOrName });
   const searchParams = new URLSearchParams(window.location.search);

@@ -61,7 +61,9 @@
       "Bash(then)",
       "Bash(echo:*)",
       "Bash(fi)",
-      "Bash(done)"
+      "Bash(done)",
+      "Bash(gh pr merge:*)",
+      "Bash(git stash:*)"
     ],
     "deny": []
   }

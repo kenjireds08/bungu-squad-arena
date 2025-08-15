@@ -336,13 +336,18 @@ module.exports = async function handler(req, res) {
           } else {
             console.log('[verify] Stage 2b: Creating new player...');
             // Create new player
+            // If coming from tournament QR code, set tournament_active to true immediately
             const newPlayerData = {
               ...playerData,
               email_verified: true,
-              tournament_active: false // Will be set to true in next step
+              tournament_active: !!playerData.tournamentId // Set to true if from tournament QR
             };
             playerId = await sheets.addPlayer(newPlayerData);
-            console.log('[verify] Stage 2c: New player created', { playerId });
+            console.log('[verify] Stage 2c: New player created', { 
+              playerId, 
+              tournament_active: newPlayerData.tournament_active,
+              tournamentId: playerData.tournamentId
+            });
           }
         } catch (error) {
           console.error('[verify] Stage 2 FAILED: Player creation/update error', error);
@@ -371,9 +376,14 @@ module.exports = async function handler(req, res) {
             await sheets.addTournamentParticipant(participantData);
             console.log('[verify] Stage 3a: Added to TournamentParticipants');
             
-            // Update Players sheet tournament_active flag
-            await sheets.updateTournamentActive(playerId, true);
-            console.log('[verify] Stage 3b: Set tournament_active = true');
+            // Update Players sheet tournament_active flag (if not already set)
+            // This is redundant for new players from QR, but ensures consistency
+            if (!playerData.tournament_active) {
+              await sheets.updateTournamentActive(playerId, true);
+              console.log('[verify] Stage 3b: Set tournament_active = true');
+            } else {
+              console.log('[verify] Stage 3b: tournament_active already true, skipping update');
+            }
             
           } catch (entryError) {
             console.error('[verify] Stage 3 WARNING: Tournament entry failed', entryError);
