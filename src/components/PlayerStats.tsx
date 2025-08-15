@@ -18,6 +18,8 @@ interface PlayerStatsData {
   losses: number;
   averageOpponentRating: number;
   recentForm: number[];
+  averageRatingChange: number;
+  maxWinStreak: number;
   monthlyStats: Array<{
     month: string;
     games: number;
@@ -56,12 +58,52 @@ export const PlayerStats = ({ onClose, currentUserId = "player_001" }: PlayerSta
         
         // Use actual data from the database
         const annualGames = (currentUser.annual_wins || 0) + (currentUser.annual_losses || 0);
-        const totalGames = (currentUser.total_wins || 0) + (currentUser.total_losses || 0);
+        const totalGames = currentUser.matches || (currentUser.total_wins || 0) + (currentUser.total_losses || 0);
         
         // Use annual stats for current year display
         const winRate = annualGames > 0 
           ? ((currentUser.annual_wins || 0) / annualGames) * 100 
           : 0;
+        
+        // 試合履歴を取得して詳細な統計を計算
+        let matchHistory = [];
+        let averageRatingChange = 0;
+        let maxWinStreak = 0;
+        let currentWinStreak = 0;
+        
+        try {
+          const matchResponse = await fetch(`/api/matches?playerId=${currentUserId}`);
+          if (matchResponse.ok) {
+            matchHistory = await matchResponse.json();
+            
+            // 平均レート変動と連勝記録を計算
+            let totalRatingChange = 0;
+            let ratingChangeCount = 0;
+            
+            matchHistory.forEach((match: any) => {
+              const isPlayer1 = match.player1_id === currentUserId;
+              const won = match.winner_id === currentUserId;
+              const ratingChange = isPlayer1 ? match.player1_rating_change : match.player2_rating_change;
+              
+              if (ratingChange) {
+                totalRatingChange += parseInt(ratingChange);
+                ratingChangeCount++;
+              }
+              
+              // 連勝記録の計算
+              if (won) {
+                currentWinStreak++;
+                maxWinStreak = Math.max(maxWinStreak, currentWinStreak);
+              } else {
+                currentWinStreak = 0;
+              }
+            });
+            
+            averageRatingChange = ratingChangeCount > 0 ? totalRatingChange / ratingChangeCount : 0;
+          }
+        } catch (error) {
+          console.warn('Failed to fetch match history:', error);
+        }
         
         const stats: PlayerStatsData = {
           currentRating: currentUser.current_rating || 1500,
@@ -72,6 +114,8 @@ export const PlayerStats = ({ onClose, currentUserId = "player_001" }: PlayerSta
           losses: currentUser.annual_losses || 0,  // Use annual losses for display
           averageOpponentRating: 1500, // This would need match history calculation
           recentForm: [], // Will be empty until we fetch actual match history
+          averageRatingChange: Math.round(averageRatingChange * 10) / 10,
+          maxWinStreak: maxWinStreak,
           monthlyStats: [
             { month: '4月', games: 0, wins: 0, rating: currentUser.current_rating || 1500 },
             { month: '5月', games: 0, wins: 0, rating: currentUser.current_rating || 1500 },
@@ -146,6 +190,31 @@ export const PlayerStats = ({ onClose, currentUserId = "player_001" }: PlayerSta
               </div>
               <div className="text-2xl font-bold text-success">{statsData.winRate.toFixed(1)}%</div>
               <div className="text-xs text-muted-foreground">{statsData.wins}勝{statsData.losses}敗</div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Additional Stats */}
+        <div className="grid grid-cols-2 gap-4">
+          <Card className="border-fantasy-frame shadow-soft animate-fade-in" style={{ animationDelay: '200ms' }}>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <TrendingUp className="h-4 w-4 text-info" />
+                <span className="text-sm font-medium text-muted-foreground">平均レート変動</span>
+              </div>
+              <div className="text-2xl font-bold text-info">
+                {statsData.averageRatingChange > 0 ? '+' : ''}{statsData.averageRatingChange}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-fantasy-frame shadow-soft animate-fade-in" style={{ animationDelay: '300ms' }}>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Trophy className="h-4 w-4 text-warning" />
+                <span className="text-sm font-medium text-muted-foreground">最高連勝</span>
+              </div>
+              <div className="text-2xl font-bold text-warning">{statsData.maxWinStreak}連勝</div>
             </CardContent>
           </Card>
         </div>

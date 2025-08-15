@@ -389,7 +389,7 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
                   <p className="text-lg font-medium text-foreground mb-2">{currentUser?.nickname || 'プレイヤー'}</p>
                 </div>
                 <h2 className="text-2xl font-bold text-foreground">
-                  {`${getRankIcon(currentUser?.rank || 0)} 現在 ${currentUser?.rank || '-'}位`}
+                  {`現在 ${currentUser?.rank || '-'}位`}
                 </h2>
                 <div className="flex items-center justify-center">
                   <span className="text-xl font-semibold text-primary">
@@ -402,7 +402,17 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
               {currentUser && currentUser.rank > 1 && (() => {
                 const nextRankPlayer = rankings?.find(player => player.rank === currentUser.rank - 1);
                 const pointDifference = nextRankPlayer ? nextRankPlayer.current_rating - currentUser.current_rating : 0;
-                const progressPercentage = Math.min(75, Math.max(25, 100 - (pointDifference / 100) * 25));
+                // 次の順位のプレイヤーとの差が小さいほど100%に近づく
+                const previousRankPlayer = rankings?.find(player => player.rank === currentUser.rank + 1);
+                const totalRange = nextRankPlayer && previousRankPlayer 
+                  ? nextRankPlayer.current_rating - previousRankPlayer.current_rating 
+                  : (nextRankPlayer ? pointDifference + 50 : 100); // デフォルト範囲
+                const progressFromPrevious = previousRankPlayer 
+                  ? currentUser.current_rating - previousRankPlayer.current_rating 
+                  : 0;
+                const progressPercentage = totalRange > 0 
+                  ? Math.min(100, Math.max(0, (progressFromPrevious / totalRange) * 100))
+                  : 50;
                 
                 return (
                   <div className="space-y-2">
