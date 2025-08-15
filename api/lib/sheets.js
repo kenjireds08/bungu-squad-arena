@@ -305,7 +305,7 @@ class SheetsService {
           .catch(resetError => console.warn('Auto-reset failed:', resetError.message));
         
         return rows.map((row, index) => ({
-          id: row[0] || `player_${index + 1}`,
+          id: row[0] || `row${index + 2}`,
           nickname: row[1] || '',
           email: row[2] || '',
           current_rating: parseInt(row[3]) || 1500,
@@ -361,6 +361,33 @@ class SheetsService {
     return cached('rankings', 15000, async () => {
       try {
         const players = await this.getPlayers();
+        
+        // Get all matches to count player matches
+        let allMatches = [];
+        try {
+          const matchesResponse = await this.sheets.spreadsheets.values.get({
+            spreadsheetId: this.spreadsheetId,
+            range: 'TournamentMatches!A2:Z1000'
+          });
+          allMatches = matchesResponse.data.values || [];
+        } catch (error) {
+          console.warn('Could not fetch matches for counting:', error.message);
+        }
+        
+        // Count matches per player
+        const matchCounts = {};
+        allMatches.forEach(match => {
+          const player1Id = match[3]; // player1_id
+          const player2Id = match[5]; // player2_id
+          const status = match[8]; // status
+          
+          // Only count completed or approved matches
+          if (status === 'completed' || status === 'approved') {
+            matchCounts[player1Id] = (matchCounts[player1Id] || 0) + 1;
+            matchCounts[player2Id] = (matchCounts[player2Id] || 0) + 1;
+          }
+        });
+        
       const sortedPlayers = players.sort((a, b) => b.current_rating - a.current_rating);
       
       // Calculate ranks with ties
@@ -393,7 +420,8 @@ class SheetsService {
           ...player,
           rank: currentRank,
           rankDisplay: isTied ? `${currentRank}位タイ` : `${currentRank}位`,
-          champion_badges: badges
+          champion_badges: badges,
+          matches: matchCounts[player.id] || 0
         };
       });
     } catch (error) {
@@ -787,6 +815,108 @@ class SheetsService {
     } catch (error) {
       console.error('Error updating tournament active:', error);
       throw new Error('Failed to update tournament active status');
+    }
+  }
+
+  async updatePlayerGameExperience(playerId, gameType) {
+    await this.authenticate();
+    
+    try {
+      console.log(`[updatePlayerGameExperience] Updating game experience for player ${playerId}, game type: ${gameType}`);
+      
+      // Skip if game type is not trump or cardplus
+      if (gameType !== 'trump' && gameType !== 'cardplus') {
+        console.log(`[updatePlayerGameExperience] Skipping - game type ${gameType} doesn't require badge`);
+        return { success: true, badgeUpdated: false };
+      }
+      
+      // Get headers and player data
+      const { headers, idx } = await this._getHeaders('Players!1:1');
+      const playersResponse = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'Players!A:Z'
+      });
+      
+      const rows = playersResponse.data.values || [];
+      if (rows.length <= 1) {
+        throw new Error('No players found');
+      }
+      
+      // Find player row
+      const playerIdIdx = this._pickIdx(idx, 'id', 'player_id');
+      let playerRowIndex = -1;
+      
+      for (let i = 1; i < rows.length; i++) {
+        if (rows[i][playerIdIdx] === playerId) {
+          playerRowIndex = i;
+          break;
+        }
+      }
+      
+      if (playerRowIndex === -1) {
+        console.warn(`[updatePlayerGameExperience] Player ${playerId} not found`);
+        return { success: false, error: 'Player not found' };
+      }
+      
+      const playerRow = rows[playerRowIndex];
+      const today = new Date().toISOString().split('T')[0];
+      let updated = false;
+      
+      if (gameType === 'trump') {
+        const trumpExpIdx = idx('trump_rule_experienced');
+        const trumpDateIdx = idx('first_trump_game_date');
+        
+        // Check if already experienced
+        if (trumpExpIdx >= 0 && playerRow[trumpExpIdx] !== 'TRUE') {
+          playerRow[trumpExpIdx] = 'TRUE';
+          updated = true;
+          console.log(`[updatePlayerGameExperience] Setting trump_rule_experienced to TRUE for ${playerId}`);
+        }
+        
+        // Set first play date if empty
+        if (trumpDateIdx >= 0 && !playerRow[trumpDateIdx]) {
+          playerRow[trumpDateIdx] = today;
+          updated = true;
+          console.log(`[updatePlayerGameExperience] Setting first_trump_game_date to ${today} for ${playerId}`);
+        }
+      } else if (gameType === 'cardplus') {
+        const cardplusExpIdx = idx('cardplus_rule_experienced');
+        const cardplusDateIdx = idx('first_cardplus_game_date');
+        
+        // Check if already experienced
+        if (cardplusExpIdx >= 0 && playerRow[cardplusExpIdx] !== 'TRUE') {
+          playerRow[cardplusExpIdx] = 'TRUE';
+          updated = true;
+          console.log(`[updatePlayerGameExperience] Setting cardplus_rule_experienced to TRUE for ${playerId}`);
+        }
+        
+        // Set first play date if empty
+        if (cardplusDateIdx >= 0 && !playerRow[cardplusDateIdx]) {
+          playerRow[cardplusDateIdx] = today;
+          updated = true;
+          console.log(`[updatePlayerGameExperience] Setting first_cardplus_game_date to ${today} for ${playerId}`);
+        }
+      }
+      
+      // Update sheet if changes were made
+      if (updated) {
+        await this.sheets.spreadsheets.values.update({
+          spreadsheetId: this.spreadsheetId,
+          range: 'Players!A:Z',
+          valueInputOption: 'USER_ENTERED',
+          requestBody: { values: rows }
+        });
+        
+        console.log(`[updatePlayerGameExperience] Successfully updated game experience for ${playerId}`);
+        return { success: true, badgeUpdated: true };
+      } else {
+        console.log(`[updatePlayerGameExperience] No update needed - player ${playerId} already has ${gameType} experience`);
+        return { success: true, badgeUpdated: false };
+      }
+      
+    } catch (error) {
+      console.error('[updatePlayerGameExperience] Error:', error);
+      return { success: false, error: error.message };
     }
   }
 
@@ -2223,6 +2353,25 @@ class SheetsService {
         await this.updatePlayerRating(loserId, ratingResult.loser.newRating);
         
         console.log(`Rating updated: ${winnerId} ${ratingResult.winner.ratingChange > 0 ? '+' : ''}${ratingResult.winner.ratingChange}, ${loserId} ${ratingResult.loser.ratingChange}`);
+        
+        // Auto-grant game badges
+        const gameType = rows[hit][idx('game_type')] || rows[hit][idx('game_rule')] || '';
+        if (gameType) {
+          console.log(`[updateMatchStatus] Auto-granting ${gameType} badges for match ${matchId}`);
+          
+          // Update both players' game experience
+          const [winnerBadgeResult, loserBadgeResult] = await Promise.all([
+            this.updatePlayerGameExperience(winnerId, gameType),
+            this.updatePlayerGameExperience(loserId, gameType)
+          ]);
+          
+          if (winnerBadgeResult.badgeUpdated) {
+            console.log(`[updateMatchStatus] New ${gameType} badge granted to winner ${winnerId}`);
+          }
+          if (loserBadgeResult.badgeUpdated) {
+            console.log(`[updateMatchStatus] New ${gameType} badge granted to loser ${loserId}`);
+          }
+        }
       }
     }
     
@@ -2514,15 +2663,31 @@ class SheetsService {
       await this.updatePlayerRating(winnerId, winnerNewRating);
       await this.updatePlayerRating(loserId, loserNewRating);
 
-      // カードプラスバッジ付与（非ブロッキング）
-      let badgeAdded = false;
-      if (match.game_type === 'cardplus' || match.game_type === 'カード+') {
+      // ゲームバッジ自動付与
+      let badgesUpdated = { winner: false, loser: false };
+      const gameType = match.game_type || match.game_rule || '';
+      
+      if (gameType) {
+        console.log(`[adminDirectMatchResult] Auto-granting ${gameType} badges for match ${matchId}`);
+        
         try {
-          const badgeResult = await this.addBadgeToPlayer(winnerId, '➕');
-          badgeAdded = badgeResult?.success === true;
+          // Update both players' game experience
+          const [winnerBadgeResult, loserBadgeResult] = await Promise.all([
+            this.updatePlayerGameExperience(winnerId, gameType),
+            this.updatePlayerGameExperience(loserId, gameType)
+          ]);
+          
+          badgesUpdated.winner = winnerBadgeResult.badgeUpdated || false;
+          badgesUpdated.loser = loserBadgeResult.badgeUpdated || false;
+          
+          if (badgesUpdated.winner) {
+            console.log(`[adminDirectMatchResult] New ${gameType} badge granted to winner ${winnerId}`);
+          }
+          if (badgesUpdated.loser) {
+            console.log(`[adminDirectMatchResult] New ${gameType} badge granted to loser ${loserId}`);
+          }
         } catch (error) {
-          console.warn('Badge add failed but continuing match result process:', error);
-          badgeAdded = false;
+          console.warn('Badge update failed but continuing match result process:', error);
         }
       }
 
@@ -2536,7 +2701,7 @@ class SheetsService {
           winnerAfter: winnerNewRating,
           loserAfter: loserNewRating
         },
-        badgeAdded
+        badgesUpdated
       };
     } catch (error) {
       console.error('Error recording admin direct match result:', error);
