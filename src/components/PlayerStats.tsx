@@ -203,7 +203,7 @@ export const PlayerStats = ({ onClose, currentUserId = "player_001" }: PlayerSta
                 <span className="text-sm font-medium text-muted-foreground">平均レート変動</span>
               </div>
               <div className="text-2xl font-bold text-info">
-                {statsData.averageRatingChange > 0 ? '+' : ''}{statsData.averageRatingChange}
+                {statsData.averageRatingChange && statsData.averageRatingChange > 0 ? '+' : ''}{statsData.averageRatingChange || 0}
               </div>
             </CardContent>
           </Card>
@@ -214,7 +214,7 @@ export const PlayerStats = ({ onClose, currentUserId = "player_001" }: PlayerSta
                 <Trophy className="h-4 w-4 text-warning" />
                 <span className="text-sm font-medium text-muted-foreground">最高連勝</span>
               </div>
-              <div className="text-2xl font-bold text-warning">{statsData.maxWinStreak}連勝</div>
+              <div className="text-2xl font-bold text-warning">{statsData.maxWinStreak || 0}連勝</div>
             </CardContent>
           </Card>
         </div>
