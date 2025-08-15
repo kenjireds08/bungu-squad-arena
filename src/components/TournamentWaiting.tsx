@@ -12,14 +12,13 @@ import {
   Clock,
   Table,
   AlertCircle,
-  Loader2,
-  Smartphone,
-  Share
+  Loader2
 } from 'lucide-react';
 import { useTournaments, useRankings, useVersionPolling } from '@/hooks/useApi';
 import { getCategorizedTournaments } from '@/utils/tournamentData';
 import { PlayerRanking } from './PlayerRanking';
 import { TournamentMatchesView } from './TournamentMatchesView';
+import { PWAInstallPrompt } from './PWAInstallPrompt';
 
 interface TournamentWaitingProps {
   onClose: () => void;
@@ -253,43 +252,7 @@ export const TournamentWaiting = ({ onClose, onViewRanking }: TournamentWaitingP
 
           {/* PWA Install Prompt for QR Users */}
           {showPwaPrompt && (
-            <Card className="border-primary shadow-soft bg-primary/5">
-              <CardHeader>
-                <CardTitle className="text-primary flex items-center gap-2">
-                  <Smartphone className="h-5 w-5" />
-                  ホーム画面に追加
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <p className="text-sm">
-                  このアプリをホーム画面に追加すると、より快適にご利用いただけます
-                </p>
-                <div className="space-y-2 text-xs text-muted-foreground">
-                  <div className="flex items-start gap-2">
-                    <Share className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="font-medium">iPhoneの場合:</p>
-                      <p>Safari下部の共有ボタン → 「ホーム画面に追加」</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <Share className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="font-medium">Androidの場合:</p>
-                      <p>Chrome右上のメニュー → 「ホーム画面に追加」</p>
-                    </div>
-                  </div>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowPwaPrompt(false)}
-                  className="w-full"
-                >
-                  後で
-                </Button>
-              </CardContent>
-            </Card>
+            <PWAInstallPrompt onClose={() => setShowPwaPrompt(false)} />
           )}
 
           {/* 当日の流れ */}
