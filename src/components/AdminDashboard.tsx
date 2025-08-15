@@ -55,8 +55,8 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
   const { data: rankings, isLoading: rankingsLoading } = useRankings();
   const { data: tournaments, isLoading: tournamentsLoading } = useTournaments();
   
-  // Enable version-based polling for real-time updates
-  useVersionPolling('current');
+  // Disable polling in admin dashboard to improve performance
+  // useVersionPolling('current'); // Commented out to reduce API calls
 
   // Directly calculate admin data without additional state
   const isLoading = rankingsLoading || tournamentsLoading;

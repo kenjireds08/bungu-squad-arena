@@ -34,8 +34,8 @@ export const useVersionPolling = (tournamentId: string = 'current') => {
     // Initial poll
     pollVersion();
     
-    // Poll every 1.5 seconds
-    const interval = setInterval(pollVersion, 1500);
+    // Poll every 5 seconds (reduced from 1.5s to improve performance)
+    const interval = setInterval(pollVersion, 5000);
     
     return () => clearInterval(interval);
   }, [tournamentId, queryClient]);
@@ -46,8 +46,11 @@ export const usePlayers = (enablePolling = false) => {
   return useQuery({
     queryKey: ['players'],
     queryFn: api.getPlayers,
-    staleTime: enablePolling ? 1000 * 5 : 1000 * 60 * 5, // 5 seconds when polling, 5 minutes otherwise
-    refetchInterval: enablePolling ? 1000 * 5 : false, // Poll every 5 seconds when enabled
+    staleTime: enablePolling ? 1000 * 10 : 1000 * 60 * 5, // 10 seconds when polling, 5 minutes otherwise
+    gcTime: 1000 * 60 * 10, // Keep in cache for 10 minutes
+    refetchInterval: enablePolling ? 1000 * 30 : false, // Poll every 30 seconds when enabled (reduced frequency)
+    retry: 1, // Limit retries
+    refetchOnWindowFocus: false, // Disable refetch on window focus
   });
 };;
 
@@ -102,7 +105,8 @@ export const useRankings = () => {
   const playersQuery = useQuery({
     queryKey: ['players'],
     queryFn: api.getPlayers,
-    staleTime: 1000 * 30,
+    staleTime: 1000 * 60 * 5, // Increased to 5 minutes to reduce API calls
+    gcTime: 1000 * 60 * 10, // Keep in cache for 10 minutes
     refetchInterval: false,
     retry: false, // Completely disable retries
     refetchOnWindowFocus: false, // Disable refetch on window focus
@@ -146,9 +150,11 @@ export const useTournaments = (enablePolling = false) => {
   return useQuery({
     queryKey: ['tournaments'],
     queryFn: api.getTournaments,
-    staleTime: enablePolling ? 1000 * 5 : 1000 * 30, // 5 seconds when polling, 30 seconds otherwise
-    refetchInterval: enablePolling ? 1000 * 10 : false, // Poll every 10 seconds when enabled
+    staleTime: enablePolling ? 1000 * 10 : 1000 * 60 * 5, // 10 seconds when polling, 5 minutes otherwise
+    gcTime: 1000 * 60 * 10, // Keep in cache for 10 minutes
+    refetchInterval: enablePolling ? 1000 * 30 : false, // Poll every 30 seconds when enabled (reduced frequency)
     retry: 1, // Reduce retry attempts
+    refetchOnWindowFocus: false, // Disable refetch on window focus
   });
 };;
 
