@@ -19,6 +19,7 @@ import { getCategorizedTournaments } from '@/utils/tournamentData';
 import { PlayerRanking } from './PlayerRanking';
 import { TournamentMatchesView } from './TournamentMatchesView';
 import { PWAInstallPrompt } from './PWAInstallPrompt';
+import { TournamentEndScreen } from './TournamentEndScreen';
 
 interface TournamentWaitingProps {
   onClose: () => void;
@@ -32,6 +33,7 @@ export const TournamentWaiting = ({ onClose, onViewRanking }: TournamentWaitingP
   const [tournamentMatches, setTournamentMatches] = useState([]);
   const [isLoadingMatches, setIsLoadingMatches] = useState(false);
   const [showPwaPrompt, setShowPwaPrompt] = useState(false);
+  const [showEndScreen, setShowEndScreen] = useState(false);
   const { data: tournaments, isLoading: tournamentsLoading } = useTournaments(true); // Enable polling
   const playersQuery = useRankings();
   const { data: players, isLoading: playersLoading } = playersQuery;
@@ -71,9 +73,13 @@ export const TournamentWaiting = ({ onClose, onViewRanking }: TournamentWaitingP
   
   // Get today's tournament and participants
   const today = new Date().toISOString().split('T')[0];
-  const { active, upcoming } = getCategorizedTournaments(tournaments || []);
+  const { active, upcoming, past } = getCategorizedTournaments(tournaments || []);
   const todaysTournament = [...active, ...upcoming].find(t => t.date === today);
   
+  // Check if tournament has ended
+  const isTournamentEnded = todaysTournament?.status === 'ended' || 
+                           todaysTournament?.status === '終了' ||
+                           past.some(t => t.id === todaysTournament?.id);
   
   // Get tournament participants
   const tournamentParticipants = players?.filter(player => player.tournament_active === true) || [];
@@ -124,6 +130,19 @@ export const TournamentWaiting = ({ onClose, onViewRanking }: TournamentWaitingP
       setShowMatches(true);
     }
   };
+
+  // Handle tournament end screen
+  if (isTournamentEnded && todaysTournament && !showEndScreen) {
+    const currentUserId = localStorage.getItem('userId') || '';
+    return (
+      <TournamentEndScreen
+        tournamentId={todaysTournament.id}
+        tournamentName={todaysTournament.name}
+        playerId={currentUserId}
+        onClose={onClose}
+      />
+    );
+  }
 
   // Handle ranking view
   if (showRanking) {
