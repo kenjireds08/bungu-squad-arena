@@ -471,11 +471,14 @@ class SheetsService {
       newRow[idx('last_login')] = playerData.last_login || new Date().toISOString();
       newRow[idx('profile_image_uploaded')] = playerData.profile_image_uploaded ? 'true' : 'false';
       newRow[idx('preferred_language')] = playerData.preferred_language || 'ja';
-      newRow[idx('tournament_active')] = playerData.tournament_active ? 'TRUE' : 'FALSE';
+      // Handle tournament_active (which is stored in reserved_1 column, index 23)
+      const tournamentActiveIdx = idx('tournament_active') >= 0 ? idx('tournament_active') : 
+                                  idx('reserved_1') >= 0 ? idx('reserved_1') : 23;
+      newRow[tournamentActiveIdx] = playerData.tournament_active ? 'TRUE' : 'FALSE';
       newRow[idx('email_verified')] = playerData.email_verified ? 'TRUE' : 'FALSE';
       
       console.log('DEBUG: Final newRow array:', newRow);
-      console.log('DEBUG: tournament_active value at index', idx('tournament_active'), ':', newRow[idx('tournament_active')]);
+      console.log('DEBUG: tournament_active value at index', tournamentActiveIdx, ':', newRow[tournamentActiveIdx]);
       
       // Add new row to the sheet
       rows.push(newRow);
