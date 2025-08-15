@@ -1214,7 +1214,15 @@ class SheetsService {
   async deleteTournament(tournamentId) {
     await this.authenticate();
     
+    let deactivateResult = { playersDeactivated: 0 };
+    
     try {
+      // First, deactivate all participants before deleting
+      // This ensures players aren't left in an active state after tournament deletion
+      console.log(`Deactivating participants for tournament ${tournamentId} before deletion...`);
+      deactivateResult = await this.deactivateTournamentParticipants(tournamentId);
+      console.log(`Deactivated ${deactivateResult.playersDeactivated} players before deletion`);
+      
       // Ensure the sheet has the correct structure
       await this.ensureTournamentSheetStructure();
       
@@ -1271,8 +1279,12 @@ class SheetsService {
         }
       });
 
-      console.log(`Tournament deleted: ${tournamentId}`);
-      return { success: true, message: '大会を削除しました' };
+      console.log(`Tournament deleted: ${tournamentId}, deactivated ${deactivateResult.playersDeactivated} players`);
+      return { 
+        success: true, 
+        message: `大会を削除し、${deactivateResult.playersDeactivated}名のエントリー状態を解除しました`,
+        playersDeactivated: deactivateResult.playersDeactivated
+      };
     } catch (error) {
       console.error('Error deleting tournament:', error);
       // Return success:false instead of throwing to avoid 500 errors
@@ -2356,90 +2368,70 @@ class SheetsService {
     await this.authenticate();
     
     try {
-      // Deactivate in TournamentParticipants sheet
-      const { headers: participantHeaders, idx: participantIdx } = await this._getHeaders('TournamentParticipants!1:1');
+      // TournamentParticipantsシートが使われていない場合のフォールバック処理
+      // 大会終了時は、tournament_activeがTRUEの全プレイヤーをFALSEにする
       
-      const participantResp = await this.sheets.spreadsheets.values.get({
-        spreadsheetId: this.spreadsheetId,
-        range: 'TournamentParticipants!A:Z'
-      });
-      const participantRows = participantResp.data.values || [];
-      
-      // Use _pickIdx for column flexibility
-      const tournamentIdIdx = this._pickIdx(participantIdx, 'tournament_id', 'tour_id');
-      const statusIdx = participantIdx('status');
-      
-      console.log(`[deactivateTournamentParticipants] Processing ${participantRows.length - 1} participants for tournament ${tournamentId}`);
-      console.log(`[deactivateTournamentParticipants] Column indices: tournamentId=${tournamentIdIdx}, status=${statusIdx}`);
-      
-      let participantDeactivated = 0;
-      if (tournamentIdIdx >= 0) {
-        for (let i = 1; i < participantRows.length; i++) {
-          const rowTournamentId = participantRows[i][tournamentIdIdx];
-          console.log(`[deactivateTournamentParticipants] Row ${i}: tournamentId=${rowTournamentId}, target=${tournamentId}, match=${rowTournamentId === tournamentId}`);
-          
-          if (rowTournamentId === tournamentId) {
-            if (statusIdx >= 0) {
-              const oldStatus = participantRows[i][statusIdx];
-              participantRows[i][statusIdx] = 'inactive';
-              participantDeactivated++;
-              console.log(`[deactivateTournamentParticipants] Deactivated participant row ${i}: ${oldStatus} → inactive`);
-            }
-          }
-        }
-        
-        if (participantDeactivated > 0) {
-          await this.sheets.spreadsheets.values.update({
-            spreadsheetId: this.spreadsheetId,
-            range: 'TournamentParticipants!A:Z',
-            valueInputOption: 'USER_ENTERED',
-            requestBody: { values: participantRows }
-          });
-        }
-      } else {
-        console.warn('Tournament ID column not found in TournamentParticipants sheet');
-      }
-
-      // Also deactivate in Players sheet (tournament_active = false)
       const { headers: playerHeaders, idx: playerIdx } = await this._getHeaders('Players!1:1');
       
       const playerResp = await this.sheets.spreadsheets.values.get({
         spreadsheetId: this.spreadsheetId,
-        range: 'Players!A:Z'
+        range: 'Players!A:AC'
       });
       const playerRows = playerResp.data.values || [];
       
-      const tournamentActiveIdx = playerIdx('tournament_active');
+      // Get player ID column index (should be column A, index 0)
+      const playerIdColumnIdx = playerIdx('id');
       
-      console.log(`[deactivateTournamentParticipants] Processing ${playerRows.length - 1} players, tournament_active column index: ${tournamentActiveIdx}`);
+      // Try multiple possible column names for tournament_active
+      let tournamentActiveIdx = playerIdx('tournament_active');
+      if (tournamentActiveIdx === -1) {
+        tournamentActiveIdx = playerIdx('reserved_1');  // Try reserved_1 as fallback
+      }
+      if (tournamentActiveIdx === -1) {
+        tournamentActiveIdx = 23;  // Use hardcoded index 23 (column X) as last resort
+        console.log(`[deactivateTournamentParticipants] Using hardcoded index 23 for tournament_active column`);
+      }
+      
+      console.log(`[deactivateTournamentParticipants] Processing all active players for tournament ${tournamentId}`);
+      console.log(`[deactivateTournamentParticipants] Column indices: playerId=${playerIdColumnIdx}, tournament_active=${tournamentActiveIdx}`);
       
       let playerDeactivated = 0;
+      const deactivatedPlayerIds = [];
+      
       if (tournamentActiveIdx >= 0) {
         for (let i = 1; i < playerRows.length; i++) {
+          const playerId = playerRows[i][playerIdColumnIdx] || `row${i}`;
           const activeValue = playerRows[i][tournamentActiveIdx];
-          if (activeValue === 'true' || activeValue === true) {
-            playerRows[i][tournamentActiveIdx] = 'false';
+          
+          // Deactivate ALL players with tournament_active = TRUE
+          // (大会終了時は、参加中の全プレイヤーを非アクティブにする)
+          if (activeValue === 'TRUE' || activeValue === 'true' || activeValue === true) {
+            playerRows[i][tournamentActiveIdx] = 'FALSE';  // Use uppercase FALSE for consistency
             playerDeactivated++;
-            console.log(`[deactivateTournamentParticipants] Deactivated player row ${i}: tournament_active ${activeValue} → false`);
+            deactivatedPlayerIds.push(playerId);
+            console.log(`[deactivateTournamentParticipants] Deactivated player ${playerId} (row ${i}): tournament_active ${activeValue} → FALSE`);
           }
         }
         
         if (playerDeactivated > 0) {
           await this.sheets.spreadsheets.values.update({
             spreadsheetId: this.spreadsheetId,
-            range: 'Players!A:Z',
+            range: 'Players!A:AC',
             valueInputOption: 'USER_ENTERED',
             requestBody: { values: playerRows }
           });
+          console.log(`[deactivateTournamentParticipants] Successfully deactivated ${playerDeactivated} players:`, deactivatedPlayerIds);
+        } else {
+          console.log(`[deactivateTournamentParticipants] No active players found to deactivate`);
         }
       } else {
         console.warn('tournament_active column not found in Players sheet');
       }
 
-      console.log(`Deactivated ${participantDeactivated} tournament participants and ${playerDeactivated} players for tournament ${tournamentId}`);
+      console.log(`Deactivated ${playerDeactivated} players for tournament ${tournamentId}`);
       return { 
         success: true, 
-        deactivatedCount: participantDeactivated,
+        deactivatedCount: playerDeactivated,
         playersDeactivated: playerDeactivated
       };
     } catch (error) {

@@ -1,3 +1,4 @@
+import React from 'react';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,7 +31,7 @@ export const AdminTournaments = ({ onBack, initialView = 'list', selectedTournam
   const [selectedTournament, setSelectedTournament] = useState<any>(null);
   const [showQRCode, setShowQRCode] = useState(false);
   const [activeParticipants, setActiveParticipants] = useState(0);
-  const { data: rankings } = useRankings();
+  const { data: rankings, isLoading: rankingsLoading } = useRankings();
   const { data: tournamentsData, isLoading: tournamentsLoading } = useTournaments();
   const createTournamentMutation = useCreateTournament();
   const updateTournamentMutation = useUpdateTournament();
@@ -53,11 +54,11 @@ export const AdminTournaments = ({ onBack, initialView = 'list', selectedTournam
 
   // Calculate active participants from rankings data
   useEffect(() => {
-    if (rankings) {
+    if (!rankingsLoading && rankings) {
       const activeCount = rankings.filter(player => player.tournament_active === true).length;
       setActiveParticipants(activeCount);
     }
-  }, [rankings]);
+  }, [rankingsLoading, rankings]); // Include rankings in dependencies
 
   // Handle selectedTournamentId - automatically navigate to tournament management
   useEffect(() => {
