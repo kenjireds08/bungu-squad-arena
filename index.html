@@ -3,6 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <title>BUNGU SQUAD ランキングシステム</title>
     <meta name="description" content="BUNGU SQUADボードゲームのプレイヤーランキング管理システム。年間チャンピオン決定とEloレーティングによる実力評価。" />
     <meta name="author" content="BUNGU SQUAD Team" />
@@ -128,12 +131,35 @@
     </div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
-      // Register Service Worker for PWA
+      // Register Service Worker for PWA with update handling
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
           navigator.serviceWorker.register('/sw.js')
             .then((registration) => {
               console.log('SW registered: ', registration);
+              
+              // Check for updates immediately
+              registration.update();
+              
+              // Check for updates periodically (every hour)
+              setInterval(() => {
+                registration.update();
+              }, 60 * 60 * 1000);
+              
+              // Handle updates
+              registration.addEventListener('updatefound', () => {
+                const newWorker = registration.installing;
+                console.log('New service worker found');
+                
+                newWorker.addEventListener('statechange', () => {
+                  if (newWorker.state === 'activated') {
+                    // New service worker activated, reload to get fresh content
+                    if (confirm('新しいバージョンが利用可能です。更新しますか？')) {
+                      window.location.reload(true);
+                    }
+                  }
+                });
+              });
             })
             .catch((registrationError) => {
               console.log('SW registration failed: ', registrationError);
