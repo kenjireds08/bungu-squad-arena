@@ -12,7 +12,9 @@ import {
   Clock,
   Table,
   AlertCircle,
-  Loader2
+  Loader2,
+  Smartphone,
+  Share
 } from 'lucide-react';
 import { useTournaments, useRankings, useVersionPolling } from '@/hooks/useApi';
 import { getCategorizedTournaments } from '@/utils/tournamentData';
@@ -30,12 +32,30 @@ export const TournamentWaiting = ({ onClose, onViewRanking }: TournamentWaitingP
   const [showMatches, setShowMatches] = useState(false);
   const [tournamentMatches, setTournamentMatches] = useState([]);
   const [isLoadingMatches, setIsLoadingMatches] = useState(false);
+  const [showPwaPrompt, setShowPwaPrompt] = useState(false);
   const { data: tournaments, isLoading: tournamentsLoading } = useTournaments(true); // Enable polling
   const playersQuery = useRankings();
   const { data: players, isLoading: playersLoading } = playersQuery;
   
   // Enable version-based polling for real-time updates
   useVersionPolling('current');
+  
+  // Check if accessed from QR code and not installed as PWA
+  useEffect(() => {
+    const isFromQR = new URLSearchParams(window.location.search).has('from_qr');
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                        (window.navigator as any).standalone ||
+                        document.referrer.includes('android-app://');
+    
+    // Show PWA prompt for QR users who haven't installed the app
+    if (isFromQR && !isStandalone) {
+      // Delay showing the prompt to avoid overwhelming the user
+      const timer = setTimeout(() => {
+        setShowPwaPrompt(true);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, []);
   
   // Additional auto-refresh for participant list every 5 seconds
   useEffect(() => {
@@ -229,6 +249,47 @@ export const TournamentWaiting = ({ onClose, onViewRanking }: TournamentWaitingP
               <AlertCircle className="h-4 w-4" />
               しばらくお待ちください
             </div>
+          )}
+
+          {/* PWA Install Prompt for QR Users */}
+          {showPwaPrompt && (
+            <Card className="border-primary shadow-soft bg-primary/5">
+              <CardHeader>
+                <CardTitle className="text-primary flex items-center gap-2">
+                  <Smartphone className="h-5 w-5" />
+                  ホーム画面に追加
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-sm">
+                  このアプリをホーム画面に追加すると、より快適にご利用いただけます
+                </p>
+                <div className="space-y-2 text-xs text-muted-foreground">
+                  <div className="flex items-start gap-2">
+                    <Share className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-medium">iPhoneの場合:</p>
+                      <p>Safari下部の共有ボタン → 「ホーム画面に追加」</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <Share className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-medium">Androidの場合:</p>
+                      <p>Chrome右上のメニュー → 「ホーム画面に追加」</p>
+                    </div>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowPwaPrompt(false)}
+                  className="w-full"
+                >
+                  後で
+                </Button>
+              </CardContent>
+            </Card>
           )}
 
           {/* 当日の流れ */}

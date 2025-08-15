@@ -441,7 +441,9 @@ export const TournamentEntry = () => {
       console.log('Setting timeout for waiting room transition...');
       setTimeout(() => {
         console.log('Timeout executed, navigating to tournament waiting page');
-        navigate('/tournament-waiting');
+        // Preserve from_qr parameter for PWA install prompt
+        const queryParams = isFromQR ? '?from_qr=true' : '';
+        navigate(`/tournament-waiting${queryParams}`);
       }, 2000); // Reduced from 3000ms to 2000ms
       
     } catch (error) {
