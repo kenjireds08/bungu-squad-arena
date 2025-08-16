@@ -33,21 +33,34 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
     };
   }, []);
 
-  const setupQrScanner = () => {
+  const setupQrScanner = async () => {
     if (!videoRef.current) return;
 
     console.log('BUNGU SQUAD: qr-scannerライブラリでQRスキャナー初期化');
     
-    // Create QR Scanner instance
-    const qrScanner = new QrScanner(
-      videoRef.current,
-      (result) => {
-        handleQRDetected(result);
-      }
-    );
+    try {
+      // Set worker path explicitly
+      QrScanner.WORKER_PATH = '/qr-scanner-worker.min.js';
+      
+      // Create QR Scanner instance
+      const qrScanner = new QrScanner(
+        videoRef.current,
+        (result) => {
+          handleQRDetected(result);
+        },
+        {
+          returnDetailedScanResult: true,
+          highlightScanRegion: true,
+          highlightCodeOutline: true
+        }
+      );
 
-    qrScannerRef.current = qrScanner;
-    console.log('BUNGU SQUAD: QRスキャナー初期化完了');
+      qrScannerRef.current = qrScanner;
+      console.log('BUNGU SQUAD: QRスキャナー初期化完了');
+    } catch (error) {
+      console.error('QRスキャナー初期化エラー:', error);
+      setCameraError('QRスキャナーの初期化に失敗しました');
+    }
   };
 
   const startCamera = async () => {

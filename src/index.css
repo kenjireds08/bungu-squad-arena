@@ -124,6 +124,20 @@
   }
 }
 
+@layer utilities {
+  .bg-gradient-parchment {
+    background: var(--gradient-parchment);
+  }
+  
+  .bg-gradient-gold {
+    background: var(--gradient-gold);
+  }
+  
+  .bg-gradient-bronze {
+    background: var(--gradient-bronze);
+  }
+}
+
 /* Custom animations for refresh button */
 @keyframes spin {
   from {
