@@ -581,7 +581,7 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
             variant="outline" 
             size="lg" 
             onClick={() => { setPreviousPage('dashboard'); setCurrentPage('ranking'); }}
-            className="h-16 flex-col border-primary/40 bg-background/90 hover:bg-background/95 text-primary hover:text-primary backdrop-blur-sm shadow-sm"
+            className="h-16 flex-col border-primary/40 bg-background/90 hover:bg-background/95 text-primary hover:text-primary backdrop-blur-sm shadow-sm opacity-70 hover:opacity-100 transition-opacity"
           >
             <Trophy className="h-5 w-5 mb-1" />
             ランキング
@@ -594,7 +594,7 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
               setPreviousPage('dashboard'); 
               setCurrentPage('history'); 
             }}
-            className="h-16 flex-col border-accent/40 bg-background/90 hover:bg-background/95 text-accent hover:text-accent backdrop-blur-sm shadow-sm"
+            className="h-16 flex-col border-accent/40 bg-background/90 hover:bg-background/95 text-accent hover:text-accent backdrop-blur-sm shadow-sm opacity-70 hover:opacity-100 transition-opacity"
           >
             <History className="h-5 w-5 mb-1" />
             大会参加履歴
