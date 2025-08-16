@@ -332,7 +332,21 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
   }
 
   return (
-    <PullToRefresh onRefresh={handleRefresh} className="min-h-screen bg-gradient-parchment">
+    <PullToRefresh onRefresh={handleRefresh} className="min-h-screen bg-gradient-parchment relative overflow-hidden">
+      {/* Character Background */}
+      <div 
+        className="fixed inset-0 pointer-events-none z-0"
+        style={{
+          backgroundImage: `url('/assets/characters/pencil.png')`,
+          backgroundRepeat: 'no-repeat',
+          backgroundPosition: 'center center',
+          backgroundSize: '60%',
+          opacity: 0.08,
+        }}
+      />
+      
+      {/* Content wrapper */}
+      <div className="relative z-10">
       {/* PWA Install Prompt */}
       {showPWAPrompt && (
         <PWAInstallPrompt onClose={handlePWAPromptClose} />
@@ -662,6 +676,7 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
           </div>
         </DialogContent>
       </Dialog>
+      </div>
     </PullToRefresh>
   );
 };
