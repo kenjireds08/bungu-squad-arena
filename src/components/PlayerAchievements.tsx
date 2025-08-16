@@ -249,7 +249,7 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
 
       <main className="container mx-auto px-4 py-6 space-y-6">
         {/* Champion Badges */}
-        <Card className="border-fantasy-frame shadow-golden animate-fade-in">
+        <Card className="border-fantasy-frame shadow-golden animate-fade-in bg-background/30">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2">
               <Crown className="h-5 w-5 text-primary" />
@@ -281,7 +281,7 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
         </Card>
 
         {/* Milestones */}
-        <Card className="border-fantasy-frame shadow-soft animate-slide-up">
+        <Card className="border-fantasy-frame shadow-soft animate-slide-up bg-background/30">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2">
               <Star className="h-5 w-5 text-primary" />
@@ -326,7 +326,7 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
         </Card>
 
         {/* Yearly Performance */}
-        <Card className="border-fantasy-frame shadow-soft animate-slide-up" style={{ animationDelay: '200ms' }}>
+        <Card className="border-fantasy-frame shadow-soft animate-slide-up bg-background/30" style={{ animationDelay: '200ms' }}>
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5 text-primary" />

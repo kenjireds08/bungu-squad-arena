@@ -306,7 +306,20 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
   };
 
   return (
-    <div className="min-h-screen bg-gradient-parchment">
+    <div className="min-h-screen bg-gradient-parchment relative overflow-hidden">
+      {/* Character Background - Eraser (cleaning up history) */}
+      <div 
+        className="fixed inset-0 pointer-events-none z-0 md:bg-[length:60%] bg-[length:85%]"
+        style={{
+          backgroundImage: `url('/assets/characters/eraser.png')`,
+          backgroundRepeat: 'no-repeat',
+          backgroundPosition: 'center center',
+          opacity: 0.08,
+        }}
+      />
+      
+      {/* Content wrapper */}
+      <div className="relative z-10">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-fantasy-frame shadow-soft">
         <div className="container mx-auto px-4 py-3">
@@ -495,6 +508,7 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
           </CardContent>
         </Card>
       </main>
+      </div>
     </div>
   );
 };

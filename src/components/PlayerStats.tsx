@@ -206,7 +206,7 @@ export const PlayerStats = ({ onClose, currentUserId = "player_001" }: PlayerSta
       <main className="container mx-auto px-4 py-6 space-y-6">
         {/* Current Stats Overview */}
         <div className="grid grid-cols-2 gap-4">
-          <Card className="border-fantasy-frame shadow-soft animate-fade-in">
+          <Card className="border-fantasy-frame shadow-soft animate-fade-in bg-background/30">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
                 <Target className="h-4 w-4 text-primary" />
@@ -217,7 +217,7 @@ export const PlayerStats = ({ onClose, currentUserId = "player_001" }: PlayerSta
             </CardContent>
           </Card>
 
-          <Card className="border-fantasy-frame shadow-soft animate-fade-in" style={{ animationDelay: '100ms' }}>
+          <Card className="border-fantasy-frame shadow-soft animate-fade-in bg-background/30" style={{ animationDelay: '100ms' }}>
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
                 <TrendingUp className="h-4 w-4 text-success" />
@@ -231,7 +231,7 @@ export const PlayerStats = ({ onClose, currentUserId = "player_001" }: PlayerSta
 
         {/* Additional Stats */}
         <div className="grid grid-cols-2 gap-4">
-          <Card className="border-fantasy-frame shadow-soft animate-fade-in" style={{ animationDelay: '200ms' }}>
+          <Card className="border-fantasy-frame shadow-soft animate-fade-in bg-background/30" style={{ animationDelay: '200ms' }}>
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
                 <TrendingUp className="h-4 w-4 text-info" />
@@ -243,7 +243,7 @@ export const PlayerStats = ({ onClose, currentUserId = "player_001" }: PlayerSta
             </CardContent>
           </Card>
 
-          <Card className="border-fantasy-frame shadow-soft animate-fade-in" style={{ animationDelay: '300ms' }}>
+          <Card className="border-fantasy-frame shadow-soft animate-fade-in bg-background/30" style={{ animationDelay: '300ms' }}>
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
                 <Trophy className="h-4 w-4 text-warning" />
@@ -255,7 +255,7 @@ export const PlayerStats = ({ onClose, currentUserId = "player_001" }: PlayerSta
         </div>
 
         {/* Recent Form */}
-        <Card className="border-fantasy-frame shadow-soft animate-slide-up">
+        <Card className="border-fantasy-frame shadow-soft animate-slide-up bg-background/30">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2">
               <Trophy className="h-5 w-5 text-primary" />
@@ -284,7 +284,7 @@ export const PlayerStats = ({ onClose, currentUserId = "player_001" }: PlayerSta
         </Card>
 
         {/* Monthly Progress */}
-        <Card className="border-fantasy-frame shadow-soft animate-slide-up" style={{ animationDelay: '200ms' }}>
+        <Card className="border-fantasy-frame shadow-soft animate-slide-up bg-background/30" style={{ animationDelay: '200ms' }}>
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5 text-primary" />
@@ -315,7 +315,7 @@ export const PlayerStats = ({ onClose, currentUserId = "player_001" }: PlayerSta
         </Card>
 
         {/* Additional Stats */}
-        <Card className="border-fantasy-frame shadow-soft animate-slide-up" style={{ animationDelay: '300ms' }}>
+        <Card className="border-fantasy-frame shadow-soft animate-slide-up bg-background/30" style={{ animationDelay: '300ms' }}>
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2">
               <Users className="h-5 w-5 text-primary" />

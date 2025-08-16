@@ -132,7 +132,7 @@ export const PlayerRanking = ({ onClose }: PlayerRankingProps) => {
               key={player.id} 
               className={`
                 border-fantasy-frame shadow-soft animate-slide-up transition-all hover:shadow-golden
-                ${player.nickname === 'あなた' ? 'ring-2 ring-primary bg-accent/50' : ''}
+                ${player.nickname === 'あなた' ? 'ring-2 ring-primary bg-accent/30' : 'bg-background/30'}
               `}
               style={{ animationDelay: `${displayIndex * 100}ms` }}
             >
