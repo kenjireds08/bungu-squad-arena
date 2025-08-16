@@ -9,7 +9,20 @@ interface PlayerHelpProps {
 
 export const PlayerHelp = ({ onClose }: PlayerHelpProps) => {
   return (
-    <div className="min-h-screen bg-gradient-parchment">
+    <div className="min-h-screen bg-gradient-parchment relative overflow-hidden">
+      {/* Character Background - Tape (holding information together) */}
+      <div 
+        className="fixed inset-0 pointer-events-none z-0 md:bg-[length:60%] bg-[length:85%]"
+        style={{
+          backgroundImage: `url('/assets/characters/tape.png')`,
+          backgroundRepeat: 'no-repeat',
+          backgroundPosition: 'center center',
+          opacity: 0.08,
+        }}
+      />
+      
+      {/* Content wrapper */}
+      <div className="relative z-10">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-fantasy-frame shadow-soft">
         <div className="container mx-auto px-4 py-3">
@@ -27,7 +40,7 @@ export const PlayerHelp = ({ onClose }: PlayerHelpProps) => {
 
       <main className="container mx-auto px-4 py-6 space-y-6">
         {/* Quick Start Guide */}
-        <Card className="border-fantasy-frame shadow-soft animate-fade-in">
+        <Card className="border-fantasy-frame shadow-soft animate-fade-in bg-background/30">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2">
               <Book className="h-5 w-5 text-primary" />
@@ -46,7 +59,7 @@ export const PlayerHelp = ({ onClose }: PlayerHelpProps) => {
         </Card>
 
         {/* FAQ */}
-        <Card className="border-fantasy-frame shadow-soft animate-slide-up">
+        <Card className="border-fantasy-frame shadow-soft animate-slide-up bg-background/30">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2">
               <HelpCircle className="h-5 w-5 text-primary" />
@@ -173,7 +186,7 @@ export const PlayerHelp = ({ onClose }: PlayerHelpProps) => {
         </Card>
 
         {/* Contact Info */}
-        <Card className="border-fantasy-frame shadow-soft animate-slide-up" style={{ animationDelay: '200ms' }}>
+        <Card className="border-fantasy-frame shadow-soft animate-slide-up bg-background/30" style={{ animationDelay: '200ms' }}>
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2">
               <Users className="h-5 w-5 text-primary" />
@@ -194,6 +207,7 @@ export const PlayerHelp = ({ onClose }: PlayerHelpProps) => {
           </CardContent>
         </Card>
       </main>
+      </div>
     </div>
   );
 };

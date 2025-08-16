@@ -209,7 +209,7 @@ export const TournamentWaiting = ({ onClose, onViewRanking }: TournamentWaitingP
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6 space-y-6">
         {/* Tournament Status */}
-        <Card className="border-info shadow-soft animate-fade-in">
+        <Card className="border-info shadow-soft animate-fade-in bg-background/30">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-info">
               <Clock className="h-5 w-5" />
@@ -288,7 +288,7 @@ export const TournamentWaiting = ({ onClose, onViewRanking }: TournamentWaitingP
           )}
 
           {/* 当日の流れ */}
-          <Card className="border-info shadow-soft">
+          <Card className="border-info shadow-soft bg-background/30">
             <CardHeader>
               <CardTitle className="text-info">当日の流れ</CardTitle>
             </CardHeader>
@@ -381,7 +381,7 @@ export const TournamentWaiting = ({ onClose, onViewRanking }: TournamentWaitingP
 
         {/* Participants List */}
         {tournamentParticipants.length > 0 && (
-          <Card className="border-info shadow-soft">
+          <Card className="border-info shadow-soft bg-background/30">
             <CardHeader>
               <CardTitle className="text-info">参加者一覧</CardTitle>
             </CardHeader>

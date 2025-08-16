@@ -276,7 +276,7 @@ export const PlayerProfile = ({ onClose, currentUserId }: PlayerProfileProps) =>
 
       <main className="container mx-auto px-4 py-6 space-y-6">
         {/* Profile Info */}
-        <Card className="border-fantasy-frame shadow-soft animate-fade-in">
+        <Card className="border-fantasy-frame shadow-soft animate-fade-in bg-background/30">
           <CardContent className="pt-6">
             <div className="text-center space-y-4">
               {/* Profile Image */}
@@ -371,7 +371,7 @@ export const PlayerProfile = ({ onClose, currentUserId }: PlayerProfileProps) =>
         </Card>
 
         {/* Account Info */}
-        <Card className="border-fantasy-frame shadow-soft animate-slide-up">
+        <Card className="border-fantasy-frame shadow-soft animate-slide-up bg-background/30">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2">
               <User className="h-5 w-5 text-primary" />

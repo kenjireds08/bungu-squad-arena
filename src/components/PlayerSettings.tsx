@@ -39,7 +39,20 @@ export const PlayerSettings = ({ onClose }: PlayerSettingsProps) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-parchment">
+    <div className="min-h-screen bg-gradient-parchment relative overflow-hidden">
+      {/* Character Background - Pencil (writing settings) */}
+      <div 
+        className="fixed inset-0 pointer-events-none z-0 md:bg-[length:60%] bg-[length:85%]"
+        style={{
+          backgroundImage: `url('/assets/characters/pencil.png')`,
+          backgroundRepeat: 'no-repeat',
+          backgroundPosition: 'center center',
+          opacity: 0.08,
+        }}
+      />
+      
+      {/* Content wrapper */}
+      <div className="relative z-10">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-fantasy-frame shadow-soft">
         <div className="container mx-auto px-4 py-3">
@@ -57,7 +70,7 @@ export const PlayerSettings = ({ onClose }: PlayerSettingsProps) => {
 
       <main className="container mx-auto px-4 py-6 space-y-6">
         {/* Notification Settings */}
-        <Card className="border-fantasy-frame shadow-soft animate-fade-in">
+        <Card className="border-fantasy-frame shadow-soft animate-fade-in bg-background/30">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2">
               <Bell className="h-5 w-5 text-primary" />
@@ -112,7 +125,7 @@ export const PlayerSettings = ({ onClose }: PlayerSettingsProps) => {
         </Card>
 
         {/* Display Settings */}
-        <Card className="border-fantasy-frame shadow-soft animate-slide-up">
+        <Card className="border-fantasy-frame shadow-soft animate-slide-up bg-background/30">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2">
               <Moon className="h-5 w-5 text-primary" />
@@ -156,7 +169,7 @@ export const PlayerSettings = ({ onClose }: PlayerSettingsProps) => {
         </Card>
 
         {/* App Settings */}
-        <Card className="border-fantasy-frame shadow-soft animate-slide-up" style={{ animationDelay: '200ms' }}>
+        <Card className="border-fantasy-frame shadow-soft animate-slide-up bg-background/30" style={{ animationDelay: '200ms' }}>
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2">
               <Smartphone className="h-5 w-5 text-primary" />
@@ -189,7 +202,7 @@ export const PlayerSettings = ({ onClose }: PlayerSettingsProps) => {
         </Card>
 
         {/* App Info */}
-        <Card className="border-fantasy-frame shadow-soft animate-slide-up" style={{ animationDelay: '300ms' }}>
+        <Card className="border-fantasy-frame shadow-soft animate-slide-up bg-background/30" style={{ animationDelay: '300ms' }}>
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2">
               <Globe className="h-5 w-5 text-primary" />
@@ -212,6 +225,7 @@ export const PlayerSettings = ({ onClose }: PlayerSettingsProps) => {
           </CardContent>
         </Card>
       </main>
+      </div>
     </div>
   );
 };

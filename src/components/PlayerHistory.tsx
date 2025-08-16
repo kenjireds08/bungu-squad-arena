@@ -337,7 +337,7 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
 
       <main className="container mx-auto px-4 py-6 space-y-6">
         {/* Tournament History */}
-        <Card className="border-fantasy-frame shadow-soft animate-fade-in">
+        <Card className="border-fantasy-frame shadow-soft animate-fade-in bg-background/30">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2">
               <Trophy className="h-5 w-5 text-primary" />
@@ -422,7 +422,7 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
         </Card>
 
         {/* Recent Games */}
-        <Card className="border-fantasy-frame shadow-soft animate-slide-up" style={{ animationDelay: '200ms' }}>
+        <Card className="border-fantasy-frame shadow-soft animate-slide-up bg-background/30" style={{ animationDelay: '200ms' }}>
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2">
               <History className="h-5 w-5 text-primary" />
