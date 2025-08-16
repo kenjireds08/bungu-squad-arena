@@ -550,7 +550,7 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
                           {otherUpcoming.map((tournament) => (
                             <div 
                               key={tournament.id} 
-                              className="p-2 bg-muted/50 rounded-md cursor-pointer hover:bg-muted/70 transition-colors"
+                              className="p-2 bg-background/80 backdrop-blur-sm rounded-md cursor-pointer hover:bg-background/90 transition-colors border border-muted/30"
                               onClick={() => {
                                 setSelectedTournamentForDetails(tournament);
                                 setShowTournamentDetails(true);
@@ -594,7 +594,7 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
               setPreviousPage('dashboard'); 
               setCurrentPage('history'); 
             }}
-            className="h-16 flex-col border-accent/20 bg-accent/5 hover:bg-accent/10 text-accent hover:text-accent"
+            className="h-16 flex-col border-accent/30 bg-background/85 hover:bg-background/95 text-accent hover:text-accent backdrop-blur-sm shadow-sm"
           >
             <History className="h-5 w-5 mb-1" />
             大会参加履歴
