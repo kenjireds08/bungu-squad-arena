@@ -380,32 +380,6 @@ export const PlayerProfile = ({ onClose, currentUserId }: PlayerProfileProps) =>
           </CardContent>
         </Card>
 
-        {/* Achievements */}
-        <Card className="border-fantasy-frame shadow-soft animate-slide-up" style={{ animationDelay: '200ms' }}>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2">
-              <Trophy className="h-5 w-5 text-primary" />
-              実績バッジ
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {mockProfile.achievements.map((achievement, index) => (
-              <div
-                key={index}
-                className="flex items-center gap-3 p-3 bg-muted/20 rounded-lg border border-fantasy-frame/10"
-              >
-                <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                  <Star className="h-5 w-5 text-primary" />
-                </div>
-                <div className="flex-1">
-                  <div className="font-medium text-foreground">{achievement.title}</div>
-                  <div className="text-sm text-muted-foreground">{achievement.description}</div>
-                  <div className="text-xs text-muted-foreground">{formatDate(achievement.date)}</div>
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
       </main>
     </div>
   );

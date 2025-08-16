@@ -64,7 +64,9 @@
       "Bash(done)",
       "Bash(gh pr merge:*)",
       "Bash(git stash:*)",
-      "Bash(gh pr view:*)"
+      "Bash(gh pr view:*)",
+      "Bash(kill:*)",
+      "Bash(/dev/null)"
     ],
     "deny": []
   }

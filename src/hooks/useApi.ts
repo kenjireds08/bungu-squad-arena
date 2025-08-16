@@ -57,15 +57,12 @@ export const usePlayers = (enablePolling = false) => {
 export const usePlayer = (id: string) => {
   return useQuery({
     queryKey: ['player', id],
-    queryFn: async () => {
-      // Get all rankings data which includes matches count
-      const rankings = await api.getRankings();
-      const player = rankings.find((p: Player) => p.id === id);
-      if (!player) throw new Error('Player not found');
-      return player;
-    },
+    queryFn: () => api.getPlayer(id),
     enabled: !!id,
     staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 10,
+    retry: 1,
+    refetchOnWindowFocus: false,
   });
 };
 
@@ -107,25 +104,15 @@ export const useUpdatePlayerTournamentActive = () => {
 
 // Rankings hooks
 export const useRankings = () => {
-  // Use rankings API which includes matches count
-  const rankingsQuery = useQuery({
+  return useQuery({
     queryKey: ['rankings'],
     queryFn: api.getRankings,
-    staleTime: 1000 * 60 * 5, // Increased to 5 minutes to reduce API calls
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
     gcTime: 1000 * 60 * 10, // Keep in cache for 10 minutes
     refetchInterval: false,
-    retry: 1, // Limit retries
-    refetchOnWindowFocus: false, // Disable refetch on window focus
+    retry: 1,
+    refetchOnWindowFocus: false,
   });
-  
-  return {
-    data: rankingsQuery.data,
-    isLoading: rankingsQuery.isLoading,
-    error: rankingsQuery.error,
-    refetch: rankingsQuery.refetch,
-    isSuccess: rankingsQuery.isSuccess,
-    isError: rankingsQuery.isError,
-  };
 };
 
 // Tournaments hooks

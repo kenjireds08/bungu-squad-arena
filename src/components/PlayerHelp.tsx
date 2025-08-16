@@ -56,9 +56,9 @@ export const PlayerHelp = ({ onClose }: PlayerHelpProps) => {
           <CardContent>
             <Accordion type="single" collapsible className="w-full">
               <AccordionItem value="tournament-entry">
-                <AccordionTrigger className="flex items-center gap-2 text-left justify-start [&>svg]:ml-auto">
+                <AccordionTrigger className="flex items-center gap-2 text-left justify-start w-full [&>svg]:ml-auto">
                   <QrCode className="h-4 w-4 text-primary flex-shrink-0" />
-                  <span>大会への参加方法は？</span>
+                  <span className="flex-1 text-left">大会への参加方法は？</span>
                 </AccordionTrigger>
                 <AccordionContent className="space-y-2 pl-6">
                   <p className="text-sm">大会に参加するには以下の手順を行ってください：</p>
@@ -72,9 +72,9 @@ export const PlayerHelp = ({ onClose }: PlayerHelpProps) => {
               </AccordionItem>
 
               <AccordionItem value="rating-system">
-                <AccordionTrigger className="flex items-center gap-2 text-left justify-start [&>svg]:ml-auto">
+                <AccordionTrigger className="flex items-center gap-2 text-left justify-start w-full [&>svg]:ml-auto">
                   <Star className="h-4 w-4 text-primary flex-shrink-0" />
-                  <span>レーティングシステムについて</span>
+                  <span className="flex-1 text-left">レーティングシステムについて</span>
                 </AccordionTrigger>
                 <AccordionContent className="space-y-2 pl-6">
                   <p className="text-sm text-muted-foreground">
@@ -90,9 +90,9 @@ export const PlayerHelp = ({ onClose }: PlayerHelpProps) => {
               </AccordionItem>
 
               <AccordionItem value="badges">
-                <AccordionTrigger className="flex items-center gap-2 text-left justify-start [&>svg]:ml-auto">
+                <AccordionTrigger className="flex items-center gap-2 text-left justify-start w-full [&>svg]:ml-auto">
                   <Trophy className="h-4 w-4 text-primary flex-shrink-0" />
-                  <span>バッジの意味は？</span>
+                  <span className="flex-1 text-left">バッジの意味は？</span>
                 </AccordionTrigger>
                 <AccordionContent className="space-y-2 pl-6">
                   <div className="text-sm space-y-2">
@@ -116,9 +116,9 @@ export const PlayerHelp = ({ onClose }: PlayerHelpProps) => {
               </AccordionItem>
 
               <AccordionItem value="game-flow">
-                <AccordionTrigger className="flex items-center gap-2 text-left justify-start [&>svg]:ml-auto">
+                <AccordionTrigger className="flex items-center gap-2 text-left justify-start w-full [&>svg]:ml-auto">
                   <Users className="h-4 w-4 text-primary flex-shrink-0" />
-                  <span>試合の流れは？</span>
+                  <span className="flex-1 text-left">試合の流れは？</span>
                 </AccordionTrigger>
                 <AccordionContent className="space-y-2 pl-6">
                   <ol className="text-sm space-y-1 pl-6 list-decimal text-muted-foreground">
@@ -131,9 +131,9 @@ export const PlayerHelp = ({ onClose }: PlayerHelpProps) => {
               </AccordionItem>
 
               <AccordionItem value="pwa-install">
-                <AccordionTrigger className="flex items-center gap-2 text-left justify-start [&>svg]:ml-auto">
+                <AccordionTrigger className="flex items-center gap-2 text-left justify-start w-full [&>svg]:ml-auto">
                   <Smartphone className="h-4 w-4 text-primary flex-shrink-0" />
-                  <span>ホーム画面への追加方法</span>
+                  <span className="flex-1 text-left">ホーム画面への追加方法</span>
                 </AccordionTrigger>
                 <AccordionContent className="space-y-2 pl-6">
                   <div className="text-sm space-y-2">
@@ -155,9 +155,9 @@ export const PlayerHelp = ({ onClose }: PlayerHelpProps) => {
               </AccordionItem>
 
               <AccordionItem value="year-cycle">
-                <AccordionTrigger className="flex items-center gap-2 text-left justify-start [&>svg]:ml-auto">
+                <AccordionTrigger className="flex items-center gap-2 text-left justify-start w-full [&>svg]:ml-auto">
                   <Calendar className="h-4 w-4 text-primary flex-shrink-0" />
-                  <span>年間サイクルについて</span>
+                  <span className="flex-1 text-left">年間サイクルについて</span>
                 </AccordionTrigger>
                 <AccordionContent className="space-y-2 pl-6">
                   <ul className="text-sm space-y-1 pl-6 list-disc text-muted-foreground">

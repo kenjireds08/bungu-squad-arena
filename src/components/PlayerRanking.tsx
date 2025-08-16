@@ -111,21 +111,24 @@ export const PlayerRanking = ({ onClose }: PlayerRankingProps) => {
       {/* Rankings List */}
       <main className="container mx-auto px-4 py-6">
         <div className="space-y-3">
-          {rankings?.map((player, index) => (
+          {rankings?.filter(player => (player.matches || 0) > 0 || (player.annual_wins || 0) + (player.annual_losses || 0) > 0).map((player, displayIndex) => {
+            // Calculate display rank (consecutive numbering after filtering)
+            const displayRank = displayIndex + 1;
+            return (
             <Card 
               key={player.id} 
               className={`
                 border-fantasy-frame shadow-soft animate-slide-up transition-all hover:shadow-golden
                 ${player.nickname === 'あなた' ? 'ring-2 ring-primary bg-accent/50' : ''}
               `}
-              style={{ animationDelay: `${index * 100}ms` }}
+              style={{ animationDelay: `${displayIndex * 100}ms` }}
             >
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   {/* Rank and Player Info */}
                   <div className="flex items-center gap-3">
                     <div className="text-xl font-bold w-12 text-center">
-                      {getRankIcon(player.rank || index + 1)}
+                      {getRankIcon(displayRank)}
                     </div>
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
@@ -149,7 +152,7 @@ export const PlayerRanking = ({ onClose }: PlayerRankingProps) => {
                         <Star className="h-4 w-4 text-primary" />
                         <span className="font-mono text-sm">{player.current_rating.toLocaleString()}pt</span>
                         <div className="text-xs text-muted-foreground">
-                          {(player.total_wins + player.total_losses)}試合
+                          {player.matches || 0}試合
                         </div>
                       </div>
                     </div>
@@ -166,7 +169,7 @@ export const PlayerRanking = ({ onClose }: PlayerRankingProps) => {
                 </div>
               </CardContent>
             </Card>
-          ))}
+          )})}
         </div>
 
         {/* Footer Info */}

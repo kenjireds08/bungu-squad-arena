@@ -374,19 +374,50 @@ class SheetsService {
           console.warn('Could not fetch matches for counting:', error.message);
         }
         
-        // Count matches per player
+        // Count matches and wins/losses per player
         const matchCounts = {};
-        allMatches.forEach(match => {
-          const player1Id = match[3]; // player1_id
-          const player2Id = match[5]; // player2_id
-          const status = match[8]; // status
+        const annualWins = {};
+        const annualLosses = {};
+        
+        allMatches.forEach((match, index) => {
+          const player1Id = match[2]; // player1_id (correct index based on actual structure)
+          const player2Id = match[3]; // player2_id (correct index based on actual structure)
+          const matchStatus = match[5]; // match_status (index 5)
+          const winnerId = match[8]; // winner_id (index 8) - 修正: 実際の勝者IDはインデックス8に格納されている
           
-          // Only count completed or approved matches
-          if (status === 'completed' || status === 'approved') {
+          // Count all matches regardless of status where player IDs are not empty
+          if (player1Id && player1Id.trim() !== '') {
             matchCounts[player1Id] = (matchCounts[player1Id] || 0) + 1;
+            
+            // Count wins and losses for approved matches
+            if (matchStatus === 'approved' && winnerId) {
+              // winner_id could be either player1_id or player2_id
+              if (winnerId.trim() === player1Id.trim()) {
+                annualWins[player1Id] = (annualWins[player1Id] || 0) + 1;
+              } else if (winnerId.trim() === player2Id.trim()) {
+                // player1 lost
+                annualLosses[player1Id] = (annualLosses[player1Id] || 0) + 1;
+              }
+            }
+          }
+          if (player2Id && player2Id.trim() !== '') {
             matchCounts[player2Id] = (matchCounts[player2Id] || 0) + 1;
+            
+            // Count wins and losses for approved matches
+            if (matchStatus === 'approved' && winnerId) {
+              // winner_id could be either player1_id or player2_id
+              if (winnerId.trim() === player2Id.trim()) {
+                annualWins[player2Id] = (annualWins[player2Id] || 0) + 1;
+              } else if (winnerId.trim() === player1Id.trim()) {
+                // player2 lost
+                annualLosses[player2Id] = (annualLosses[player2Id] || 0) + 1;
+              }
+            }
           }
         });
+        
+        // Debug log (can be removed in production)
+        // console.log('Match counts:', matchCounts);
         
       const sortedPlayers = players.sort((a, b) => b.current_rating - a.current_rating);
       
@@ -421,7 +452,9 @@ class SheetsService {
           rank: currentRank,
           rankDisplay: isTied ? `${currentRank}位タイ` : `${currentRank}位`,
           champion_badges: badges,
-          matches: matchCounts[player.id] || 0
+          matches: matchCounts[player.id] || 0,
+          annual_wins: annualWins[player.id] || 0,
+          annual_losses: annualLosses[player.id] || 0
         };
       });
     } catch (error) {
@@ -435,7 +468,39 @@ class SheetsService {
   async getPlayer(id) {
     try {
       const players = await this.getPlayers();
-      return players.find(player => player.id === id);
+      const player = players.find(player => player.id === id);
+      
+      if (!player) {
+        return null;
+      }
+      
+      // Get match count for this player
+      let matchCount = 0;
+      try {
+        const matchesResponse = await this.sheets.spreadsheets.values.get({
+          spreadsheetId: this.spreadsheetId,
+          range: 'TournamentMatches!A2:Z1000'
+        });
+        const allMatches = matchesResponse.data.values || [];
+        
+        allMatches.forEach(match => {
+          const player1Id = match[2]; // player1_id (correct index based on actual structure)
+          const player2Id = match[3]; // player2_id (correct index based on actual structure)
+          const status = match[5]; // match_status (correct index based on actual structure)
+          
+          // Count all matches where the player participated (with non-empty IDs)
+          if ((player1Id && player1Id.trim() === id) || (player2Id && player2Id.trim() === id)) {
+            matchCount++;
+          }
+        });
+      } catch (error) {
+        console.warn('Could not fetch matches for player:', error.message);
+      }
+      
+      return {
+        ...player,
+        matches: matchCount
+      };
     } catch (error) {
       console.error('Error getting player:', error);
       throw new Error(`Failed to get player: ${error.message}`);

@@ -29,8 +29,10 @@ interface YearlyStats {
   year: number;
   rank: number;
   rating: number;
+  highestRating: number;
   games: number;
   wins: number;
+  losses: number;
   badge: string;
 }
 
@@ -53,79 +55,113 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
         const currentUser = rankings?.find(player => player.id === currentUserId);
         
         if (currentUser) {
+          // Get match history to find first win date and calculate stats
+          let firstWinDate: string | null = null;
+          let maxWinStreak = 0;
+          let currentWinStreak = 0;
+          
+          try {
+            const matchResponse = await fetch(`/api/matches?playerId=${currentUserId}`);
+            if (matchResponse.ok) {
+              const matchHistory = await matchResponse.json();
+              
+              // Find first win date and calculate win streaks
+              const wins = matchHistory.filter((match: any) => match.result === 'win');
+              if (wins.length > 0) {
+                // Get the earliest win date - prefer timestamp over other fields
+                const sortedWins = wins.sort((a: any, b: any) => 
+                  new Date(a.timestamp || a.match_date || a.created_at).getTime() - 
+                  new Date(b.timestamp || b.match_date || b.created_at).getTime()
+                );
+                firstWinDate = sortedWins[0].timestamp || sortedWins[0].match_date || sortedWins[0].created_at;
+              }
+              
+              // Calculate win streak
+              matchHistory.forEach((match: any) => {
+                if (match.result === 'win') {
+                  currentWinStreak++;
+                  maxWinStreak = Math.max(maxWinStreak, currentWinStreak);
+                } else if (match.result === 'lose') {
+                  currentWinStreak = 0;
+                }
+              });
+            }
+          } catch (error) {
+            console.warn('Failed to fetch match history for achievements:', error);
+          }
           // Parse champion badges from current user data
           const championBadges: Achievement[] = [];
           if (currentUser.champion_badges) {
             const badges = currentUser.champion_badges.split(',').filter(b => b.trim());
             badges.forEach(badge => {
-              if (badge === '🥇') {
+              const badgeTrim = badge.trim();
+              // バッジは過去の実績なので、前年度として表示
+              const badgeYear = new Date().getFullYear() - 1;
+              if (badgeTrim === '🥇') {
                 championBadges.push({
                   badge: '🥇',
-                  title: `${new Date().getFullYear()}年度 1位`,
+                  title: `${badgeYear}年度 チャンピオン`,
                   description: '年間ランキング1位を獲得',
-                  date: `${new Date().getFullYear()}-12-31`
+                  date: `${badgeYear}-12-31`
                 });
-              } else if (badge === '🥈') {
+              } else if (badgeTrim === '🥈') {
                 championBadges.push({
                   badge: '🥈',
-                  title: `${new Date().getFullYear()}年度 2位`,
+                  title: `${badgeYear}年度 準優勝`,
                   description: '年間ランキング2位を獲得',
-                  date: `${new Date().getFullYear()}-12-31`
+                  date: `${badgeYear}-12-31`
                 });
-              } else if (badge === '🥉') {
+              } else if (badgeTrim === '🥉') {
                 championBadges.push({
                   badge: '🥉',
-                  title: `${new Date().getFullYear()}年度 3位`,
+                  title: `${badgeYear}年度 3位`,
                   description: '年間ランキング3位を獲得',
-                  date: `${new Date().getFullYear()}-12-31`
+                  date: `${badgeYear}-12-31`
                 });
               }
             });
           }
 
+          // Calculate total games and win rate
+          const totalGames = (currentUser.annual_wins || 0) + (currentUser.annual_losses || 0);
+          const winRate = totalGames > 0 ? (currentUser.annual_wins || 0) / totalGames : 0;
+          
           // Generate milestones based on player data
           const milestones: Milestone[] = [
             {
               icon: Trophy,
               title: "初勝利",
               description: "記念すべき初勝利を達成",
-              date: currentUser.first_win_date || (currentUser.wins > 0 ? "2024-04-20" : null),
-              completed: currentUser.wins > 0
+              date: firstWinDate,
+              completed: firstWinDate !== null
             },
             {
               icon: Target,
-              title: "勝率50%達成",
-              description: "勝率50%を突破",
-              date: currentUser.win_rate_50_date || ((currentUser.wins / Math.max(currentUser.total_games, 1)) >= 0.5 ? "2024-06-01" : null),
-              completed: (currentUser.wins / Math.max(currentUser.total_games, 1)) >= 0.5
+              title: "勝率50%達成（10戦以上）",
+              description: "10戦以上で勝率50%を突破",
+              date: totalGames >= 10 && winRate >= 0.5 ? new Date().toISOString() : null,
+              completed: totalGames >= 10 && winRate >= 0.5
             },
             {
               icon: Star,
-              title: "レート1600突破",
-              description: "レーティング1600を達成",
-              date: currentUser.rating_1600_date || (currentUser.current_rating >= 1600 ? "2024-06-20" : null),
-              completed: currentUser.current_rating >= 1600
+              title: "レート1300突破",
+              description: "レーティング1300を達成",
+              date: currentUser.current_rating >= 1300 ? new Date().toISOString() : null,
+              completed: currentUser.current_rating >= 1300
             },
             {
               icon: Award,
               title: "10戦達成",
               description: "累計10戦に到達",
-              date: currentUser.games_10_date || (currentUser.total_games >= 10 ? "2024-05-15" : null),
-              completed: currentUser.total_games >= 10
+              date: totalGames >= 10 ? new Date().toISOString() : null,
+              completed: totalGames >= 10
             },
             {
               icon: Crown,
               title: "連勝記録",
-              description: "5連勝を達成",
-              date: null, // TODO: Track win streak data
-              completed: false
-            },
-            {
-              icon: Trophy,
-              title: "大会優勝",
-              description: "大会で1位を獲得",
-              date: null, // TODO: Track tournament victories
-              completed: false
+              description: "3連勝を達成",
+              date: maxWinStreak >= 3 ? new Date().toISOString() : null,
+              completed: maxWinStreak >= 3
             }
           ];
 
@@ -133,10 +169,12 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
           const yearlyStats: YearlyStats[] = [
             {
               year: new Date().getFullYear(),
-              rank: currentUser.rank,
-              rating: currentUser.current_rating,
-              games: currentUser.total_games,
-              wins: currentUser.wins,
+              rank: currentUser.rank || 0,
+              rating: currentUser.current_rating || 1500,
+              highestRating: currentUser.highest_rating || currentUser.current_rating || 1500,
+              games: totalGames,
+              wins: currentUser.annual_wins || 0,
+              losses: currentUser.annual_losses || 0,
               badge: currentUser.rank <= 3 ? (currentUser.rank === 1 ? '🥇' : currentUser.rank === 2 ? '🥈' : '🥉') : '進行中'
             }
           ];
@@ -298,7 +336,7 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
                   )}
                 </div>
                 
-                <div className="grid grid-cols-4 gap-4 text-center">
+                <div className="grid grid-cols-3 gap-3 text-center">
                   <div className="space-y-1">
                     <div className="text-xl font-bold text-primary">{year.rank}</div>
                     <div className="text-xs text-muted-foreground">最終順位</div>
@@ -308,12 +346,22 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
                     <div className="text-xs text-muted-foreground">最終レート</div>
                   </div>
                   <div className="space-y-1">
+                    <div className="text-xl font-bold text-warning">{year.highestRating}</div>
+                    <div className="text-xs text-muted-foreground">最高レート</div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-3 text-center mt-3">
+                  <div className="space-y-1">
                     <div className="text-xl font-bold text-foreground">{year.games}</div>
                     <div className="text-xs text-muted-foreground">総対戦数</div>
                   </div>
                   <div className="space-y-1">
-                    <div className="text-xl font-bold text-success">{year.wins}</div>
-                    <div className="text-xs text-muted-foreground">勝利数</div>
+                    <div className="text-xl font-bold text-success">{year.wins}勝</div>
+                    <div className="text-xs text-muted-foreground">年間勝利</div>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="text-xl font-bold text-destructive">{year.losses}敗</div>
+                    <div className="text-xs text-muted-foreground">年間敗北</div>
                   </div>
                 </div>
               </div>

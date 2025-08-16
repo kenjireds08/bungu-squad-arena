@@ -70,58 +70,80 @@ export const PlayerStats = ({ onClose, currentUserId = "player_001" }: PlayerSta
         let averageRatingChange = 0;
         let maxWinStreak = 0;
         let currentWinStreak = 0;
+        let actualWins = 0;
+        let actualLosses = 0;
+        let averageOpponentRating = 1500;
         
         try {
           const matchResponse = await fetch(`/api/matches?playerId=${currentUserId}`);
           if (matchResponse.ok) {
             matchHistory = await matchResponse.json();
             
-            // 平均レート変動と連勝記録を計算
+            // 平均レート変動と連勝記録、勝敗数を計算
             let totalRatingChange = 0;
             let ratingChangeCount = 0;
+            let totalOpponentRating = 0;
+            let opponentCount = 0;
+            
+            // 全プレイヤーのレーティング情報を取得して対戦相手のレートを計算
+            const opponentRatings: { [key: string]: number } = {};
+            rankings?.forEach(player => {
+              opponentRatings[player.id] = player.current_rating || 1500;
+            });
             
             matchHistory.forEach((match: any) => {
-              const isPlayer1 = match.player1_id === currentUserId;
-              const won = match.winner_id === currentUserId;
-              const ratingChange = isPlayer1 ? match.player1_rating_change : match.player2_rating_change;
+              // 勝敗を判定
+              if (match.result === 'win') {
+                actualWins++;
+                currentWinStreak++;
+                maxWinStreak = Math.max(maxWinStreak, currentWinStreak);
+              } else if (match.result === 'lose') {
+                actualLosses++;
+                currentWinStreak = 0;
+              }
               
-              if (ratingChange) {
-                totalRatingChange += parseInt(ratingChange);
+              // レート変動を計算
+              if (match.rating_change) {
+                totalRatingChange += parseInt(match.rating_change);
                 ratingChangeCount++;
               }
               
-              // 連勝記録の計算
-              if (won) {
-                currentWinStreak++;
-                maxWinStreak = Math.max(maxWinStreak, currentWinStreak);
-              } else {
-                currentWinStreak = 0;
+              // 対戦相手のレートを集計
+              if (match.opponent?.id) {
+                const opponentRating = opponentRatings[match.opponent.id] || 1500;
+                totalOpponentRating += opponentRating;
+                opponentCount++;
               }
             });
             
             averageRatingChange = ratingChangeCount > 0 ? totalRatingChange / ratingChangeCount : 0;
+            averageOpponentRating = opponentCount > 0 ? Math.round(totalOpponentRating / opponentCount) : 1500;
           }
         } catch (error) {
           console.warn('Failed to fetch match history:', error);
         }
         
+        // 最近の成績を作成（直近10戦）
+        const recentFormArray = matchHistory.slice(0, 10).map((match: any) => 
+          match.result === 'win' ? 1 : 0
+        );
+        
         const stats: PlayerStatsData = {
           currentRating: currentUser.current_rating || 1500,
           highestRating: currentUser.highest_rating || currentUser.current_rating || 1500,
-          totalGames: totalGames,
-          winRate: winRate,
-          wins: currentUser.annual_wins || 0,  // Use annual wins for display
-          losses: currentUser.annual_losses || 0,  // Use annual losses for display
-          averageOpponentRating: 1500, // This would need match history calculation
-          recentForm: [], // Will be empty until we fetch actual match history
+          totalGames: matchHistory.length || totalGames,
+          winRate: matchHistory.length > 0 ? (actualWins / matchHistory.length) * 100 : winRate,
+          wins: actualWins || currentUser.annual_wins || 0,
+          losses: actualLosses || currentUser.annual_losses || 0,
+          averageOpponentRating: averageOpponentRating,
+          recentForm: recentFormArray,
           averageRatingChange: Math.round(averageRatingChange * 10) / 10,
           maxWinStreak: maxWinStreak,
           monthlyStats: [
-            { month: '4月', games: 0, wins: 0, rating: currentUser.current_rating || 1500 },
-            { month: '5月', games: 0, wins: 0, rating: currentUser.current_rating || 1500 },
-            { month: '6月', games: 0, wins: 0, rating: currentUser.current_rating || 1500 },
-            { month: '7月', games: 0, wins: 0, rating: currentUser.current_rating || 1500 },
-            { month: '8月', games: annualGames, wins: currentUser.annual_wins || 0, rating: currentUser.current_rating || 1500 }
+            { month: '第1四半期', games: 0, wins: 0, rating: currentUser.current_rating || 1500 },
+            { month: '第2四半期', games: 0, wins: 0, rating: currentUser.current_rating || 1500 },
+            { month: '第3四半期', games: matchHistory.length, wins: actualWins, rating: currentUser.current_rating || 1500 },
+            { month: '第4四半期', games: 0, wins: 0, rating: currentUser.current_rating || 1500 }
           ]
         };
         
@@ -253,7 +275,7 @@ export const PlayerStats = ({ onClose, currentUserId = "player_001" }: PlayerSta
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5 text-primary" />
-              月別成績
+              四半期別成績
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
