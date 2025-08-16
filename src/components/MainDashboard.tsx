@@ -392,7 +392,7 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6 space-y-6">
         {/* Player Status Card */}
-        <Card className="border-fantasy-frame shadow-golden animate-fade-in bg-background/90 backdrop-blur-sm">
+        <Card className="border-fantasy-frame shadow-golden animate-fade-in bg-background/80 backdrop-blur-sm">
           <CardContent className="pt-6">
             <div className="text-center space-y-4">
               {/* Current Rank Display */}
@@ -450,7 +450,7 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
         </Card>
 
         {/* Tournament Info */}
-        <Card className="border-fantasy-frame shadow-soft animate-slide-up bg-background/90 backdrop-blur-sm">
+        <Card className="border-fantasy-frame shadow-soft animate-slide-up bg-background/80 backdrop-blur-sm">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-foreground">
               <Calendar className="h-5 w-5 text-info" />
@@ -581,7 +581,7 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
             variant="outline" 
             size="lg" 
             onClick={() => { setPreviousPage('dashboard'); setCurrentPage('ranking'); }}
-            className="h-16 flex-col border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary hover:text-primary"
+            className="h-16 flex-col border-primary/40 bg-background/90 hover:bg-background/95 text-primary hover:text-primary backdrop-blur-sm shadow-sm"
           >
             <Trophy className="h-5 w-5 mb-1" />
             ランキング
@@ -594,7 +594,7 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
               setPreviousPage('dashboard'); 
               setCurrentPage('history'); 
             }}
-            className="h-16 flex-col border-accent/30 bg-background/85 hover:bg-background/95 text-accent hover:text-accent backdrop-blur-sm shadow-sm"
+            className="h-16 flex-col border-accent/40 bg-background/90 hover:bg-background/95 text-accent hover:text-accent backdrop-blur-sm shadow-sm"
           >
             <History className="h-5 w-5 mb-1" />
             大会参加履歴
