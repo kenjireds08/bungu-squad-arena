@@ -392,7 +392,7 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6 space-y-6">
         {/* Player Status Card */}
-        <Card className="border-fantasy-frame shadow-golden animate-fade-in bg-background/70 backdrop-blur-sm">
+        <Card className="border-fantasy-frame shadow-golden animate-fade-in bg-background/10 backdrop-blur-sm">
           <CardContent className="pt-6">
             <div className="text-center space-y-4">
               {/* Current Rank Display */}
@@ -450,7 +450,7 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
         </Card>
 
         {/* Tournament Info */}
-        <Card className="border-fantasy-frame shadow-soft animate-slide-up bg-background/70 backdrop-blur-sm">
+        <Card className="border-fantasy-frame shadow-soft animate-slide-up bg-background/10 backdrop-blur-sm">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-foreground">
               <Calendar className="h-5 w-5 text-info" />
