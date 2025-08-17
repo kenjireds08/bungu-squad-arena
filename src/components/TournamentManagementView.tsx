@@ -152,56 +152,45 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
   const handleAdminDirectInput = async (match: Match, winnerId: string) => {
     const loserId = winnerId === match.player1_id ? match.player2_id : match.player1_id;
     
+    // 楽観的更新：即座にUIを更新
+    setMatches(prevMatches => 
+      prevMatches.map(m => 
+        m.match_id === match.match_id 
+          ? { ...m, status: 'approved' as const, winner_id: winnerId }
+          : m
+      )
+    );
+    
+    // 成功を即座に通知
+    toast({
+      title: "試合完了",
+      description: "試合結果を記録しました",
+    });
+    
     try {
-      // 楽観的更新：即座にUIを更新
-      setMatches(prevMatches => 
-        prevMatches.map(m => 
-          m.match_id === match.match_id 
-            ? { ...m, status: 'approved' as const, winner_id: winnerId }
-            : m
-        )
-      );
-      
       const result = await adminDirectInputMutation.mutateAsync({
         matchId: match.match_id,
         winnerId,
         loserId
       });
 
-      // バッジ付与結果に応じて異なるメッセージ表示
+      // サーバーから最新データを取得（バックグラウンド）
+      fetchMatches();
+      
+      // バッジ付与結果に応じて追加メッセージ
       if ((result as any)?.badgeAdded === true) {
-        toast({
-          title: "試合結果を確定しました",
-          description: "レーティングが更新され、カード+バッジを付与しました。次の試合に進行できます。",
-        });
-      } else if ((result as any)?.badgeAdded === false) {
-        toast({
-          title: "試合結果を確定しました", 
-          description: "レーティングが更新されました。バッジは付与済みのため追加されませんでした。",
-        });
-      } else if (result?.ratingUpdate && typeof (result as any).badgeAdded === 'undefined') {
-        // バッジ対象外のゲーム（カード+以外）
-        toast({
-          title: "試合結果を確定しました",
-          description: "レーティングが更新され、次の試合に進行できます。",
-        });
-      } else {
-        // バッジ付与失敗の場合
-        toast({
-          title: "試合結果を確定しました",
-          description: "レーティング更新完了。バッジ付与は保留されました（後で再試行してください）。",
-          variant: "default" // 警告色ではなくデフォルト
-        });
+        setTimeout(() => {
+          toast({
+            title: "バッジ付与",
+            description: "カード+バッジを付与しました",
+          });
+        }, 500);
       }
-
-      // 確実にサーバーから最新データを取得
-      await fetchMatches();
     } catch (error) {
       // エラー時は楽観的更新を元に戻す
       await fetchMatches();
-      
       toast({
-        title: "エラーが発生しました",
+        title: "エラー",
         description: "試合結果の確定に失敗しました。",
         variant: "destructive",
       });
@@ -218,31 +207,29 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
 
   // 試合開始ハンドラー（即時反映）
   const handleStartMatch = async (matchId: string) => {
+    // 楽観的更新：即座にUIを更新
+    setMatches(prevMatches => 
+      prevMatches.map(match => 
+        match.match_id === matchId 
+          ? { ...match, status: 'in_progress' as const }
+          : match
+      )
+    );
+    
+    // 試合開始成功をすぐに通知
+    toast({
+      title: "試合開始",
+      description: "試合を開始しました",
+    });
+    
     try {
-      // 楽観的更新：即座にUIを更新
-      setMatches(prevMatches => 
-        prevMatches.map(match => 
-          match.match_id === matchId 
-            ? { ...match, status: 'in_progress' as const }
-            : match
-        )
-      );
-      
       await startMatchMutation.mutateAsync(matchId);
-      
-      toast({
-        title: "成功",
-        description: "試合が開始されました！",
-      });
-      
-      // 確実にサーバーから最新データを取得
-      await fetchMatches();
+      // サーバーから最新データを取得（バックグラウンド）
+      fetchMatches();
     } catch (error) {
       console.error('Start match failed:', error);
-      
       // エラー時は楽観的更新を元に戻す
       await fetchMatches();
-      
       toast({
         title: "エラー",
         description: "試合開始に失敗しました。",

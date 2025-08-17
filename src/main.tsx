@@ -7,18 +7,39 @@ import './index.css'
 const ErrorBoundary: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [hasError, setHasError] = React.useState(false);
   const [error, setError] = React.useState<Error | null>(null);
+  const [errorInfo, setErrorInfo] = React.useState<string>('');
 
   React.useEffect(() => {
     const handleError = (event: ErrorEvent) => {
       console.error('Global error caught:', event.error);
+      // Ignore ResizeObserver errors which are benign
+      if (event.message?.includes('ResizeObserver')) {
+        event.preventDefault();
+        return;
+      }
+      // Ignore network errors that are recoverable
+      if (event.message?.includes('Failed to fetch') || event.message?.includes('NetworkError')) {
+        console.warn('Network error ignored:', event.message);
+        event.preventDefault();
+        return;
+      }
       setHasError(true);
       setError(event.error);
+      setErrorInfo(`Location: ${event.filename}:${event.lineno}:${event.colno}`);
     };
 
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
       console.error('Unhandled promise rejection:', event.reason);
+      // Ignore network-related rejections
+      if (event.reason?.toString().includes('Failed to fetch') || 
+          event.reason?.toString().includes('NetworkError')) {
+        console.warn('Network rejection ignored:', event.reason);
+        event.preventDefault();
+        return;
+      }
       setHasError(true);
       setError(new Error(event.reason));
+      setErrorInfo('Promise rejection');
     };
 
     window.addEventListener('error', handleError);
@@ -54,6 +75,7 @@ const ErrorBoundary: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             overflow: 'auto'
           }}>
             {error?.stack || error?.message || 'Unknown error'}
+            {errorInfo && `\n${errorInfo}`}
           </pre>
         </details>
         <button 
