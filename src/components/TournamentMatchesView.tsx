@@ -55,11 +55,8 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
         const response = await fetch(`/api/matches?tournamentId=${tournamentId}`);
         if (response.ok) {
           const data = await response.json();
-          // Filter matches for current user
-          const userMatches = data.filter((match: Match) => 
-            match.player1_id === currentUserId || match.player2_id === currentUserId
-          );
-          setMatches(userMatches);
+          // Show all matches, not just user's matches
+          setMatches(data);
         }
       } catch (error) {
         console.error('Failed to fetch matches:', error);
@@ -125,7 +122,7 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
             </Button>
             <div className="flex items-center gap-2">
               <Users className="h-6 w-6 text-primary" />
-              <h1 className="text-xl font-bold text-foreground">あなたの試合</h1>
+              <h1 className="text-xl font-bold text-foreground">対戦組み合わせ</h1>
             </div>
           </div>
         </div>
@@ -136,49 +133,85 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
           <Card className="border-fantasy-frame shadow-soft">
             <CardContent className="p-8 text-center">
               <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-              <p className="text-muted-foreground mb-4">この大会での試合はありません</p>
+              <p className="text-muted-foreground mb-4">まだ対戦組み合わせが決定されていません</p>
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-3">
-            {matches.map((match) => {
-              const opponent = getOpponentInfo(match);
-              const result = getMatchResult(match);
-              
-              return (
-                <Card key={match.match_id} className="border-fantasy-frame shadow-soft">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="space-y-1">
-                        <h3 className="font-semibold text-foreground">
-                          vs {opponent.name}
-                        </h3>
-                        <div className="flex items-center gap-2">
+          <>
+            {/* Check if it's user's turn */}
+            {matches.some(match => 
+              (match.player1_id === currentUserId || match.player2_id === currentUserId) && 
+              match.status === 'scheduled'
+            ) && (
+              <Card className="border-primary bg-primary/10 shadow-golden animate-pulse">
+                <CardContent className="p-4 text-center">
+                  <p className="text-lg font-bold text-primary">
+                    🎮 あなたの番です！席についてください
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+            
+            {/* All matches list */}
+            <div className="space-y-3">
+              {matches.map((match, index) => {
+                const isUserMatch = match.player1_id === currentUserId || match.player2_id === currentUserId;
+                const isInProgress = match.status === 'in_progress';
+                const isCompleted = match.status === 'completed' || match.status === 'approved';
+                
+                return (
+                  <Card 
+                    key={match.match_id} 
+                    className={`border-fantasy-frame shadow-soft ${
+                      isUserMatch ? 'border-primary ring-2 ring-primary/20' : ''
+                    } ${isInProgress ? 'bg-info/5' : ''}`}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm text-muted-foreground">
+                            第{index + 1}試合
+                          </span>
                           <Badge className={getStatusColor(match.status)}>
                             {getStatusText(match.status)}
                           </Badge>
-                          <span className="text-sm text-muted-foreground">
+                          <span className="text-xs text-muted-foreground">
                             {match.game_type === 'trump' ? '♠️ トランプ' : '➕ カード+'}
                           </span>
                         </div>
+                        {isUserMatch && (
+                          <Badge variant="outline" className="border-primary text-primary">
+                            あなたの試合
+                          </Badge>
+                        )}
                       </div>
-                      {result && (
-                        <Badge variant={result === 'win' ? 'default' : 'destructive'}>
-                          {result === 'win' ? '勝利' : '敗北'}
-                        </Badge>
-                      )}
-                    </div>
-                    
-                    {match.created_at && (
-                      <p className="text-xs text-muted-foreground">
-                        作成: {new Date(match.created_at).toLocaleString('ja-JP')}
-                      </p>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className={`font-semibold ${
+                            match.winner_id === match.player1_id ? 'text-success' : ''
+                          }`}>
+                            {match.player1_name}
+                          </span>
+                          <span className="text-muted-foreground">vs</span>
+                          <span className={`font-semibold ${
+                            match.winner_id === match.player2_id ? 'text-success' : ''
+                          }`}>
+                            {match.player2_name}
+                          </span>
+                        </div>
+                        {isCompleted && match.winner_id && (
+                          <Badge variant={match.winner_id === match.player1_id ? 'default' : 'secondary'}>
+                            {match.winner_id === match.player1_id ? match.player1_name : match.player2_name} 勝利
+                          </Badge>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </>
         )}
       </main>
     </div>
