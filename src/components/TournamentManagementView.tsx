@@ -535,14 +535,18 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {activePlayers.map((player) => (
-                    <div key={player.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div>
-                        <p className="font-medium">{player.nickname}</p>
-                        <p className="text-sm text-muted-foreground">レート: {player.current_rating}</p>
+                    <div key={player.id} className="flex items-center gap-2 p-3 border rounded-lg bg-background/50">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{player.nickname}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {player.current_rating}pt
+                        </p>
                       </div>
-                      <Badge className="bg-green-500 text-white">参加中</Badge>
+                      <Badge className="bg-green-500 text-white shrink-0 text-xs">
+                        参加中
+                      </Badge>
                     </div>
                   ))}
                 </div>
