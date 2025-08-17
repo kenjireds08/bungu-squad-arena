@@ -406,56 +406,6 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
             </CardContent>
           </Card>
         )}
-        {/* Current User's Match - Only show when it's their turn */}
-        {currentUserMatch && canStartMatch(currentUserMatch) && (
-          <Card className="border-primary shadow-golden animate-fade-in">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-primary">
-                <Users className="h-5 w-5" />
-                あなたの試合
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-primary/10 rounded-lg border border-primary/20">
-                <div className="space-y-3 flex-1">
-                  <p className="text-lg font-bold">
-                    <span className={currentUserMatch.player1_id === currentUserId ? "text-primary" : ""}>
-                      {currentUserMatch.player1_name}
-                    </span>
-                    <span> vs </span>
-                    <span className={currentUserMatch.player2_id === currentUserId ? "text-primary" : ""}>
-                      {currentUserMatch.player2_name}
-                    </span>
-                  </p>
-                </div>
-                <div className="flex flex-col items-end gap-2 ml-4">
-                  {/* ルール（上） */}
-                  <div className="flex items-center gap-1">
-                    {getGameTypeIcon(currentUserMatch.game_type)}
-                    <span className="text-sm font-medium">
-                      {getGameTypeName(currentUserMatch.game_type)}
-                    </span>
-                  </div>
-                  {/* ステータス（下） */}
-                  <div className="flex flex-col items-end gap-2">
-                    {getStatusBadge(currentUserMatch.status)}
-                    {canStartMatch(currentUserMatch) && (
-                      <Button 
-                        variant="heroic" 
-                        size="sm" 
-                        onClick={() => handleStartMatch(currentUserMatch)}
-                        className="animate-bounce-gentle"
-                      >
-                        <Play className="h-4 w-4 mr-2" />
-                        試合開始
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         {/* All Matches */}
         <Card className="border-fantasy-frame shadow-soft">
@@ -542,10 +492,10 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
           <CardContent>
             <ol className="list-decimal list-inside space-y-2 text-sm">
               <li>自分の試合の順番が来るまでお待ちください</li>
-              <li>「試合開始」ボタンが表示されたら席につきゲームを開始</li>
-              <li>試合中は時間が表示されます</li>
-              <li>ゲーム終了後、勝敗結果を入力してください</li>
-              <li>管理者の承認をお待ちください</li>
+              <li>順番が来たら指定の席についてゲームを開始してください</li>
+              <li>試合を楽しんでプレイしてください</li>
+              <li>試合終了後、管理者が勝敗を確認・記録します</li>
+              <li>レーティングは自動的に計算・更新されます</li>
             </ol>
           </CardContent>
         </Card>
