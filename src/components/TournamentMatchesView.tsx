@@ -499,16 +499,16 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
                                       : details.player1_rating_change;
                                     if (rating !== undefined && rating !== null) {
                                       return (
-                                        <span className="text-xs font-medium text-muted-foreground">
+                                        <span className="text-xs font-bold text-red-600">
                                           {rating > 0 ? '+' : ''}{rating}
                                         </span>
                                       );
                                     }
                                   }
                                   // result_detailsがない場合、デフォルト値を表示
-                                  return <span className="text-xs font-medium text-muted-foreground">-15</span>;
+                                  return <span className="text-xs font-bold text-red-600">-15</span>;
                                 } catch {
-                                  return <span className="text-xs font-medium text-muted-foreground">-15</span>;
+                                  return <span className="text-xs font-bold text-red-600">-15</span>;
                                 }
                               })()}
                             </div>
