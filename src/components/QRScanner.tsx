@@ -39,8 +39,8 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
     console.log('BUNGU SQUAD: qr-scannerライブラリでQRスキャナー初期化');
     
     try {
-      // Set worker path explicitly
-      QrScanner.WORKER_PATH = '/qr-scanner-worker.min.js';
+      // Import worker file directly instead of setting path
+      // This ensures proper handling by Vite
       
       // Create QR Scanner instance
       const qrScanner = new QrScanner(

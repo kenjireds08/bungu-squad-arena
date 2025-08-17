@@ -79,7 +79,7 @@ export const TournamentWaiting = ({ onClose, onViewRanking }: TournamentWaitingP
   // Check if tournament has ended
   const isTournamentEnded = todaysTournament?.status === 'ended' || 
                            todaysTournament?.status === '終了' ||
-                           past.some(t => t.id === todaysTournament?.id);
+                           (past && past.some(t => t.id === todaysTournament?.id));
   
   // Get tournament participants
   const tournamentParticipants = players?.filter(player => player.tournament_active === true) || [];

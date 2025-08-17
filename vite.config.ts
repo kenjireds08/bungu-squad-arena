@@ -30,6 +30,10 @@ export default defineConfig(({ mode }) => {
         "@": path.resolve(__dirname, "./src"),
       },
     },
+    optimizeDeps: {
+      // Exclude qr-scanner from optimization to avoid worker issues
+      exclude: ['qr-scanner']
+    },
     esbuild: {
       // Remove console.* and debugger statements in production
       drop: mode === 'production' ? ['console', 'debugger'] : [],
