@@ -76,6 +76,14 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
   const { requestPermission } = useNotifications();
 
   const currentUser = rankings?.find(player => player.id === CURRENT_USER_ID);
+  
+  // アクティブなプレイヤーのみでフィルタリングして順位を計算
+  const activeRankings = rankings?.filter(player => 
+    player.tournament_active === true || player.id === CURRENT_USER_ID
+  );
+  
+  // アクティブプレイヤーの中での順位を計算
+  const activeUserRank = activeRankings?.findIndex(player => player.id === CURRENT_USER_ID) + 1 || 0;
   // Get tournament data from API - prioritize today's tournament
   const today = new Date().toLocaleDateString('sv-SE'); // Use local date YYYY-MM-DD
   const { active, upcoming, completed } = getCategorizedTournaments(tournaments || []);
@@ -402,7 +410,7 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
                   <p className="text-lg font-medium text-foreground mb-2">{currentUser?.nickname || 'プレイヤー'}</p>
                 </div>
                 <h2 className="text-2xl font-bold text-foreground">
-                  {`現在 ${currentUser?.rank || '-'}位`}
+                  {`現在 ${activeUserRank || '-'}位`}
                 </h2>
                 <div className="flex items-center justify-center">
                   <span className="text-xl font-semibold text-primary">
@@ -412,11 +420,11 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
               </div>
 
               {/* Progress to Next Rank */}
-              {currentUser && currentUser.rank > 1 && (() => {
-                const nextRankPlayer = rankings?.find(player => player.rank === currentUser.rank - 1);
+              {currentUser && activeUserRank > 1 && (() => {
+                const nextRankPlayer = activeRankings && activeUserRank > 1 ? activeRankings[activeUserRank - 2] : null;
                 const pointDifference = nextRankPlayer ? nextRankPlayer.current_rating - currentUser.current_rating : 0;
                 // 次の順位のプレイヤーとの差が小さいほど100%に近づく
-                const previousRankPlayer = rankings?.find(player => player.rank === currentUser.rank + 1);
+                const previousRankPlayer = activeRankings && activeUserRank < activeRankings.length ? activeRankings[activeUserRank] : null;
                 const totalRange = nextRankPlayer && previousRankPlayer 
                   ? nextRankPlayer.current_rating - previousRankPlayer.current_rating 
                   : (nextRankPlayer ? pointDifference + 50 : 100); // デフォルト範囲
@@ -432,7 +440,7 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
                     <div className="flex items-center justify-center gap-1">
                       <TrendingUp className="h-4 w-4 text-success" />
                       <span className="text-sm text-muted-foreground">
-                        {currentUser.rank - 1}位まであと{pointDifference}ポイント！
+                        {activeUserRank - 1}位まであと{pointDifference}ポイント！
                       </span>
                     </div>
                     <div className="w-full bg-muted rounded-full h-2">
