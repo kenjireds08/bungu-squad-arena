@@ -795,29 +795,39 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
                           </div>
                         </div>
                         
-                        <div className="flex items-center justify-between mt-3 pt-3 border-t border-success/20">
-                          <div className="flex items-center gap-2">
-                            <Trophy className="h-4 w-4 text-success" />
-                            <span className="font-medium text-success">勝者: {winnerName}</span>
+                        {/* 勝者・敗者の結果（モバイル対応） */}
+                        <div className="mt-3 pt-3 border-t border-success/20 space-y-2">
+                          {/* 勝者 */}
+                          <div className="flex items-center justify-between p-2 bg-success/10 rounded">
+                            <div className="flex items-center gap-2">
+                              <Trophy className="h-4 w-4 text-success" />
+                              <span className="font-medium text-success">勝者: {winnerName}</span>
+                            </div>
                             {(match.winner_id === match.player1_id ? match.player1_rating_change : match.player2_rating_change) && (
-                              <span className="text-sm font-medium text-success">
+                              <span className="text-sm font-bold text-success">
                                 +{match.winner_id === match.player1_id ? match.player1_rating_change : match.player2_rating_change}
                               </span>
                             )}
                           </div>
-                          <div className="flex items-center gap-2">
-                            <div className="text-sm text-muted-foreground">
+                          
+                          {/* 敗者 */}
+                          <div className="flex items-center justify-between p-2 bg-muted/30 rounded">
+                            <span className="text-sm text-muted-foreground">
                               敗者: {loserName}
-                              {(match.winner_id === match.player1_id ? match.player2_rating_change : match.player1_rating_change) && (
-                                <span className="ml-1 font-medium text-destructive">
-                                  {match.winner_id === match.player1_id ? match.player2_rating_change : match.player1_rating_change}
-                                </span>
-                              )}
-                            </div>
+                            </span>
+                            {(match.winner_id === match.player1_id ? match.player2_rating_change : match.player1_rating_change) && (
+                              <span className="text-sm font-bold text-destructive">
+                                {match.winner_id === match.player1_id ? match.player2_rating_change : match.player1_rating_change}
+                              </span>
+                            )}
+                          </div>
+                          
+                          {/* アクションボタン（モバイル時は縦並び） */}
+                          <div className="flex flex-col sm:flex-row gap-2">
                             <Button
                               variant="outline"
                               size="sm"
-                              className="ml-1"
+                              className="flex-1"
                               onClick={() => setEditCompletedMatch(match)}
                             >
                               <Edit className="h-3 w-3 mr-1" />
@@ -826,7 +836,7 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
                             <Button
                               variant="outline"
                               size="sm"
-                              className="ml-1 text-destructive hover:text-destructive"
+                              className="flex-1 text-destructive hover:text-destructive"
                               onClick={() => setInvalidateMatchId(match.match_id)}
                             >
                               無効試合
