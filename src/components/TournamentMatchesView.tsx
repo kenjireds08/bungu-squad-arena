@@ -58,16 +58,16 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
         setMatches(matchesData);
         
         // Find current user's match that's ready to start or in progress
-        const userMatch = matchesData.find((match: Match) => 
+        const userMatch = matchesArray.find((match: Match) => 
           (match.player1_id === currentUserId || match.player2_id === currentUserId) &&
           (match.status === 'scheduled' || match.status === 'in_progress')
         );
         setCurrentUserMatch(userMatch || null);
         
         // Calculate tournament progress  
-        const completedMatches = matchesData.filter((m: Match) => m.status === 'approved' || m.status === 'completed').length;
-        const totalMatches = matchesData.length;
-        const nextAvailableMatches = matchesData.filter((m: Match) => m.status === 'scheduled');
+        const completedMatches = matchesArray.filter((m: Match) => m.status === 'approved' || m.status === 'completed').length;
+        const totalMatches = matchesArray.length;
+        const nextAvailableMatches = matchesArray.filter((m: Match) => m.status === 'scheduled');
         
         setTournamentProgress({
           completed: completedMatches,
@@ -87,19 +87,21 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
       const response = await fetch(`/api/matches?tournamentId=${tournamentId}`);
       if (response.ok) {
         const matchesData = await response.json();
-        setMatches(matchesData);
+        // 配列であることを確認
+        const matchesArray = Array.isArray(matchesData) ? matchesData : [];
+        setMatches(matchesArray);
         
         // Find current user's match that's ready to start or in progress
-        const userMatch = matchesData.find((match: Match) => 
+        const userMatch = matchesArray.find((match: Match) => 
           (match.player1_id === currentUserId || match.player2_id === currentUserId) &&
           (match.status === 'scheduled' || match.status === 'in_progress')
         );
         setCurrentUserMatch(userMatch || null);
         
         // Calculate tournament progress  
-        const completedMatches = matchesData.filter((m: Match) => m.status === 'approved' || m.status === 'completed').length;
-        const totalMatches = matchesData.length;
-        const nextAvailableMatches = matchesData.filter((m: Match) => m.status === 'scheduled');
+        const completedMatches = matchesArray.filter((m: Match) => m.status === 'approved' || m.status === 'completed').length;
+        const totalMatches = matchesArray.length;
+        const nextAvailableMatches = matchesArray.filter((m: Match) => m.status === 'scheduled');
         
         setTournamentProgress({
           completed: completedMatches,
@@ -287,7 +289,7 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
                 <div className="flex items-center gap-4">
                   <div className="text-center">
                     <div className="text-2xl font-bold text-success">
-                      {matches.filter(m => m.status === 'approved' || m.status === 'completed').length}
+                      {Array.isArray(matches) ? matches.filter(m => m.status === 'approved' || m.status === 'completed').length : 0}
                     </div>
                     <div className="text-sm text-muted-foreground">完了試合</div>
                   </div>
@@ -301,7 +303,7 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
                 </div>
                 <div className="text-right">
                   <div className="text-lg font-bold text-primary">
-                    {Math.round((matches.filter(m => m.status === 'approved' || m.status === 'completed').length / tournamentProgress.total) * 100)}%
+                    {Math.round((Array.isArray(matches) ? matches.filter(m => m.status === 'approved' || m.status === 'completed').length : 0) / (tournamentProgress?.total || 1) * 100)}%
                   </div>
                   <div className="text-sm text-muted-foreground">進行率</div>
                 </div>
@@ -312,7 +314,7 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
                 <div 
                   className="bg-primary h-2 rounded-full transition-all duration-500"
                   style={{ 
-                    width: `${(matches.filter(m => m.status === 'approved' || m.status === 'completed').length / tournamentProgress.total) * 100}%` 
+                    width: `${((Array.isArray(matches) ? matches.filter(m => m.status === 'approved' || m.status === 'completed').length : 0) / (tournamentProgress?.total || 1)) * 100}%` 
                   }}
                 ></div>
               </div>
@@ -321,7 +323,7 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
               <div className="space-y-3">
                 {/* Current Status Summary */}
                 <div className="grid grid-cols-2 gap-3">
-                  {matches.filter(m => m.status === 'in_progress').length > 0 && (
+                  {Array.isArray(matches) && matches.filter(m => m.status === 'in_progress').length > 0 && (
                     <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
                       <div className="flex items-center gap-2">
                         <Play className="h-4 w-4 text-blue-600 animate-pulse" />
@@ -337,7 +339,7 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
                     </div>
                   )}
                   
-                  {matches.filter(m => m.status === 'completed').length > 0 && (
+                  {Array.isArray(matches) && matches.filter(m => m.status === 'completed').length > 0 && (
                     <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
                       <div className="flex items-center gap-2">
                         <AlertCircle className="h-4 w-4 text-orange-600" />
@@ -353,10 +355,10 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
                 {/* Next Up */}
                 {(() => {
                   // Find the next scheduled match in sequence (not necessarily user's match)
-                  const scheduledMatches = matches.filter(m => m.status === 'scheduled');
+                  const scheduledMatches = Array.isArray(matches) ? matches.filter(m => m.status === 'scheduled') : [];
                   const nextMatch = scheduledMatches.find(m => {
                     const matchNumber = parseInt(m.match_number.replace(/^match_/, ''));
-                    const completedMatches = matches.filter(match => match.status === 'approved' || match.status === 'completed');
+                    const completedMatches = Array.isArray(matches) ? matches.filter(match => match.status === 'approved' || match.status === 'completed') : [];
                     const completedMatchNumbers = completedMatches.map(match => parseInt(match.match_number.replace(/^match_/, '')));
                     
                     // For match 1, it can always start
@@ -395,7 +397,7 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
                 })()}
               </div>
               
-              {matches.filter(m => m.status === 'approved').length === tournamentProgress.total ? (
+              {Array.isArray(matches) && matches.filter(m => m.status === 'approved').length === tournamentProgress?.total ? (
                 <div className="text-center py-2 mt-4">
                   <Badge className="bg-success text-white">
                     <Trophy className="h-3 w-3 mr-1" />
@@ -412,17 +414,17 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Trophy className="h-5 w-5 text-primary" />
-              全ての組み合わせ ({matches.length}試合)
+              全ての組み合わせ ({Array.isArray(matches) ? matches.length : 0}試合)
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {matches.length === 0 ? (
+            {!Array.isArray(matches) || matches.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <Trophy className="h-12 w-12 mx-auto mb-3 opacity-50" />
                 <p>組み合わせがまだ決まっていません</p>
               </div>
             ) : (
-              matches.map((match) => {
+              Array.isArray(matches) && matches.map((match) => {
                 const matchStatusColor = {
                   'scheduled': 'bg-muted/50 border-muted',
                   'in_progress': 'bg-blue-50 border-blue-200',
