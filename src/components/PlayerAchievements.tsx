@@ -61,6 +61,8 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
           let currentWinStreak = 0;
           let winStreakAchievedDate: string | null = null;
           let tenGamesAchievedDate: string | null = null;
+          let winRate50AchievedDate: string | null = null;
+          let rating1300AchievedDate: string | null = null;
           
           try {
             const matchResponse = await fetch(`/api/matches?playerId=${currentUserId}`);
@@ -78,10 +80,17 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
                 firstWinDate = sortedWins[0].timestamp || sortedWins[0].match_date || sortedWins[0].created_at;
               }
               
-              // Calculate win streak and find the date when 3-win streak was achieved
+              // Calculate win streak and find achievement dates
+              let totalWins = 0;
+              let totalLosses = 0;
+              let currentRating = 1250; // Starting rating
+              
               matchHistory.forEach((match: any, index: number) => {
                 if (match.result === 'win') {
                   currentWinStreak++;
+                  totalWins++;
+                  currentRating += 15; // Approximate rating change
+                  
                   // 3連勝を初めて達成した時の日付を記録
                   if (currentWinStreak === 3 && !winStreakAchievedDate) {
                     winStreakAchievedDate = match.timestamp || match.match_date || match.created_at;
@@ -89,11 +98,25 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
                   maxWinStreak = Math.max(maxWinStreak, currentWinStreak);
                 } else if (match.result === 'lose') {
                   currentWinStreak = 0;
+                  totalLosses++;
+                  currentRating -= 15; // Approximate rating change
                 }
                 
+                const totalGamesPlayed = totalWins + totalLosses;
+                
                 // 10試合目の日付を記録
-                if (index === 9 && !tenGamesAchievedDate) {
+                if (totalGamesPlayed === 10 && !tenGamesAchievedDate) {
                   tenGamesAchievedDate = match.timestamp || match.match_date || match.created_at;
+                }
+                
+                // 10戦以上で勝率50%を達成した日付を記録
+                if (totalGamesPlayed >= 10 && totalWins / totalGamesPlayed >= 0.5 && !winRate50AchievedDate) {
+                  winRate50AchievedDate = match.timestamp || match.match_date || match.created_at;
+                }
+                
+                // レート1300を超えた日付を記録
+                if (currentRating >= 1300 && !rating1300AchievedDate) {
+                  rating1300AchievedDate = match.timestamp || match.match_date || match.created_at;
                 }
               });
             }
@@ -150,14 +173,14 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
               icon: Target,
               title: "勝率50%達成（10戦以上）",
               description: "10戦以上で勝率50%を突破",
-              date: totalGames >= 10 && winRate >= 0.5 ? new Date().toISOString() : null,
+              date: winRate50AchievedDate,
               completed: totalGames >= 10 && winRate >= 0.5
             },
             {
               icon: Star,
               title: "レート1300突破",
               description: "レーティング1300を達成",
-              date: currentUser.current_rating >= 1300 ? new Date().toISOString() : null,
+              date: rating1300AchievedDate,
               completed: currentUser.current_rating >= 1300
             },
             {
