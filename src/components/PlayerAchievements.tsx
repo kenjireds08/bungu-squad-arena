@@ -160,7 +160,7 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
               icon: Crown,
               title: "連勝記録",
               description: "3連勝を達成",
-              date: maxWinStreak >= 3 ? new Date().toISOString() : null,
+              date: maxWinStreak >= 3 ? "2025-08-08T00:00:00.000Z" : null,
               completed: maxWinStreak >= 3
             }
           ];
