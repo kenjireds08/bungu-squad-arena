@@ -97,7 +97,7 @@ export const PlayerHelp = ({ onClose }: PlayerHelpProps) => {
                     <li>対戦相手の強さを考慮してポイント変動を計算</li>
                     <li>強い相手に勝つとより多くのポイントを獲得</li>
                     <li>弱い相手に負けるとより多くのポイントを失う</li>
-                    <li>全員1250ポイントからスタート</li>
+                    <li>全員1200ポイントからスタート</li>
                   </ul>
                 </AccordionContent>
               </AccordionItem>

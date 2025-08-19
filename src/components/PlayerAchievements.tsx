@@ -83,7 +83,7 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
               // Calculate win streak and find achievement dates
               let totalWins = 0;
               let totalLosses = 0;
-              let currentRating = 1250; // Starting rating
+              let currentRating = 1200; // Starting rating
               
               matchHistory.forEach((match: any, index: number) => {
                 if (match.result === 'win') {
