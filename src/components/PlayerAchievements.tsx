@@ -59,6 +59,8 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
           let firstWinDate: string | null = null;
           let maxWinStreak = 0;
           let currentWinStreak = 0;
+          let winStreakAchievedDate: string | null = null;
+          let tenGamesAchievedDate: string | null = null;
           
           try {
             const matchResponse = await fetch(`/api/matches?playerId=${currentUserId}`);
@@ -76,13 +78,22 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
                 firstWinDate = sortedWins[0].timestamp || sortedWins[0].match_date || sortedWins[0].created_at;
               }
               
-              // Calculate win streak
-              matchHistory.forEach((match: any) => {
+              // Calculate win streak and find the date when 3-win streak was achieved
+              matchHistory.forEach((match: any, index: number) => {
                 if (match.result === 'win') {
                   currentWinStreak++;
+                  // 3連勝を初めて達成した時の日付を記録
+                  if (currentWinStreak === 3 && !winStreakAchievedDate) {
+                    winStreakAchievedDate = match.timestamp || match.match_date || match.created_at;
+                  }
                   maxWinStreak = Math.max(maxWinStreak, currentWinStreak);
                 } else if (match.result === 'lose') {
                   currentWinStreak = 0;
+                }
+                
+                // 10試合目の日付を記録
+                if (index === 9 && !tenGamesAchievedDate) {
+                  tenGamesAchievedDate = match.timestamp || match.match_date || match.created_at;
                 }
               });
             }
@@ -153,14 +164,14 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
               icon: Award,
               title: "10戦達成",
               description: "累計10戦に到達",
-              date: totalGames >= 10 ? new Date().toISOString() : null,
+              date: tenGamesAchievedDate,
               completed: totalGames >= 10
             },
             {
               icon: Crown,
               title: "連勝記録",
               description: "3連勝を達成",
-              date: maxWinStreak >= 3 ? "2025-08-08T00:00:00.000Z" : null,
+              date: winStreakAchievedDate,
               completed: maxWinStreak >= 3
             }
           ];
