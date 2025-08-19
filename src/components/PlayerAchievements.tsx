@@ -186,7 +186,7 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
             {
               icon: Award,
               title: "10戦達成",
-              description: "累計10戦に到達",
+              description: "累計10試合に到達",
               date: tenGamesAchievedDate,
               completed: totalGames >= 10
             },
@@ -204,8 +204,8 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
             {
               year: new Date().getFullYear(),
               rank: currentUser.rank || 0,
-              rating: currentUser.current_rating || 1500,
-              highestRating: currentUser.highest_rating || currentUser.current_rating || 1500,
+              rating: currentUser.current_rating || 1200,
+              highestRating: currentUser.highest_rating || currentUser.current_rating || 1200,
               games: totalGames,
               wins: currentUser.annual_wins || 0,
               losses: currentUser.annual_losses || 0,

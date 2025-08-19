@@ -1,8 +1,8 @@
 // BUNGU SQUAD Service Worker for PWA functionality with camera support
 // Update version to force SW update - Change this whenever you need to force update
-const SW_VERSION = '2.9.0'; // CRITICAL: Force complete cache clear for MIME type fix
-const CACHE_NAME = 'bungu-squad-v2-9-0';
-const STATIC_CACHE = 'bungu-squad-static-v2-9-0';
+const SW_VERSION = '3.0.0'; // Fix: Aggressive cache strategy for JS modules
+const CACHE_NAME = 'bungu-squad-v3-0-0';
+const STATIC_CACHE = 'bungu-squad-static-v3-0-0';
 
 // Debug flag - only show logs in development (localhost)
 const DEBUG = self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1';
@@ -45,11 +45,13 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys()
       .then((cacheNames) => {
-        // Delete ALL caches to force fresh start
+        // Delete ALL caches that don't match current version
         return Promise.all(
           cacheNames.map((cacheName) => {
-            if (DEBUG) console.log(`Deleting cache: ${cacheName}`);
-            return caches.delete(cacheName);
+            if (cacheName !== STATIC_CACHE && cacheName !== CACHE_NAME) {
+              if (DEBUG) console.log(`Deleting old cache: ${cacheName}`);
+              return caches.delete(cacheName);
+            }
           })
         );
       })
@@ -128,21 +130,34 @@ self.addEventListener('fetch', (event) => {
     event.request.destination === 'image' ||
     event.request.destination === 'font' ||
     url.pathname.includes('/assets/') ||
+    url.pathname.includes('/_next/') ||
     url.pathname.endsWith('.js') ||
+    url.pathname.endsWith('.mjs') ||
     url.pathname.endsWith('.css') ||
     url.pathname.endsWith('.png') ||
     url.pathname.endsWith('.jpg') ||
     url.pathname.endsWith('.svg') ||
     url.pathname.endsWith('.woff') ||
-    url.pathname.endsWith('.woff2');
+    url.pathname.endsWith('.woff2') ||
+    url.pathname.endsWith('.json');
 
   if (isAssetRequest) {
-    // CRITICAL: Never cache JS files to avoid MIME type issues
-    if (url.pathname.endsWith('.js')) {
+    // CRITICAL: Never cache JS/MJS files to avoid MIME type issues
+    if (url.pathname.endsWith('.js') || url.pathname.endsWith('.mjs') || url.pathname.includes('/_next/')) {
       event.respondWith(
-        fetch(event.request).catch(() => {
-          return new Response('Not Found', { status: 404 });
-        })
+        fetch(event.request)
+          .then(response => {
+            // Verify correct MIME type for JS files
+            if (response.ok && !response.headers.get('content-type')?.includes('javascript') && 
+                (url.pathname.endsWith('.js') || url.pathname.endsWith('.mjs'))) {
+              console.error(`SW: Invalid MIME type for JS file: ${url.pathname}`);
+              return new Response('Invalid MIME type', { status: 500 });
+            }
+            return response;
+          })
+          .catch(() => {
+            return new Response('Not Found', { status: 404 });
+          })
       );
       return;
     }
