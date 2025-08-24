@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Camera, QrCode, AlertCircle, CheckCircle, Upload } from 'lucide-react';
+import { ArrowLeft, Camera, QrCode, AlertCircle, CheckCircle } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import QrScanner from 'qr-scanner';
 import { TournamentEntryComplete } from './TournamentEntryComplete';
@@ -21,7 +21,6 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
   const [isIOSPWA, setIsIOSPWA] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const qrScannerRef = useRef<QrScanner | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const scanIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
 
@@ -81,76 +80,7 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
         userAgent: navigator.userAgent
       });
 
-      // iOS PWAの場合は直接getUserMediaを使用
-      if (isIOS && isPWA) {
-        console.log('BUNGU SQUAD: iOS PWAモード - 直接getUserMediaを使用');
-        
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: 'environment',
-            width: { min: 640, ideal: 1280, max: 1920 },
-            height: { min: 480, ideal: 720, max: 1080 }
-          },
-          audio: false
-        });
-        
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.setAttribute('playsinline', 'true');
-          videoRef.current.setAttribute('webkit-playsinline', 'true');
-          
-          await new Promise((resolve) => {
-            videoRef.current!.onloadedmetadata = () => {
-              videoRef.current!.play();
-              resolve(true);
-            };
-          });
-          
-          console.log('BUNGU SQUAD: iOS PWAカメラ起動成功');
-          setIsScanning(true);
-          setIsInitializing(false);
-          
-          // QRコードスキャンを開始
-          scanIntervalRef.current = setInterval(async () => {
-            if (videoRef.current && videoRef.current.readyState === 4) {
-              try {
-                const result = await QrScanner.scanImage(videoRef.current, {
-                  returnDetailedScanResult: true,
-                  alsoTryWithoutScanRegion: true
-                });
-                if (result) {
-                  console.log('BUNGU SQUAD: QRコード検出成功');
-                  if (scanIntervalRef.current) {
-                    clearInterval(scanIntervalRef.current);
-                    scanIntervalRef.current = null;
-                  }
-                  handleQRDetected(result);
-                }
-              } catch (e) {
-                // QRコードが見つからない場合は無視
-              }
-            }
-          }, 200);
-          
-          // 60秒後に自動停止
-          setTimeout(() => {
-            if (scanIntervalRef.current) {
-              clearInterval(scanIntervalRef.current);
-              scanIntervalRef.current = null;
-              console.log('BUNGU SQUAD: QRスキャンタイムアウト');
-            }
-          }, 60000);
-          
-          toast({
-            title: "QRスキャナー起動",
-            description: "QRコードをカメラに向けてください。",
-          });
-          
-          return; // iOS PWAの場合はここで終了
-        }
-      }
-
-      // 非iOS PWAの場合の通常処理
+      // iOS PWAかどうかに関わらず、まず通常のQR Scannerを試す
       // Check if camera is available
       const hasCamera = await QrScanner.hasCamera();
       if (!hasCamera) {
@@ -161,29 +91,13 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
       if (!qrScannerRef.current) {
         console.log('BUNGU SQUAD: QR Scannerを初期化');
         
-        // iOS PWAの場合は特別な設定
         const qrOptions: any = {
           returnDetailedScanResult: true,
           highlightScanRegion: true,
           highlightCodeOutline: true,
-          // iOS PWA向けの追加設定
           preferredCamera: 'environment',
           maxScansPerSecond: 5
         };
-        
-        // iOS PWAの場合、カメラを明示的に指定
-        if (isIOS && isPWA) {
-          console.log('BUNGU SQUAD: iOS PWAモードで初期化');
-          qrOptions.calculateScanRegion = (video: HTMLVideoElement) => {
-            // iOS PWAでのスキャン領域を全画面に
-            return {
-              x: 0,
-              y: 0,
-              width: video.videoWidth || video.width,
-              height: video.videoHeight || video.height
-            };
-          };
-        }
         
         const qrScanner = new QrScanner(
           videoRef.current,
@@ -196,8 +110,81 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
         qrScannerRef.current = qrScanner;
       }
       
-      // 通常の起動（非iOS PWA）
-      await qrScannerRef.current.start();
+      // QR Scannerを起動
+      try {
+        await qrScannerRef.current.start();
+        console.log('BUNGU SQUAD: QR Scanner起動成功');
+      } catch (error: any) {
+        console.error('BUNGU SQUAD: QR Scanner起動失敗:', error);
+        
+        // iOS PWAでQR Scannerが失敗した場合、直接getUserMediaを使用
+        if (isIOS && isPWA) {
+          console.log('BUNGU SQUAD: iOS PWAフォールバック - 直接getUserMediaを使用');
+          
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: 'environment',
+              width: { ideal: 1280 },
+              height: { ideal: 720 }
+            },
+            audio: false
+          });
+          
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+            videoRef.current.setAttribute('playsinline', 'true');
+            videoRef.current.setAttribute('webkit-playsinline', 'true');
+            
+            await videoRef.current.play();
+            
+            console.log('BUNGU SQUAD: iOS PWAカメラ起動成功');
+            setIsScanning(true);
+            setIsInitializing(false);
+            
+            // 手動でQRコードスキャンを開始
+            scanIntervalRef.current = setInterval(async () => {
+              if (videoRef.current && videoRef.current.readyState === 4) {
+                try {
+                  const result = await QrScanner.scanImage(videoRef.current, {
+                    returnDetailedScanResult: true,
+                    alsoTryWithoutScanRegion: true
+                  });
+                  if (result) {
+                    console.log('BUNGU SQUAD: QRコード検出成功');
+                    if (scanIntervalRef.current) {
+                      clearInterval(scanIntervalRef.current);
+                      scanIntervalRef.current = null;
+                    }
+                    stopCamera();
+                    handleQRDetected(result);
+                  }
+                } catch (e) {
+                  // QRコードが見つからない場合は無視
+                }
+              }
+            }, 200);
+            
+            // 60秒後に自動停止
+            setTimeout(() => {
+              if (scanIntervalRef.current) {
+                clearInterval(scanIntervalRef.current);
+                scanIntervalRef.current = null;
+                console.log('BUNGU SQUAD: QRスキャンタイムアウト');
+              }
+            }, 60000);
+            
+            toast({
+              title: "QRスキャナー起動",
+              description: "QRコードをカメラに向けてください。",
+            });
+            
+            return;
+          }
+        } else {
+          // iOS PWA以外でも失敗した場合はエラーを投げる
+          throw error;
+        }
+      }
       
       console.log('BUNGU SQUAD: QRスキャナー起動成功');
       setIsScanning(true);
@@ -479,31 +466,6 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
     startCamera();
   };
 
-  // Handle file input for QR code image
-  const handleFileInput = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    try {
-      console.log('BUNGU SQUAD: 画像ファイルからQRコードをスキャン');
-      const result = await QrScanner.scanImage(file, { returnDetailedScanResult: true });
-      console.log('BUNGU SQUAD: 画像からQRコード検出:', result);
-      handleQRDetected(result);
-    } catch (error) {
-      console.error('BUNGU SQUAD: 画像からQRコードを読み取れませんでした:', error);
-      toast({
-        title: "エラー",
-        description: "QRコードを読み取れませんでした。別の画像をお試しください。",
-        variant: "destructive"
-      });
-    }
-
-    // Reset file input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
   // Show success state with loading message
   if (scanResult === 'success') {
     return (
@@ -669,42 +631,6 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
                 QRスキャンを開始
               </Button>
               
-              {/* iOS PWAの場合、画像アップロードオプションを表示 */}
-              {(isIOSPWA || cameraError) && (
-                <>
-                  <div className="relative">
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      capture="environment"
-                      onChange={handleFileInput}
-                      className="hidden"
-                      id="qr-file-input"
-                    />
-                    <label htmlFor="qr-file-input">
-                      <Button
-                        variant="outline"
-                        className="w-full flex items-center gap-2"
-                        size="lg"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          fileInputRef.current?.click();
-                        }}
-                      >
-                        <Upload className="h-5 w-5" />
-                        カメラでQRコードを撮影
-                      </Button>
-                    </label>
-                  </div>
-                  
-                  {isIOSPWA && (
-                    <p className="text-xs text-muted-foreground text-center">
-                      iOS PWAでカメラが動作しない場合は、上のボタンでQRコードを撮影してください
-                    </p>
-                  )}
-                </>
-              )}
             </>
           )}
           
