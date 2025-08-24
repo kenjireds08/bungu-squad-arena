@@ -108,15 +108,20 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
         const video = videoRef.current;
         
         try {
-          // 最初のawaitがgetUserMediaになるように（重要）
+          // 最初のawaitがgetUserMediaになるように（iOS PWAで重要）
           const stream = await getUserMediaWithTimeout({
-            video: { facingMode: 'environment' },
+            video: { 
+              facingMode: 'environment',
+              width: { ideal: 1280 },
+              height: { ideal: 720 }
+            },
             audio: false
           }, 10000);
           
           // ストリーム取得後にビデオプロパティを設定
           video.muted = true;
-          (video as any).playsInline = true;
+          video.setAttribute('playsinline', 'true');
+          video.setAttribute('webkit-playsinline', 'true');
           video.autoplay = true;
           
           console.log('BUNGU SQUAD: ストリーム取得成功');
@@ -237,28 +242,23 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
           }
           return;
         }
-          // readyState確認後にスキャン
-          if (videoRef.current.readyState !== 4) {
-            return; // まだ準備ができていない
+        
+        const result = await QrScanner.scanImage(videoRef.current, {
+          returnDetailedScanResult: true,
+          alsoTryWithoutScanRegion: true
+        });
+        
+        if (result) {
+          console.log('BUNGU SQUAD: QRコード検出成功！', result);
+          if (scanIntervalRef.current) {
+            clearInterval(scanIntervalRef.current);
+            scanIntervalRef.current = null;
           }
-          
-          const result = await QrScanner.scanImage(videoRef.current, {
-            returnDetailedScanResult: true,
-            alsoTryWithoutScanRegion: true
-          });
-          
-          if (result) {
-            console.log('BUNGU SQUAD: QRコード検出成功！', result);
-            if (scanIntervalRef.current) {
-              clearInterval(scanIntervalRef.current);
-              scanIntervalRef.current = null;
-            }
-            stopCamera();
-            handleQRDetected(result);
-          }
-        } catch (e) {
-          // QRコードが見つからない場合は無視
+          stopCamera();
+          handleQRDetected(result);
         }
+      } catch (e) {
+        // QRコードが見つからない場合は無視
       }
     }, 250);
     
@@ -491,14 +491,18 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
                   width: '100%',
                   height: '100%',
                   objectFit: 'cover',
-                  // display:noneを使わず、visibilityとopacityで制御
-                  visibility: isInitializing || (!isScanning && !isInitializing) ? 'hidden' : 'visible',
-                  opacity: isScanning ? 1 : 0,
-                  transition: 'opacity 0.25s ease'
+                  // iOS PWAでdisplay:noneは使わない
+                  display: 'block !important',
+                  visibility: 'visible !important',
+                  opacity: 1,
+                  position: isScanning ? 'static' : 'absolute',
+                  zIndex: isScanning ? 1 : 0,
+                  backgroundColor: isScanning ? 'transparent' : 'black'
                 }}
-                playsInline
-                muted
-                autoPlay
+                playsInline={true}
+                muted={true}
+                autoPlay={true}
+                webkit-playsinline="true"
               />
               
               {/* Camera status indicator */}

@@ -22,18 +22,23 @@ export const CameraDiag = ({ onClose }: CameraDiagProps) => {
     try {
       const video = videoRef.current!;
       
-      // プロパティを先に設定
-      video.muted = true;
-      (video as any).playsInline = true;
-      video.autoplay = true;
-      
       setStatus('getUserMedia呼び出し中...');
       
-      // 最初のawaitがgetUserMedia
+      // 最初のawaitがgetUserMedia（iOS PWAでは重要）
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' },
+        video: { 
+          facingMode: 'environment',
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        },
         audio: false
       });
+      
+      // ストリーム取得後にプロパティを設定
+      video.muted = true;
+      video.setAttribute('playsinline', 'true');
+      video.setAttribute('webkit-playsinline', 'true');
+      video.autoplay = true;
       
       setStatus('ストリーム取得成功');
       streamRef.current = stream;
@@ -154,15 +159,16 @@ export const CameraDiag = ({ onClose }: CameraDiagProps) => {
                   width: '100%',
                   height: '100%',
                   objectFit: 'cover',
-                  // 常に表示（display:noneにしない）
-                  display: 'block',
-                  visibility: 'visible',
-                  opacity: streamActive ? 1 : 0.1,
-                  transition: 'opacity 0.25s ease'
+                  // iOS PWAでdisplay:noneは使わない
+                  display: 'block !important',
+                  visibility: 'visible !important',
+                  opacity: 1,
+                  backgroundColor: streamActive ? 'transparent' : 'black'
                 }}
-                playsInline
-                muted
-                autoPlay
+                playsInline={true}
+                muted={true}
+                autoPlay={true}
+                webkit-playsinline="true"
               />
               {!streamActive && (
                 <div className="absolute inset-0 flex items-center justify-center text-white">
