@@ -12,6 +12,7 @@ export const CameraDiag = ({ onClose }: CameraDiagProps) => {
   const [error, setError] = useState<string>('');
   const [status, setStatus] = useState<string>('');
   const [streamActive, setStreamActive] = useState(false);
+  const [videoInfo, setVideoInfo] = useState<string>('');
   const streamRef = useRef<MediaStream | null>(null);
 
   const startCamera = async () => {
@@ -42,11 +43,27 @@ export const CameraDiag = ({ onClose }: CameraDiagProps) => {
       setStatus('play()呼び出し中...');
       await video.play().catch(async (e) => {
         console.log('初回play失敗、リトライ', e);
+        setStatus('play()失敗、リトライ中...');
         return video.play();
       });
       
       setStatus('カメラ起動成功！');
       setStreamActive(true);
+      
+      // ビデオ情報を更新
+      setTimeout(() => {
+        if (videoRef.current) {
+          const v = videoRef.current;
+          setVideoInfo(`
+            videoWidth: ${v.videoWidth}
+            videoHeight: ${v.videoHeight}
+            readyState: ${v.readyState}
+            paused: ${v.paused}
+            srcObject: ${v.srcObject ? 'MediaStream' : 'null'}
+            currentTime: ${v.currentTime}
+          `);
+        }
+      }, 1000);
       
     } catch (e: any) {
       const errorMsg = `${e?.name || 'Unknown'}: ${e?.message || String(e)}`;
@@ -138,8 +155,9 @@ export const CameraDiag = ({ onClose }: CameraDiagProps) => {
                   height: '100%',
                   objectFit: 'cover',
                   // 常に表示（display:noneにしない）
-                  visibility: streamActive ? 'visible' : 'hidden',
-                  opacity: streamActive ? 1 : 0,
+                  display: 'block',
+                  visibility: 'visible',
+                  opacity: streamActive ? 1 : 0.1,
                   transition: 'opacity 0.25s ease'
                 }}
                 playsInline
@@ -181,6 +199,14 @@ export const CameraDiag = ({ onClose }: CameraDiagProps) => {
             {status && (
               <div className="p-3 bg-blue-50 rounded text-sm">
                 <strong>ステータス:</strong> {status}
+              </div>
+            )}
+            
+            {/* ビデオ情報 */}
+            {videoInfo && (
+              <div className="p-3 bg-gray-50 rounded text-xs font-mono">
+                <strong>ビデオ情報:</strong>
+                <pre className="mt-1 whitespace-pre-wrap">{videoInfo}</pre>
               </div>
             )}
 
