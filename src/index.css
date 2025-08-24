@@ -147,3 +147,34 @@
     transform: rotate(360deg);
   }
 }
+
+/* PWA specific styles for video rendering fix */
+.pwa .pwa-video-shell {
+  overflow: visible !important;        /* クリップしない */
+  border-radius: 0 !important;         /* 角丸しない */
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  contain: layout paint style;
+}
+
+.pwa .pwa-video {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  object-fit: cover;
+  width: 100%;
+  height: 100%;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+}
+
+/* 角丸は video の上に"マスク用オーバーレイ"で表現 */
+.pwa .pwa-round-mask {
+  pointer-events: none;
+  border-radius: 0.75rem;        /* Tailwindのrounded-xl相当 */
+  box-shadow: 0 0 0 1px rgba(0,0,0,.06) inset;
+  position: absolute;
+  inset: 0;
+}

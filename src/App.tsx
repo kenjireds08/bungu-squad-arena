@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { useEffect } from "react";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import TournamentWaitingPage from "./pages/TournamentWaitingPage";
@@ -23,6 +24,16 @@ const queryClient = new QueryClient({
 
 const App = () => {
   console.log('BUNGU SQUAD: App component rendering');
+  
+  // PWA検出してクラスを付与
+  useEffect(() => {
+    const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
+                  (window.navigator as any).standalone;
+    if (isPWA) {
+      document.documentElement.classList.add('pwa');
+      console.log('BUNGU SQUAD: PWAモードで実行中');
+    }
+  }, []);
   
   try {
     return (

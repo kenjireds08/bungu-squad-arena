@@ -152,26 +152,21 @@ export const CameraDiag = ({ onClose }: CameraDiagProps) => {
             <CardTitle>カメラテスト</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="relative aspect-square bg-black rounded overflow-hidden">
-              <video
-                ref={videoRef}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                  // iOS PWAでdisplay:noneは使わない
-                  display: 'block !important',
-                  visibility: 'visible !important',
-                  opacity: 1,
-                  backgroundColor: streamActive ? 'transparent' : 'black'
-                }}
-                playsInline={true}
-                muted={true}
-                autoPlay={true}
-                webkit-playsinline="true"
-              />
+            <div className="relative aspect-square bg-black">
+              {/* videoの直接親には overflow-hidden / border-radius を入れない */}
+              <div className="pwa-video-shell relative bg-black w-full h-full">
+                <video
+                  ref={videoRef}
+                  className="pwa-video"
+                  playsInline
+                  muted
+                  autoPlay
+                />
+                {/* 角丸は別レイヤで。PWAで描画が詰まらない */}
+                <div className="pwa-round-mask"></div>
+              </div>
               {!streamActive && (
-                <div className="absolute inset-0 flex items-center justify-center text-white">
+                <div className="absolute inset-0 flex items-center justify-center text-white z-10">
                   <div className="text-center">
                     <p className="text-sm opacity-75">カメラ未起動</p>
                   </div>

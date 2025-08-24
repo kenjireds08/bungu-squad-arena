@@ -452,24 +452,29 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
         {/* Camera View */}
         <Card className="overflow-hidden">
           <CardContent className="p-0">
-            <div className="relative aspect-square bg-black overflow-hidden">
-              <video
-                ref={videoRef}
-                className="w-full h-full object-cover"
-                playsInline
-                muted
-                autoPlay
-              />
+            <div className="relative aspect-square bg-black">
+              {/* videoの直接親には overflow-hidden / border-radius を入れない */}
+              <div className="pwa-video-shell relative bg-black w-full h-full">
+                <video
+                  ref={videoRef}
+                  className="pwa-video"
+                  playsInline
+                  muted
+                  autoPlay
+                />
+                {/* 角丸は別レイヤで。PWAで描画が詰まらない */}
+                <div className="pwa-round-mask"></div>
+              </div>
               
-              {/* Camera status indicator */}
+              {/* Camera status indicator - 別レイヤで表示 */}
               {isScanning && (
-                <div className="absolute top-3 right-3 bg-green-500 rounded-full p-2">
+                <div className="absolute top-3 right-3 bg-green-500 rounded-full p-2 z-10">
                   <div className="w-2 h-2 bg-white rounded-full"></div>
                 </div>
               )}
               
               {!isScanning && !isInitializing && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-white z-10">
                   <QrCode className="h-16 w-16 mb-4 opacity-50" />
                   <p className="text-sm text-center opacity-75">
                     QRコードをスキャンして<br />大会にエントリー
@@ -478,7 +483,7 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
               )}
               
               {isInitializing && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-white z-10">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mb-4"></div>
                   <p className="text-sm">カメラを起動中...</p>
                 </div>
