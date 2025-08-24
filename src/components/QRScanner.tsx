@@ -80,7 +80,128 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
         userAgent: navigator.userAgent
       });
 
-      // iOS PWAかどうかに関わらず、まず通常のQR Scannerを試す
+      // iOS PWAの場合は最初から直接getUserMediaを使用
+      if (isIOS && isPWA) {
+        console.log('BUNGU SQUAD: iOS PWA検出 - 直接カメラを起動');
+        
+        try {
+          // カメラ権限を要求してストリームを取得
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: { exact: 'environment' },
+              width: { min: 640, ideal: 1280, max: 1920 },
+              height: { min: 480, ideal: 720, max: 1080 }
+            },
+            audio: false
+          }).catch(async (error) => {
+            // facingMode: 'environment'が失敗した場合、制約を緩める
+            console.log('BUNGU SQUAD: 環境カメラが見つからない、制約を緩めて再試行');
+            return await navigator.mediaDevices.getUserMedia({
+              video: true,
+              audio: false
+            });
+          });
+          
+          console.log('BUNGU SQUAD: ストリーム取得成功');
+          
+          // ビデオ要素にストリームを設定
+          videoRef.current.srcObject = stream;
+          videoRef.current.setAttribute('autoplay', 'true');
+          videoRef.current.setAttribute('playsinline', 'true');
+          videoRef.current.setAttribute('webkit-playsinline', 'true');
+          videoRef.current.setAttribute('muted', 'true');
+          
+          // メタデータがロードされるのを待つ
+          await new Promise((resolve) => {
+            videoRef.current!.onloadedmetadata = () => {
+              console.log('BUNGU SQUAD: ビデオメタデータロード完了');
+              resolve(true);
+            };
+          });
+          
+          // ビデオを再生
+          await videoRef.current.play();
+          console.log('BUNGU SQUAD: ビデオ再生開始');
+          
+          setIsScanning(true);
+          setIsInitializing(false);
+          
+          // QRコードスキャンを開始
+          let scanAttempts = 0;
+          scanIntervalRef.current = setInterval(async () => {
+            if (videoRef.current && videoRef.current.readyState === 4) {
+              scanAttempts++;
+              if (scanAttempts % 10 === 0) {
+                console.log(`BUNGU SQUAD: QRコードスキャン中... (${scanAttempts}回目)`);
+              }
+              
+              try {
+                const result = await QrScanner.scanImage(videoRef.current, {
+                  returnDetailedScanResult: true,
+                  alsoTryWithoutScanRegion: true
+                });
+                if (result) {
+                  console.log('BUNGU SQUAD: QRコード検出成功！', result);
+                  if (scanIntervalRef.current) {
+                    clearInterval(scanIntervalRef.current);
+                    scanIntervalRef.current = null;
+                  }
+                  stopCamera();
+                  handleQRDetected(result);
+                }
+              } catch (e) {
+                // QRコードが見つからない場合は無視
+              }
+            }
+          }, 250); // スキャン間隔を250msに
+          
+          // 90秒後に自動停止
+          setTimeout(() => {
+            if (scanIntervalRef.current) {
+              clearInterval(scanIntervalRef.current);
+              scanIntervalRef.current = null;
+              console.log('BUNGU SQUAD: QRスキャンタイムアウト');
+              toast({
+                title: "タイムアウト",
+                description: "QRコードが見つかりませんでした。再度お試しください。",
+                variant: "destructive"
+              });
+            }
+          }, 90000);
+          
+          toast({
+            title: "カメラ起動成功",
+            description: "QRコードをカメラに向けてください。",
+          });
+          
+          return; // iOS PWAの処理はここで終了
+          
+        } catch (cameraError: any) {
+          console.error('BUNGU SQUAD: iOS PWAカメラエラー:', cameraError);
+          setIsInitializing(false);
+          
+          let errorMessage = 'カメラの起動に失敗しました';
+          if (cameraError.name === 'NotAllowedError') {
+            errorMessage = 'カメラへのアクセスが拒否されました。設定アプリでSafariのカメラ権限を確認してください。';
+          } else if (cameraError.name === 'NotFoundError') {
+            errorMessage = 'カメラが見つかりません。';
+          } else if (cameraError.name === 'NotReadableError') {
+            errorMessage = 'カメラが使用中です。他のアプリを終了してください。';
+          }
+          
+          setCameraError(errorMessage);
+          toast({
+            title: "カメラエラー",
+            description: errorMessage,
+            variant: "destructive"
+          });
+          return;
+        }
+      }
+
+      // 非iOS PWAの場合は通常のQR Scanner処理
+      console.log('BUNGU SQUAD: 通常のQR Scanner処理');
+      
       // Check if camera is available
       const hasCamera = await QrScanner.hasCamera();
       if (!hasCamera) {
@@ -111,80 +232,8 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
       }
       
       // QR Scannerを起動
-      try {
-        await qrScannerRef.current.start();
-        console.log('BUNGU SQUAD: QR Scanner起動成功');
-      } catch (error: any) {
-        console.error('BUNGU SQUAD: QR Scanner起動失敗:', error);
-        
-        // iOS PWAでQR Scannerが失敗した場合、直接getUserMediaを使用
-        if (isIOS && isPWA) {
-          console.log('BUNGU SQUAD: iOS PWAフォールバック - 直接getUserMediaを使用');
-          
-          const stream = await navigator.mediaDevices.getUserMedia({
-            video: {
-              facingMode: 'environment',
-              width: { ideal: 1280 },
-              height: { ideal: 720 }
-            },
-            audio: false
-          });
-          
-          if (videoRef.current) {
-            videoRef.current.srcObject = stream;
-            videoRef.current.setAttribute('playsinline', 'true');
-            videoRef.current.setAttribute('webkit-playsinline', 'true');
-            
-            await videoRef.current.play();
-            
-            console.log('BUNGU SQUAD: iOS PWAカメラ起動成功');
-            setIsScanning(true);
-            setIsInitializing(false);
-            
-            // 手動でQRコードスキャンを開始
-            scanIntervalRef.current = setInterval(async () => {
-              if (videoRef.current && videoRef.current.readyState === 4) {
-                try {
-                  const result = await QrScanner.scanImage(videoRef.current, {
-                    returnDetailedScanResult: true,
-                    alsoTryWithoutScanRegion: true
-                  });
-                  if (result) {
-                    console.log('BUNGU SQUAD: QRコード検出成功');
-                    if (scanIntervalRef.current) {
-                      clearInterval(scanIntervalRef.current);
-                      scanIntervalRef.current = null;
-                    }
-                    stopCamera();
-                    handleQRDetected(result);
-                  }
-                } catch (e) {
-                  // QRコードが見つからない場合は無視
-                }
-              }
-            }, 200);
-            
-            // 60秒後に自動停止
-            setTimeout(() => {
-              if (scanIntervalRef.current) {
-                clearInterval(scanIntervalRef.current);
-                scanIntervalRef.current = null;
-                console.log('BUNGU SQUAD: QRスキャンタイムアウト');
-              }
-            }, 60000);
-            
-            toast({
-              title: "QRスキャナー起動",
-              description: "QRコードをカメラに向けてください。",
-            });
-            
-            return;
-          }
-        } else {
-          // iOS PWA以外でも失敗した場合はエラーを投げる
-          throw error;
-        }
-      }
+      await qrScannerRef.current.start();
+      console.log('BUNGU SQUAD: QR Scanner起動成功');
       
       console.log('BUNGU SQUAD: QRスキャナー起動成功');
       setIsScanning(true);
