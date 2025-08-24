@@ -1,12 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Camera, QrCode, AlertCircle, CheckCircle, Upload, X } from 'lucide-react';
+import { ArrowLeft, Camera, QrCode, AlertCircle, CheckCircle, Upload } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import QrScanner from 'qr-scanner';
 import workerUrl from 'qr-scanner/qr-scanner-worker.min?url';
 import { TournamentEntryComplete } from './TournamentEntryComplete';
-import CameraOverlay from './CameraOverlay';
 import { isPWA } from '@/lib/utils/isPWA';
 
 // QR ScannerワーカーパスをVite方式で設定
@@ -31,7 +30,6 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [isIOSPWA, setIsIOSPWA] = useState(false);
   const [showFileInput, setShowFileInput] = useState(false);
-  const [showOverlay, setShowOverlay] = useState(false); // PWAオーバーレイ表示状態
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const qrScannerRef = useRef<QrScanner | null>(null);
@@ -84,10 +82,29 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
   }, []);
 
   const startCamera = async () => {
+    // PWAの場合は最初からネイティブカメラを使う
+    if (isPWA) {
+      console.log('BUNGU SQUAD: PWAモード検出 - ネイティブカメラを直接起動');
+      
+      // カメラ起動中表示を一瞬だけ表示
+      setIsInitializing(true);
+      
+      // 少し待ってからネイティブカメラを起動（UIを更新するため）
+      setTimeout(() => {
+        setIsInitializing(false);
+        captureInputRef.current?.click();
+        toast({
+          title: "カメラを起動します",
+          description: "QRコードを撮影してください",
+        });
+      }, 100);
+      
+      return; // PWAの場合はここで終了
+    }
+
+    // 以下はブラウザ版のみの処理
     const video = videoRef.current;
     if (!video) return;
-
-    let fallbackTimer: number | null = null;
 
     try {
       // 1) 旧ストリームを完全停止（多重取得を避ける）
@@ -95,7 +112,6 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
       streamRef.current = null;
 
       // 2) videoの可視 & 属性を「先に」セット（awaitを挟まない）
-      //   ※ iOSは playsinline/Muted/Autoplay が先に入っている方が安定
       video.muted = true;
       (video as any).playsInline = true;
       video.autoplay = true;
@@ -116,46 +132,11 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
       setIsInitializing(true);
       setCameraError(null);
 
-      // PWAでのみ、gUMが固まるケースに備えて 1.2s タイムアウトを仕込む
-      if (isPWA) {
-        console.log('BUNGU SQUAD: PWAモード - フォールバックタイマー設定');
-        
-        // デバイス一覧を確認（デバッグ用）
-        try {
-          const devices = await navigator.mediaDevices.enumerateDevices();
-          console.log('BUNGU SQUAD: 利用可能なデバイス:', 
-            devices.map(d => ({kind: d.kind, label: d.label || 'no label'}))
-          );
-        } catch (e) {
-          console.error('BUNGU SQUAD: デバイス列挙エラー:', e);
-        }
-        
-        fallbackTimer = window.setTimeout(() => {
-          if (!streamRef.current) {
-            console.log('BUNGU SQUAD: getUserMediaタイムアウト - ネイティブカメラへフォールバック');
-            // gUMが解決しない → ネイティブカメラを自動起動
-            captureInputRef.current?.click();
-            setIsInitializing(false);
-            setIsScanning(false);
-            toast({
-              title: "カメラを開きます",
-              description: "撮影すると自動でQRを読み取ります。",
-            });
-          }
-        }, 1200);
-      }
-
-      // 3) 最初のawaitはgetUserMedia（ユーザー操作の同期内）
+      // 3) getUserMediaを呼び出す
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: 'environment' } }, // 最小制約
+        video: { facingMode: { ideal: 'environment' } },
         audio: false,
       });
-      
-      // フォールバックタイマーをクリア
-      if (fallbackTimer) {
-        window.clearTimeout(fallbackTimer);
-        fallbackTimer = null;
-      }
       
       streamRef.current = stream;
       video.srcObject = stream;
@@ -191,11 +172,6 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
       setIsScanning(true);
       setIsInitializing(false);
       
-      // PWAの場合はオーバーレイ表示
-      if (isPWA) {
-        setShowOverlay(true);
-      }
-      
       startQRScanning();
       
       toast({
@@ -205,11 +181,6 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
     } catch (err: any) {
       console.error('BUNGU SQUAD: カメラエラー:', err);
       
-      // フォールバックタイマーをクリア
-      if (fallbackTimer) {
-        window.clearTimeout(fallbackTimer);
-      }
-      
       setIsInitializing(false);
       setIsScanning(false);
       setCameraError(err?.name === 'NotAllowedError'
@@ -218,11 +189,6 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
       // 念のため停止
       stopTracks(streamRef.current);
       streamRef.current = null;
-      
-      // iOS PWAの場合は自動的にファイル入力を表示
-      if (isIOSPWA) {
-        setShowFileInput(true);
-      }
     }
   };
 
@@ -323,7 +289,6 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
     
     setIsScanning(false);
     setIsInitializing(false);
-    setShowOverlay(false);
   };
 
   const cleanup = () => {
@@ -507,108 +472,20 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
 
       {/* Main Content */}
       <div className="p-4 space-y-6">
-        {/* Camera View */}
-        {isPWA && showOverlay ? (
-          // PWAはビデオを body 直下へ出す
-          <CameraOverlay videoRef={videoRef}>
-            {/* オーバーレイ上にガイドを描く */}
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                pointerEvents: "none",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              {/* スキャンガイド */}
-              <div
-                style={{
-                  width: "80%",
-                  maxWidth: "300px",
-                  aspectRatio: "1",
-                  border: "2px solid rgba(255,255,255,0.5)",
-                  borderRadius: "12px",
-                  position: "relative",
-                }}
-              >
-                {/* コーナーマーカー */}
-                <div style={{
-                  position: "absolute",
-                  top: -2,
-                  left: -2,
-                  width: 30,
-                  height: 30,
-                  borderTop: "4px solid white",
-                  borderLeft: "4px solid white",
-                }} />
-                <div style={{
-                  position: "absolute",
-                  top: -2,
-                  right: -2,
-                  width: 30,
-                  height: 30,
-                  borderTop: "4px solid white",
-                  borderRight: "4px solid white",
-                }} />
-                <div style={{
-                  position: "absolute",
-                  bottom: -2,
-                  left: -2,
-                  width: 30,
-                  height: 30,
-                  borderBottom: "4px solid white",
-                  borderLeft: "4px solid white",
-                }} />
-                <div style={{
-                  position: "absolute",
-                  bottom: -2,
-                  right: -2,
-                  width: 30,
-                  height: 30,
-                  borderBottom: "4px solid white",
-                  borderRight: "4px solid white",
-                }} />
-              </div>
-              
-              <p style={{
-                color: "white",
-                marginTop: "20px",
-                fontSize: "14px",
-                textAlign: "center",
-              }}>
-                QRコードを枠内に合わせてください
+        {/* Camera View - PWAではネイティブカメラを使うため非表示 */}
+        {isPWA && (
+          <Card>
+            <CardContent className="p-6 text-center">
+              <Camera className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">
+                「QRスキャンを開始」ボタンを押すと<br />
+                カメラが起動します
               </p>
-              
-              {/* 閉じるボタン */}
-              <button
-                onClick={() => {
-                  stopCamera();
-                  setShowOverlay(false);
-                }}
-                style={{
-                  position: "absolute",
-                  top: "20px",
-                  right: "20px",
-                  width: "40px",
-                  height: "40px",
-                  borderRadius: "50%",
-                  backgroundColor: "rgba(0,0,0,0.5)",
-                  border: "2px solid white",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  pointerEvents: "auto",
-                }}
-              >
-                <X style={{ color: "white", width: "20px", height: "20px" }} />
-              </button>
-            </div>
-          </CameraOverlay>
-        ) : (
-          // ブラウザは従来通り
+            </CardContent>
+          </Card>
+        )}
+        
+        {!isPWA && (
           <Card className="overflow-hidden">
             <CardContent className="p-0">
               <div className="relative aspect-square bg-black">
@@ -667,49 +544,14 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
         {/* Controls */}
         <div className="space-y-3">
           {!isScanning && !isInitializing && (
-            <>
-              <Button 
-                onClick={startCamera}
-                className="w-full flex items-center gap-2"
-                size="lg"
-              >
-                <Camera className="h-5 w-5" />
-                QRスキャンを開始
-              </Button>
-              
-              {/* ファイル入力オプション（エラー時またはiOS PWA） */}
-              {(showFileInput || isIOSPWA) && (
-                <>
-                  <div className="relative">
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      capture="environment"
-                      onChange={handleFileInput}
-                      className="hidden"
-                      id="qr-file-input"
-                    />
-                    <Button
-                      variant="outline"
-                      className="w-full flex items-center gap-2"
-                      size="lg"
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      <Upload className="h-5 w-5" />
-                      写真からQRコードを読み取る
-                    </Button>
-                  </div>
-                  
-                  {isIOSPWA && (
-                    <p className="text-xs text-muted-foreground text-center">
-                      カメラが起動しない場合は、上のボタンで写真を撮影するか、
-                      保存済みのQRコード画像を選択してください
-                    </p>
-                  )}
-                </>
-              )}
-            </>
+            <Button 
+              onClick={startCamera}
+              className="w-full flex items-center gap-2"
+              size="lg"
+            >
+              <Camera className="h-5 w-5" />
+              QRスキャンを開始
+            </Button>
           )}
           
           {isScanning && (
