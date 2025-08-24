@@ -1,8 +1,8 @@
 // BUNGU SQUAD Service Worker for PWA functionality with camera support
 // Update version to force SW update - Change this whenever you need to force update
-const SW_VERSION = '3.0.0'; // Fix: Aggressive cache strategy for JS modules
-const CACHE_NAME = 'bungu-squad-v3-0-0';
-const STATIC_CACHE = 'bungu-squad-static-v3-0-0';
+const SW_VERSION = '3.1.0'; // Fix: Worker files bypass for QR Scanner
+const CACHE_NAME = 'bungu-squad-v3-1-0';
+const STATIC_CACHE = 'bungu-squad-static-v3-1-0';
 
 // Debug flag - only show logs in development (localhost)
 const DEBUG = self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1';
@@ -88,12 +88,27 @@ self.addEventListener('fetch', (event) => {
     return;
   }
   
+  // CRITICAL: Skip worker and script destinations to avoid SPA fallback issues
+  const dest = event.request.destination;
+  if (dest === 'worker' || dest === 'script') {
+    if (DEBUG) console.log(`SW: Bypassing cache for ${dest}: ${event.request.url}`);
+    return; // Let the browser handle these directly
+  }
+  
   // Don't interfere with camera/media requests
   if (event.request.url.includes('getUserMedia') || 
       event.request.url.includes('mediaDevices') ||
       event.request.destination === 'video' ||
       event.request.destination === 'audio' ||
       event.request.url.includes('blob:')) {
+    return;
+  }
+  
+  // Skip QR Scanner worker files specifically
+  if (event.request.url.includes('qr-scanner-worker') || 
+      event.request.url.includes('.worker.') ||
+      event.request.url.includes('worker.min')) {
+    if (DEBUG) console.log(`SW: Bypassing cache for worker file: ${event.request.url}`);
     return;
   }
 

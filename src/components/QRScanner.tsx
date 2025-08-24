@@ -17,14 +17,9 @@ interface QRScannerProps {
   isAdmin?: boolean;
 }
 
-// タイムアウト付きgetUserMedia
-async function getUserMediaWithTimeout(constraints: MediaStreamConstraints, ms = 10000): Promise<MediaStream> {
-  return Promise.race([
-    navigator.mediaDevices.getUserMedia(constraints),
-    new Promise<MediaStream>((_, reject) => 
-      setTimeout(() => reject(new Error('Camera timeout')), ms)
-    )
-  ]);
+// ストリーム停止ヘルパー
+function stopTracks(stream?: MediaStream | null) {
+  stream?.getTracks().forEach(t => t.stop());
 }
 
 export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: QRScannerProps) => {
@@ -85,112 +80,95 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
   }, []);
 
   const startCamera = async () => {
-    if (!videoRef.current) {
-      console.error('BUNGU SQUAD: ビデオ要素が見つかりません');
-      setCameraError('ビデオ要素の初期化に失敗しました');
-      return;
-    }
-
-    console.log('BUNGU SQUAD: カメラ起動開始');
-    // state更新はOK（awaitしない）
-    setIsInitializing(true);
-    setCameraError(null);
+    const video = videoRef.current;
+    if (!video) return;
 
     try {
-      // iOS PWAかどうかをチェック
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-      const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
-                   (window.navigator as any).standalone;
+      // 1) 旧ストリームを完全停止（多重取得を避ける）
+      stopTracks(streamRef.current);
+      streamRef.current = null;
 
-      if (isIOS && isPWA) {
-        console.log('BUNGU SQUAD: iOS PWA検出 - 特別処理を実行');
-        
-        const video = videoRef.current;
-        
+      // 2) videoの可視 & 属性を「先に」セット（awaitを挟まない）
+      //   ※ iOSは playsinline/Muted/Autoplay が先に入っている方が安定
+      video.muted = true;
+      (video as any).playsInline = true;
+      video.autoplay = true;
+      video.setAttribute('playsinline', 'true');
+      video.setAttribute('webkit-playsinline', 'true');
+
+      // display:noneは絶対に使わない
+      Object.assign(video.style, {
+        display: 'block',
+        visibility: 'visible',
+        opacity: '1',
+        width: '100%',
+        height: '100%',
+        objectFit: 'cover',
+        backgroundColor: 'black',
+      });
+
+      setIsInitializing(true);
+      setCameraError(null);
+
+      // 3) 最初のawaitはgetUserMedia（ユーザー操作の同期内）
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' } }, // 最小制約
+        audio: false,
+      });
+      streamRef.current = stream;
+      video.srcObject = stream;
+
+      // 4) 再生（2段リトライ + ユーザーのタップで再生）
+      try {
+        await video.play();
+        console.log('BUNGU SQUAD: ビデオ再生成功（1回目）');
+      } catch {
+        console.log('BUNGU SQUAD: 再生失敗、リトライ...');
+        await new Promise(r => requestAnimationFrame(r));
         try {
-          // 最初のawaitがgetUserMediaになるように（iOS PWAで重要）
-          const stream = await getUserMediaWithTimeout({
-            video: { 
-              facingMode: 'environment',
-              width: { ideal: 1280 },
-              height: { ideal: 720 }
-            },
-            audio: false
-          }, 10000);
-          
-          // ストリーム取得後にビデオプロパティを設定
-          video.muted = true;
-          video.setAttribute('playsinline', 'true');
-          video.setAttribute('webkit-playsinline', 'true');
-          video.autoplay = true;
-          
-          console.log('BUNGU SQUAD: ストリーム取得成功');
-          streamRef.current = stream;
-          
-          video.srcObject = stream;
-          
-          // play()のエラーハンドリング（ChatGPT推奨）
-          await video.play().catch(async (e) => {
-            console.log('BUNGU SQUAD: 初回play失敗、リトライ', e);
-            return video.play();
-          });
-          
-          console.log('BUNGU SQUAD: ビデオ再生開始');
-          setIsScanning(true);
-          setIsInitializing(false);
-          
-          // QRコードスキャンを開始
-          startQRScanning();
-          
+          await video.play();
+          console.log('BUNGU SQUAD: ビデオ再生成功（2回目）');
+        } catch {
+          console.log('BUNGU SQUAD: タップフォールバック起動');
+          // ユーザータップで強制再生
+          const once = () => {
+            video.play().finally(() => {
+              console.log('BUNGU SQUAD: タップによる再生成功');
+              window.removeEventListener('touchend', once);
+            });
+          };
+          window.addEventListener('touchend', once, { once: true, passive: true });
           toast({
-            title: "カメラ起動成功",
-            description: "QRコードをカメラに向けてください。",
+            title: "画面をタップしてください",
+            description: "カメラを起動するために画面をタップしてください",
           });
-          
-        } catch (error: any) {
-          console.error('BUNGU SQUAD: iOS PWAカメラエラー:', error);
-          handleCameraError(error);
-          // フォールバック：ファイル入力を表示
-          setShowFileInput(true);
         }
-        
-      } else {
-        // 非iOS PWAの場合は通常のQR Scanner処理
-        console.log('BUNGU SQUAD: 通常のQR Scanner処理');
-        
-        // QR Scannerを初期化
-        if (!qrScannerRef.current) {
-          const qrScanner = new QrScanner(
-            videoRef.current,
-            (result) => {
-              handleQRDetected(result.data);
-            },
-            {
-              returnDetailedScanResult: true,
-              highlightScanRegion: true,
-              highlightCodeOutline: true,
-              preferredCamera: 'environment',
-              maxScansPerSecond: 5
-            }
-          );
-          qrScannerRef.current = qrScanner;
-        }
-        
-        // QR Scannerを起動
-        await qrScannerRef.current.start();
-        console.log('BUNGU SQUAD: QR Scanner起動成功');
-        setIsScanning(true);
-        setIsInitializing(false);
-        
-        toast({
-          title: "QRスキャナー起動",
-          description: "QRコードをカメラに向けてください。",
-        });
       }
+
+      // 5) 準備完了 → スキャン開始
+      setIsScanning(true);
+      setIsInitializing(false);
+      startQRScanning();
       
-    } catch (error: any) {
-      console.error('BUNGU SQUAD: カメラ起動エラー:', error);
-      handleCameraError(error);
+      toast({
+        title: "カメラ起動成功",
+        description: "QRコードをカメラに向けてください。",
+      });
+    } catch (err: any) {
+      console.error('BUNGU SQUAD: カメラエラー:', err);
+      setIsInitializing(false);
+      setIsScanning(false);
+      setCameraError(err?.name === 'NotAllowedError'
+        ? 'カメラの使用が拒否されました。設定アプリ > Safari のカメラ権限をご確認ください。'
+        : err?.message || 'カメラの起動に失敗しました');
+      // 念のため停止
+      stopTracks(streamRef.current);
+      streamRef.current = null;
+      
+      // iOS PWAの場合は自動的にファイル入力を表示
+      if (isIOSPWA) {
+        setShowFileInput(true);
+      }
     }
   };
 
@@ -223,42 +201,37 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
   };
 
   const startQRScanning = () => {
+    if (scanIntervalRef.current) clearInterval(scanIntervalRef.current);
     let scanAttempts = 0;
     
     scanIntervalRef.current = setInterval(async () => {
-      if (!videoRef.current) return;
+      const v = videoRef.current;
+      if (!v || v.readyState !== 4) {
+        if (scanAttempts % 10 === 0 && v) {
+          console.log(`BUNGU SQUAD: ビデオ待機中... readyState=${v.readyState}`);
+        }
+        return;
+      }
       
       scanAttempts++;
-      
       if (scanAttempts % 10 === 0) {
         console.log(`BUNGU SQUAD: QRコードスキャン中... (${scanAttempts}回目)`);
       }
       
       try {
-        // readyStateの確認
-        if (videoRef.current.readyState !== 4) {
-          if (scanAttempts % 10 === 0) {
-            console.log('BUNGU SQUAD: ビデオがまだ準備できていません', videoRef.current.readyState);
-          }
-          return;
-        }
-        
-        const result = await QrScanner.scanImage(videoRef.current, {
+        const res = await QrScanner.scanImage(v, {
           returnDetailedScanResult: true,
-          alsoTryWithoutScanRegion: true
+          alsoTryWithoutScanRegion: true,
         });
-        
-        if (result) {
-          console.log('BUNGU SQUAD: QRコード検出成功！', result);
-          if (scanIntervalRef.current) {
-            clearInterval(scanIntervalRef.current);
-            scanIntervalRef.current = null;
-          }
+        if (res) {
+          console.log('BUNGU SQUAD: QRコード検出成功！', res);
+          clearInterval(scanIntervalRef.current!);
+          scanIntervalRef.current = null;
           stopCamera();
-          handleQRDetected(result);
+          handleQRDetected(res);
         }
-      } catch (e) {
-        // QRコードが見つからない場合は無視
+      } catch {
+        // 見つからないだけなら無視
       }
     }, 250);
     
@@ -275,21 +248,17 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
   const stopCamera = () => {
     console.log('BUNGU SQUAD: カメラ停止中...');
     
-    // スキャンインターバルを停止
     if (scanIntervalRef.current) {
       clearInterval(scanIntervalRef.current);
       scanIntervalRef.current = null;
     }
     
-    // ビデオストリームを停止
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
-    
-    if (videoRef.current && videoRef.current.srcObject) {
-      const stream = videoRef.current.srcObject as MediaStream;
-      stream.getTracks().forEach(track => track.stop());
+    stopTracks(streamRef.current);
+    streamRef.current = null;
+
+    if (videoRef.current) {
+      const s = videoRef.current.srcObject as MediaStream | null;
+      stopTracks(s);
       videoRef.current.srcObject = null;
     }
     
@@ -487,22 +456,9 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
               <video
                 ref={videoRef}
                 className="w-full h-full object-cover"
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                  // iOS PWAでdisplay:noneは使わない
-                  display: 'block !important',
-                  visibility: 'visible !important',
-                  opacity: 1,
-                  position: isScanning ? 'static' : 'absolute',
-                  zIndex: isScanning ? 1 : 0,
-                  backgroundColor: isScanning ? 'transparent' : 'black'
-                }}
-                playsInline={true}
-                muted={true}
-                autoPlay={true}
-                webkit-playsinline="true"
+                playsInline
+                muted
+                autoPlay
               />
               
               {/* Camera status indicator */}
