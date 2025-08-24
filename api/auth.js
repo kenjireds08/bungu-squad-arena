@@ -366,15 +366,31 @@ module.exports = async function handler(req, res) {
               playerId
             });
             
-            // Add to TournamentParticipants sheet
+            // Get tournament details for proper participant data
+            const tournaments = await sheets.getTournaments();
+            const tournament = tournaments.find(t => t.id === playerData.tournamentId);
+            
+            if (!tournament) {
+              console.warn('[verify] Tournament not found:', playerData.tournamentId);
+            }
+            
+            // Add to TournamentParticipants sheet with complete data
             const participantData = {
               tournament_id: playerData.tournamentId,
               player_id: playerId,
+              player_name: playerData.nickname || '',
               status: 'active',
-              joined_at: new Date().toISOString()
+              joined_at: new Date().toISOString(),
+              check_in_status: 'not_checked_in',
+              seed_number: '',
+              group_id: '',
+              final_rank: '',
+              notes: 'QRコードエントリー'
             };
-            await sheets.addTournamentParticipant(participantData);
-            console.log('[verify] Stage 3a: Added to TournamentParticipants');
+            
+            console.log('[verify] Participant data to add:', participantData);
+            const addResult = await sheets.addTournamentParticipant(participantData);
+            console.log('[verify] Stage 3a: Added to TournamentParticipants', addResult);
             
             // Update Players sheet tournament_active flag (if not already set)
             // This is redundant for new players from QR, but ensures consistency
