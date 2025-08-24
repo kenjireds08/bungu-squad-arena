@@ -1,11 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Camera, QrCode, AlertCircle, CheckCircle, Upload } from 'lucide-react';
+import { ArrowLeft, Camera, QrCode, AlertCircle, CheckCircle, Upload, X } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import QrScanner from 'qr-scanner';
 import workerUrl from 'qr-scanner/qr-scanner-worker.min?url';
 import { TournamentEntryComplete } from './TournamentEntryComplete';
+import CameraOverlay from './CameraOverlay';
+import { isPWA } from '@/lib/utils/isPWA';
 
 // QR ScannerワーカーパスをVite方式で設定
 QrScanner.WORKER_PATH = workerUrl;
@@ -29,6 +31,7 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [isIOSPWA, setIsIOSPWA] = useState(false);
   const [showFileInput, setShowFileInput] = useState(false);
+  const [showOverlay, setShowOverlay] = useState(false); // PWAオーバーレイ表示状態
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const qrScannerRef = useRef<QrScanner | null>(null);
@@ -148,6 +151,12 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
       // 5) 準備完了 → スキャン開始
       setIsScanning(true);
       setIsInitializing(false);
+      
+      // PWAの場合はオーバーレイ表示
+      if (isPWA) {
+        setShowOverlay(true);
+      }
+      
       startQRScanning();
       
       toast({
@@ -269,6 +278,7 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
     
     setIsScanning(false);
     setIsInitializing(false);
+    setShowOverlay(false);
   };
 
   const cleanup = () => {
@@ -450,47 +460,146 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
       {/* Main Content */}
       <div className="p-4 space-y-6">
         {/* Camera View */}
-        <Card className="overflow-hidden">
-          <CardContent className="p-0">
-            <div className="relative aspect-square bg-black">
-              {/* videoの直接親には overflow-hidden / border-radius を入れない */}
-              <div className="pwa-video-shell relative bg-black w-full h-full">
-                <video
-                  ref={videoRef}
-                  className="pwa-video"
-                  playsInline
-                  muted
-                  autoPlay
-                />
-                {/* 角丸は別レイヤで。PWAで描画が詰まらない */}
-                <div className="pwa-round-mask"></div>
+        {isPWA && showOverlay ? (
+          // PWAはビデオを body 直下へ出す
+          <CameraOverlay videoRef={videoRef}>
+            {/* オーバーレイ上にガイドを描く */}
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                pointerEvents: "none",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {/* スキャンガイド */}
+              <div
+                style={{
+                  width: "80%",
+                  maxWidth: "300px",
+                  aspectRatio: "1",
+                  border: "2px solid rgba(255,255,255,0.5)",
+                  borderRadius: "12px",
+                  position: "relative",
+                }}
+              >
+                {/* コーナーマーカー */}
+                <div style={{
+                  position: "absolute",
+                  top: -2,
+                  left: -2,
+                  width: 30,
+                  height: 30,
+                  borderTop: "4px solid white",
+                  borderLeft: "4px solid white",
+                }} />
+                <div style={{
+                  position: "absolute",
+                  top: -2,
+                  right: -2,
+                  width: 30,
+                  height: 30,
+                  borderTop: "4px solid white",
+                  borderRight: "4px solid white",
+                }} />
+                <div style={{
+                  position: "absolute",
+                  bottom: -2,
+                  left: -2,
+                  width: 30,
+                  height: 30,
+                  borderBottom: "4px solid white",
+                  borderLeft: "4px solid white",
+                }} />
+                <div style={{
+                  position: "absolute",
+                  bottom: -2,
+                  right: -2,
+                  width: 30,
+                  height: 30,
+                  borderBottom: "4px solid white",
+                  borderRight: "4px solid white",
+                }} />
               </div>
               
-              {/* Camera status indicator - 別レイヤで表示 */}
-              {isScanning && (
-                <div className="absolute top-3 right-3 bg-green-500 rounded-full p-2 z-10">
-                  <div className="w-2 h-2 bg-white rounded-full"></div>
-                </div>
-              )}
+              <p style={{
+                color: "white",
+                marginTop: "20px",
+                fontSize: "14px",
+                textAlign: "center",
+              }}>
+                QRコードを枠内に合わせてください
+              </p>
               
-              {!isScanning && !isInitializing && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-white z-10">
-                  <QrCode className="h-16 w-16 mb-4 opacity-50" />
-                  <p className="text-sm text-center opacity-75">
-                    QRコードをスキャンして<br />大会にエントリー
-                  </p>
-                </div>
-              )}
-              
-              {isInitializing && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-white z-10">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mb-4"></div>
-                  <p className="text-sm">カメラを起動中...</p>
-                </div>
-              )}
+              {/* 閉じるボタン */}
+              <button
+                onClick={() => {
+                  stopCamera();
+                  setShowOverlay(false);
+                }}
+                style={{
+                  position: "absolute",
+                  top: "20px",
+                  right: "20px",
+                  width: "40px",
+                  height: "40px",
+                  borderRadius: "50%",
+                  backgroundColor: "rgba(0,0,0,0.5)",
+                  border: "2px solid white",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  pointerEvents: "auto",
+                }}
+              >
+                <X style={{ color: "white", width: "20px", height: "20px" }} />
+              </button>
             </div>
-          </CardContent>
-        </Card>
+          </CameraOverlay>
+        ) : (
+          // ブラウザは従来通り
+          <Card className="overflow-hidden">
+            <CardContent className="p-0">
+              <div className="relative aspect-square bg-black">
+                <div className="relative bg-black w-full h-full">
+                  <video
+                    ref={videoRef}
+                    className="w-full h-full object-cover"
+                    playsInline
+                    muted
+                    autoPlay
+                  />
+                </div>
+                
+                {/* Camera status indicator */}
+                {isScanning && (
+                  <div className="absolute top-3 right-3 bg-green-500 rounded-full p-2 z-10">
+                    <div className="w-2 h-2 bg-white rounded-full"></div>
+                  </div>
+                )}
+                
+                {!isScanning && !isInitializing && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-white z-10">
+                    <QrCode className="h-16 w-16 mb-4 opacity-50" />
+                    <p className="text-sm text-center opacity-75">
+                      QRコードをスキャンして<br />大会にエントリー
+                    </p>
+                  </div>
+                )}
+                
+                {isInitializing && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-white z-10">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mb-4"></div>
+                    <p className="text-sm">カメラを起動中...</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Error Message */}
         {cameraError && (
