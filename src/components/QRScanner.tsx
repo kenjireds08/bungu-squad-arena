@@ -82,27 +82,6 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
   }, []);
 
   const startCamera = async () => {
-    // PWAの場合は最初からネイティブカメラを使う
-    if (isPWA) {
-      console.log('BUNGU SQUAD: PWAモード検出 - ネイティブカメラを直接起動');
-      
-      // カメラ起動中表示を一瞬だけ表示
-      setIsInitializing(true);
-      
-      // 少し待ってからネイティブカメラを起動（UIを更新するため）
-      setTimeout(() => {
-        setIsInitializing(false);
-        captureInputRef.current?.click();
-        toast({
-          title: "カメラを起動します",
-          description: "QRコードを撮影してください",
-        });
-      }, 100);
-      
-      return; // PWAの場合はここで終了
-    }
-
-    // 以下はブラウザ版のみの処理
     const video = videoRef.current;
     if (!video) return;
 
@@ -111,61 +90,36 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
       stopTracks(streamRef.current);
       streamRef.current = null;
 
-      // 2) videoの可視 & 属性を「先に」セット（awaitを挟まない）
+      // 2) videoの属性を最もシンプルに設定
+      video.setAttribute('autoplay', '');
+      video.setAttribute('muted', '');
+      video.setAttribute('playsinline', '');
+      video.setAttribute('webkit-playsinline', '');
       video.muted = true;
-      (video as any).playsInline = true;
       video.autoplay = true;
-      video.setAttribute('playsinline', 'true');
-      video.setAttribute('webkit-playsinline', 'true');
-
-      // display:noneは絶対に使わない
-      Object.assign(video.style, {
-        display: 'block',
-        visibility: 'visible',
-        opacity: '1',
-        width: '100%',
-        height: '100%',
-        objectFit: 'cover',
-        backgroundColor: 'black',
-      });
+      (video as any).playsInline = true;
 
       setIsInitializing(true);
       setCameraError(null);
 
-      // 3) getUserMediaを呼び出す
+      // 3) 最もシンプルな制約でgetUserMediaを呼び出す
+      console.log('BUNGU SQUAD: getUserMediaを呼び出します...');
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: 'environment' } },
-        audio: false,
+        video: true,
+        audio: false
       });
+      console.log('BUNGU SQUAD: ストリーム取得成功:', stream);
       
       streamRef.current = stream;
       video.srcObject = stream;
 
-      // 4) 再生（2段リトライ + ユーザーのタップで再生）
+      // 4) 再生を試みる
       try {
         await video.play();
-        console.log('BUNGU SQUAD: ビデオ再生成功（1回目）');
-      } catch {
-        console.log('BUNGU SQUAD: 再生失敗、リトライ...');
-        await new Promise(r => requestAnimationFrame(r));
-        try {
-          await video.play();
-          console.log('BUNGU SQUAD: ビデオ再生成功（2回目）');
-        } catch {
-          console.log('BUNGU SQUAD: タップフォールバック起動');
-          // ユーザータップで強制再生
-          const once = () => {
-            video.play().finally(() => {
-              console.log('BUNGU SQUAD: タップによる再生成功');
-              window.removeEventListener('touchend', once);
-            });
-          };
-          window.addEventListener('touchend', once, { once: true, passive: true });
-          toast({
-            title: "画面をタップしてください",
-            description: "カメラを起動するために画面をタップしてください",
-          });
-        }
+        console.log('BUNGU SQUAD: ビデオ再生成功');
+      } catch (playError) {
+        console.error('BUNGU SQUAD: 再生エラー:', playError);
+        // 再生が失敗しても続行
       }
 
       // 5) 準備完了 → スキャン開始
@@ -348,6 +302,13 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
           if (tournamentInfo) {
             targetUrl += `&tournament_id=${tournamentInfo.id}&tournament_name=${encodeURIComponent(tournamentInfo.name)}`;
           }
+          
+          // ログイン済みユーザーの情報を追加
+          const userId = localStorage.getItem('userId');
+          if (userId) {
+            targetUrl += `&user_id=${userId}`;
+            console.log('BUNGU SQUAD: ログイン済みユーザーID付きで遷移:', userId);
+          }
         }
         
         console.log('BUNGU SQUAD: QRコード読み取り後の遷移先:', targetUrl);
@@ -472,20 +433,8 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
 
       {/* Main Content */}
       <div className="p-4 space-y-6">
-        {/* Camera View - PWAではネイティブカメラを使うため非表示 */}
-        {isPWA && (
-          <Card>
-            <CardContent className="p-6 text-center">
-              <Camera className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">
-                「QRスキャンを開始」ボタンを押すと<br />
-                カメラが起動します
-              </p>
-            </CardContent>
-          </Card>
-        )}
-        
-        {!isPWA && (
+        {/* Camera View */}
+        {
           <Card className="overflow-hidden">
             <CardContent className="p-0">
               <div className="relative aspect-square bg-black">

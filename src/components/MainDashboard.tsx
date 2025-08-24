@@ -6,7 +6,7 @@ import { QrCode, Trophy, TrendingUp, Calendar, Camera, Star, Users, Loader2, Ref
 import { useRankings, useTournaments } from '@/hooks/useApi';
 import { useNotifications } from '@/hooks/useNotifications';
 import { PlayerRanking } from './PlayerRanking';
-import { QRScanner } from './QRScanner';
+import { QRScannerSimple } from './QRScannerSimple';
 import { PlayerMenu } from './PlayerMenu';
 import { PlayerStats } from './PlayerStats';
 import { PlayerHistory } from './PlayerHistory';
@@ -231,11 +231,8 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
 
   // Handle different pages
   if (currentPage === 'qrscanner') {
-    return <QRScanner 
+    return <QRScannerSimple 
       onClose={() => setCurrentPage('dashboard')} 
-      onEntryComplete={() => setCurrentPage('tournament-entry-complete')}
-      currentUserId={CURRENT_USER_ID}
-      isAdmin={isAdmin}
     />;
   }
 
