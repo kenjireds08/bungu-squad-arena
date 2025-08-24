@@ -248,8 +248,21 @@ async function handleTournamentEntry(req, res) {
       throw new Error(`Tournament participant registration failed: ${participantError.message}`);
     }
 
-    // 5. Skip tournament_active update - already set during player creation
-    console.log(`Skipped tournament_active update for ${userId} - already set during player creation`);
+    // 5. Update tournament_active flag for the player
+    // 既存ユーザーの場合もtournament_activeをtrueに更新する必要がある
+    try {
+      // プレイヤーのtournament_activeフラグを更新
+      const playerUpdate = {
+        ...player,
+        tournament_active: true
+      };
+      
+      await sheetsService.updatePlayer(userId, { tournament_active: true });
+      console.log(`Updated tournament_active flag for player ${userId}`);
+    } catch (updateError) {
+      console.error(`Failed to update tournament_active for ${userId}:`, updateError);
+      // エラーが発生しても続行（参加自体は成功しているため）
+    }
 
     console.log(`Successfully registered player ${userId} for tournament ${tournamentId}`);
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -328,11 +328,12 @@ export const TournamentEntry = () => {
         // 既存ユーザーがQRコードからアクセスして、まだエントリーしていない場合は自動エントリー
         if (isFromQR && userId && !userIsActive && tournamentData) {
           console.log('TournamentEntry: Auto-entry for existing user from QR');
-          // 自動エントリーをトリガー（少し遅延を入れて画面表示を待つ）
+          // 自動エントリーフラグを設定
           setTimeout(() => {
-            // handleEntryを呼び出すために、一時的にフラグを設定
-            const autoEntryEvent = new CustomEvent('autoEntry');
-            window.dispatchEvent(autoEntryEvent);
+            // 状態を更新して自動エントリーをトリガー
+            setShowWaitingRoom(false); // 一旦待機画面を非表示
+            // 自動エントリーを実行するためのフラグ
+            sessionStorage.setItem('autoEntryPending', 'true');
           }, 500);
         }
       } catch (error) {
@@ -353,19 +354,22 @@ export const TournamentEntry = () => {
   
   // 既存ユーザーの自動エントリー処理
   useEffect(() => {
-    const handleAutoEntry = () => {
-      const userId = localStorage.getItem('userId');
-      if (isFromQR && userId && tournament && !isEntered && !isEntering && !userTournamentActive) {
-        console.log('TournamentEntry: Executing auto-entry for existing user');
-        handleEntry();
-      }
-    };
+    // 自動エントリーペンディングフラグをチェック
+    const autoEntryPending = sessionStorage.getItem('autoEntryPending');
+    const userId = localStorage.getItem('userId');
     
-    window.addEventListener('autoEntry', handleAutoEntry);
-    return () => window.removeEventListener('autoEntry', handleAutoEntry);
-  }, [isFromQR, tournament, isEntered, isEntering, userTournamentActive]);
+    if (autoEntryPending === 'true' && isFromQR && userId && tournament && !isEntered && !isEntering && !userTournamentActive) {
+      console.log('TournamentEntry: Executing auto-entry for existing user');
+      sessionStorage.removeItem('autoEntryPending'); // フラグをクリア
+      
+      // 直接handleEntryを呼び出す（少し遅延を入れて安定性を確保）
+      setTimeout(() => {
+        handleEntry();
+      }, 100);
+    }
+  }, [isFromQR, tournament, isEntered, isEntering, userTournamentActive, handleEntry]);
 
-  const handleEntry = async () => {
+  const handleEntry = useCallback(async () => {
     if (!tournament || !isFromQR) {
       toast({
         title: "エラー",
@@ -485,9 +489,24 @@ export const TournamentEntry = () => {
       // Update tournament active status via API with real-time updates
       console.log('Sending API request for user:', userId);
       
-      // Skip updateTournamentActive API call since it's causing issues
-      // The tournament entry is already successful via the admin API
-      console.log('Skipping tournament active update - entry already successful');
+      // エントリーが成功したことを確認
+      const entryData = await entryResponse.json();
+      console.log('Tournament entry API response data:', entryData);
+      
+      // 念のため、tournament_activeステータスを再度更新
+      if (updateTournamentActive && updateTournamentActive.mutate) {
+        try {
+          console.log('Updating tournament active status for user:', userId);
+          await updateTournamentActive.mutateAsync({ 
+            playerId: userId, 
+            tournamentActive: true 
+          });
+          console.log('Tournament active status updated successfully');
+        } catch (updateError) {
+          console.error('Failed to update tournament active status:', updateError);
+          // エラーがあっても続行（エントリー自体は成功しているため）
+        }
+      }
       
       console.log('Tournament entry successful for user:', userId);
       setIsEntered(true);
@@ -502,6 +521,7 @@ export const TournamentEntry = () => {
         console.log('Timeout executed, navigating to tournament waiting page');
         // Preserve from_qr parameter for PWA install prompt
         const queryParams = isFromQR ? '?from_qr=true' : '';
+        // Use navigate for SPA routing
         navigate(`/tournament-waiting${queryParams}`);
       }, 2000); // Reduced from 3000ms to 2000ms
       
@@ -524,7 +544,7 @@ export const TournamentEntry = () => {
     } finally {
       setIsEntering(false);
     }
-  };;
+  }, [tournament, isFromQR, nickname, email, navigate, toast, updateTournamentActive]);
 
   // Send email verification
   const handleEmailVerification = async () => {
