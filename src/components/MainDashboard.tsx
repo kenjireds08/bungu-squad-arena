@@ -15,6 +15,7 @@ import { PlayerAchievements } from './PlayerAchievements';
 import { PlayerSettings } from './PlayerSettings';
 import { PlayerHelp } from './PlayerHelp';
 import { AdminDashboard } from './AdminDashboard';
+import { CameraDiag } from './CameraDiag';
 import { MatchWaiting } from './MatchWaiting';
 import { MatchInProgress } from './MatchInProgress';
 import { MatchResultReport } from './MatchResultReport';
@@ -48,6 +49,13 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
   const isFromQR = urlParams.has('from_qr');
   
   const [currentPage, setCurrentPage] = useState<string>(initialPage);
+  
+  // Check for diagnostic page
+  useEffect(() => {
+    if (window.location.pathname === '/diag/camera') {
+      setCurrentPage('camera-diag');
+    }
+  }, []);
   const [previousPage, setPreviousPage] = useState<string>('dashboard');
   const [isQREntry, setIsQREntry] = useState<boolean>(isFromQR); // QR経由かどうかを状態で保持
   
@@ -262,6 +270,10 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
 
   if (currentPage === 'admin') {
     return <AdminDashboard onClose={() => setCurrentPage('dashboard')} />;
+  }
+  
+  if (currentPage === 'camera-diag') {
+    return <CameraDiag onClose={() => setCurrentPage('dashboard')} />;
   }
 
   if (currentPage === 'match-waiting') {

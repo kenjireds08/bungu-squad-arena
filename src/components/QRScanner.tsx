@@ -4,10 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Camera, QrCode, AlertCircle, CheckCircle, Upload } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import QrScanner from 'qr-scanner';
+import workerUrl from 'qr-scanner/qr-scanner-worker.min?url';
 import { TournamentEntryComplete } from './TournamentEntryComplete';
 
-// QR Scannerワーカーパスを明示的に設定
-QrScanner.WORKER_PATH = '/qr-scanner-worker.min.js';
+// QR ScannerワーカーパスをVite方式で設定
+QrScanner.WORKER_PATH = workerUrl;
 
 interface QRScannerProps {
   onClose: () => void;
@@ -91,6 +92,7 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
     }
 
     console.log('BUNGU SQUAD: カメラ起動開始');
+    // state更新はOK（awaitしない）
     setIsInitializing(true);
     setCameraError(null);
 
@@ -103,18 +105,19 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
       if (isIOS && isPWA) {
         console.log('BUNGU SQUAD: iOS PWA検出 - 特別処理を実行');
         
-        // ビデオプロパティを先に設定（ChatGPT推奨）
         const video = videoRef.current;
-        video.muted = true;
-        (video as any).playsInline = true;
-        video.autoplay = true;
         
         try {
-          // シンプルな制約から始める（ChatGPT推奨）
+          // 最初のawaitがgetUserMediaになるように（重要）
           const stream = await getUserMediaWithTimeout({
             video: { facingMode: 'environment' },
             audio: false
           }, 10000);
+          
+          // ストリーム取得後にビデオプロパティを設定
+          video.muted = true;
+          (video as any).playsInline = true;
+          video.autoplay = true;
           
           console.log('BUNGU SQUAD: ストリーム取得成功');
           streamRef.current = stream;
@@ -218,14 +221,27 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
     let scanAttempts = 0;
     
     scanIntervalRef.current = setInterval(async () => {
-      if (videoRef.current && videoRef.current.readyState === 4) {
-        scanAttempts++;
-        
-        if (scanAttempts % 10 === 0) {
-          console.log(`BUNGU SQUAD: QRコードスキャン中... (${scanAttempts}回目)`);
+      if (!videoRef.current) return;
+      
+      scanAttempts++;
+      
+      if (scanAttempts % 10 === 0) {
+        console.log(`BUNGU SQUAD: QRコードスキャン中... (${scanAttempts}回目)`);
+      }
+      
+      try {
+        // readyStateの確認
+        if (videoRef.current.readyState !== 4) {
+          if (scanAttempts % 10 === 0) {
+            console.log('BUNGU SQUAD: ビデオがまだ準備できていません', videoRef.current.readyState);
+          }
+          return;
         }
-        
-        try {
+          // readyState確認後にスキャン
+          if (videoRef.current.readyState !== 4) {
+            return; // まだ準備ができていない
+          }
+          
           const result = await QrScanner.scanImage(videoRef.current, {
             returnDetailedScanResult: true,
             alsoTryWithoutScanRegion: true
@@ -472,10 +488,13 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
                 ref={videoRef}
                 className="w-full h-full object-cover"
                 style={{
-                  display: isScanning ? 'block' : 'none',
                   width: '100%',
                   height: '100%',
-                  objectFit: 'cover'
+                  objectFit: 'cover',
+                  // display:noneを使わず、visibilityとopacityで制御
+                  visibility: isInitializing || (!isScanning && !isInitializing) ? 'hidden' : 'visible',
+                  opacity: isScanning ? 1 : 0,
+                  transition: 'opacity 0.25s ease'
                 }}
                 playsInline
                 muted
