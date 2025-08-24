@@ -80,9 +80,21 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
         return createdDate.getMonth() === thisMonth && createdDate.getFullYear() === thisYear;
       }).length;
 
-      // Calculate tournament stats
-      const activeTournaments = tournaments.filter(t => (t as any).status === 'active').length;
-      const upcomingTournaments = tournaments.filter(t => (t as any).status === 'upcoming').length;
+      // Calculate tournament stats using date-based logic
+      const now = new Date();
+      const today = now.toISOString().split('T')[0];
+      
+      const activeTournaments = tournaments.filter(t => {
+        const tournamentDate = new Date(t.date).toISOString().split('T')[0];
+        // 今日の大会、またはstatusが'active'の大会を開催中とする
+        return tournamentDate === today || t.status === 'active';
+      }).length;
+      
+      const upcomingTournaments = tournaments.filter(t => {
+        const tournamentDate = new Date(t.date).toISOString().split('T')[0];
+        // 未来の大会を予定とする
+        return tournamentDate > today && t.status !== 'completed' && t.status !== 'ended';
+      }).length;
 
       const data: AdminData = {
         tournaments: {

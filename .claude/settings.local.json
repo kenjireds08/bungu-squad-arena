@@ -67,7 +67,12 @@
       "Bash(gh pr view:*)",
       "Bash(kill:*)",
       "Bash(/dev/null)",
-      "Bash(git merge:*)"
+      "Bash(git merge:*)",
+      "Read(//Users/kikuchikenji/Downloads/**)",
+      "Read(//Users/kikuchikenji/Dropbox/My Mac (kikuchikenjinoMacBook-Air.local)/Desktop/**)",
+      "Read(//var/folders/qx/6_t416w11yv492lx56z4lzr00000gn/T/TemporaryItems/NSIRD_screencaptureui_7SWvKw/**)",
+      "Read(//var/folders/qx/6_t416w11yv492lx56z4lzr00000gn/T/TemporaryItems/NSIRD_screencaptureui_vjBGue/**)",
+      "Read(//var/folders/qx/6_t416w11yv492lx56z4lzr00000gn/T/TemporaryItems/NSIRD_screencaptureui_9yfFDe/**)"
     ],
     "deny": []
   }
