@@ -206,3 +206,29 @@
 - 最終コミット: 62bf5bb Fix: iOS PWAカメラ起動処理を改善、不要なボタンを削除
 
 ---
+
+## セッション: 2025-08-24 16:37:07
+
+### 最新のドキュメント
+- 087_battlelog_generic_rating_app_requirements.md
+- 086_achievement_date_fixes.md
+- 085_character_backgrounds_and_presentation_review.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 1363dbf Fix: iOS PWAでカメラを確実に起動する処理に修正
+
+---
+
+## セッション: 2025-08-24 16:42:08
+
+### 最新のドキュメント
+- 087_battlelog_generic_rating_app_requirements.md
+- 086_achievement_date_fixes.md
+- 085_character_backgrounds_and_presentation_review.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 1363dbf Fix: iOS PWAでカメラを確実に起動する処理に修正
+
+---
