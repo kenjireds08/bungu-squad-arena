@@ -131,9 +131,8 @@
     </div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
-      // TEMPORARILY DISABLED FOR CAMERA TESTING
       // Register Service Worker for PWA with update handling
-      if (false && 'serviceWorker' in navigator) {
+      if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
             // First, try to unregister any existing service worker to ensure clean state

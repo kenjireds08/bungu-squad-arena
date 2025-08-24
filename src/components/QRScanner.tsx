@@ -434,8 +434,7 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
       {/* Main Content */}
       <div className="p-4 space-y-6">
         {/* Camera View */}
-        {
-          <Card className="overflow-hidden">
+        <Card className="overflow-hidden">
             <CardContent className="p-0">
               <div className="relative aspect-square bg-black">
                 <div className="relative bg-black w-full h-full">
@@ -473,7 +472,6 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
               </div>
             </CardContent>
           </Card>
-        )}
 
         {/* Error Message */}
         {cameraError && (
