@@ -324,6 +324,17 @@ export const TournamentEntry = () => {
         if (userId && userIsActive) {
           setShowWaitingRoom(true);
         }
+        
+        // 既存ユーザーがQRコードからアクセスして、まだエントリーしていない場合は自動エントリー
+        if (isFromQR && userId && !userIsActive && tournamentData) {
+          console.log('TournamentEntry: Auto-entry for existing user from QR');
+          // 自動エントリーをトリガー（少し遅延を入れて画面表示を待つ）
+          setTimeout(() => {
+            // handleEntryを呼び出すために、一時的にフラグを設定
+            const autoEntryEvent = new CustomEvent('autoEntry');
+            window.dispatchEvent(autoEntryEvent);
+          }, 500);
+        }
       } catch (error) {
         console.error('Failed to load tournament:', error);
         toast({
@@ -338,7 +349,21 @@ export const TournamentEntry = () => {
 
     // Load tournament data (works for both /tour and /tournament-entry/:id routes)
     loadTournament();
-  }, [tournamentId, toast]);
+  }, [tournamentId, toast, isFromQR]);
+  
+  // 既存ユーザーの自動エントリー処理
+  useEffect(() => {
+    const handleAutoEntry = () => {
+      const userId = localStorage.getItem('userId');
+      if (isFromQR && userId && tournament && !isEntered && !isEntering && !userTournamentActive) {
+        console.log('TournamentEntry: Executing auto-entry for existing user');
+        handleEntry();
+      }
+    };
+    
+    window.addEventListener('autoEntry', handleAutoEntry);
+    return () => window.removeEventListener('autoEntry', handleAutoEntry);
+  }, [isFromQR, tournament, isEntered, isEntering, userTournamentActive]);
 
   const handleEntry = async () => {
     if (!tournament || !isFromQR) {

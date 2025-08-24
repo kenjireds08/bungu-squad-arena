@@ -84,6 +84,17 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
   const startCamera = async () => {
     const video = videoRef.current;
     if (!video) return;
+    
+    // iOS PWAでカメラ許可がない場合のチェック
+    if (isIOSPWA) {
+      console.log('BUNGU SQUAD: iOS PWA環境を検出');
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        console.error('BUNGU SQUAD: getUserMedia APIが利用できません');
+        setCameraError('iOS PWAではカメラ機能が制限されています。「写真から読み取る」をご利用ください。');
+        setShowFileInput(true);
+        return;
+      }
+    }
 
     try {
       // 1) 旧ストリームを完全停止（多重取得を避ける）
@@ -102,12 +113,25 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
       setIsInitializing(true);
       setCameraError(null);
 
-      // 3) 最もシンプルな制約でgetUserMediaを呼び出す
+      // 3) iOS PWAに対応した制約でgetUserMediaを呼び出す
       console.log('BUNGU SQUAD: getUserMediaを呼び出します...');
-      const stream = await navigator.mediaDevices.getUserMedia({
+      console.log('BUNGU SQUAD: isIOSPWA:', isIOSPWA);
+      
+      // iOS PWAの場合は、より詳細な制約を指定
+      const constraints = isIOSPWA ? {
+        video: {
+          facingMode: 'environment',
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        },
+        audio: false
+      } : {
         video: true,
         audio: false
-      });
+      };
+      
+      console.log('BUNGU SQUAD: 使用する制約:', constraints);
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
       console.log('BUNGU SQUAD: ストリーム取得成功:', stream);
       
       streamRef.current = stream;
@@ -490,7 +514,7 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
 
         {/* Controls */}
         <div className="space-y-3">
-          {!isScanning && !isInitializing && (
+          {!isScanning && !isInitializing && !showFileInput && (
             <Button 
               onClick={startCamera}
               className="w-full flex items-center gap-2"
@@ -521,6 +545,29 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
             >
               再試行
             </Button>
+          )}
+          
+          {/* iOS PWAやカメラエラー時のファイル入力 */}
+          {(showFileInput || isIOSPWA) && (
+            <>
+              <Button 
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full flex items-center gap-2"
+                size="lg"
+                variant="outline"
+              >
+                <Upload className="h-5 w-5" />
+                写真からQRコードを読み取る
+              </Button>
+              
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleFileInput}
+              />
+            </>
           )}
         </div>
 

@@ -362,3 +362,29 @@
 - 最終コミット: 4f3e72b Fix: ログイン済みユーザーのQRエントリー問題を修正、PWAカメラ問題対応のためシンプルなQRScanner実装
 
 ---
+
+## セッション: 2025-08-24 21:06:26
+
+### 最新のドキュメント
+- 087_battlelog_generic_rating_app_requirements.md
+- 086_achievement_date_fixes.md
+- 085_character_backgrounds_and_presentation_review.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: fbd7313 Fix: 元のQRScannerに戻してService Worker再有効化、構文エラー修正
+
+---
+
+## セッション: 2025-08-24 21:28:33
+
+### 最新のドキュメント
+- 088_qr_entry_auto_complete_fix.md
+- 087_battlelog_generic_rating_app_requirements.md
+- 086_achievement_date_fixes.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: fbd7313 Fix: 元のQRScannerに戻してService Worker再有効化、構文エラー修正
+
+---
