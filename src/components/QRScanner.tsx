@@ -37,6 +37,7 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
   const qrScannerRef = useRef<QrScanner | null>(null);
   const scanIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const captureInputRef = useRef<HTMLInputElement>(null); // ネイティブカメラ用
   const { toast } = useToast();
 
   // Initialize and check iOS PWA
@@ -86,6 +87,8 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
     const video = videoRef.current;
     if (!video) return;
 
+    let fallbackTimer: number | null = null;
+
     try {
       // 1) 旧ストリームを完全停止（多重取得を避ける）
       stopTracks(streamRef.current);
@@ -113,11 +116,47 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
       setIsInitializing(true);
       setCameraError(null);
 
+      // PWAでのみ、gUMが固まるケースに備えて 1.2s タイムアウトを仕込む
+      if (isPWA) {
+        console.log('BUNGU SQUAD: PWAモード - フォールバックタイマー設定');
+        
+        // デバイス一覧を確認（デバッグ用）
+        try {
+          const devices = await navigator.mediaDevices.enumerateDevices();
+          console.log('BUNGU SQUAD: 利用可能なデバイス:', 
+            devices.map(d => ({kind: d.kind, label: d.label || 'no label'}))
+          );
+        } catch (e) {
+          console.error('BUNGU SQUAD: デバイス列挙エラー:', e);
+        }
+        
+        fallbackTimer = window.setTimeout(() => {
+          if (!streamRef.current) {
+            console.log('BUNGU SQUAD: getUserMediaタイムアウト - ネイティブカメラへフォールバック');
+            // gUMが解決しない → ネイティブカメラを自動起動
+            captureInputRef.current?.click();
+            setIsInitializing(false);
+            setIsScanning(false);
+            toast({
+              title: "カメラを開きます",
+              description: "撮影すると自動でQRを読み取ります。",
+            });
+          }
+        }, 1200);
+      }
+
       // 3) 最初のawaitはgetUserMedia（ユーザー操作の同期内）
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: { ideal: 'environment' } }, // 最小制約
         audio: false,
       });
+      
+      // フォールバックタイマーをクリア
+      if (fallbackTimer) {
+        window.clearTimeout(fallbackTimer);
+        fallbackTimer = null;
+      }
+      
       streamRef.current = stream;
       video.srcObject = stream;
 
@@ -165,6 +204,12 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
       });
     } catch (err: any) {
       console.error('BUNGU SQUAD: カメラエラー:', err);
+      
+      // フォールバックタイマーをクリア
+      if (fallbackTimer) {
+        window.clearTimeout(fallbackTimer);
+      }
+      
       setIsInitializing(false);
       setIsScanning(false);
       setCameraError(err?.name === 'NotAllowedError'
@@ -369,22 +414,25 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
     try {
       console.log('BUNGU SQUAD: 画像ファイルからQRコードをスキャン');
       const result = await QrScanner.scanImage(file, { 
-        returnDetailedScanResult: true 
+        returnDetailedScanResult: true,
+        alsoTryWithoutScanRegion: true
       });
       console.log('BUNGU SQUAD: 画像からQRコード検出:', result);
+      stopCamera();
       handleQRDetected(result);
     } catch (error) {
       console.error('BUNGU SQUAD: 画像からQRコードを読み取れませんでした:', error);
       toast({
-        title: "エラー",
-        description: "QRコードを読み取れませんでした。別の画像をお試しください。",
+        title: "読み取り失敗",
+        description: "もう一度撮影してください。",
         variant: "destructive"
       });
     }
 
     // Reset file input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+    const input = event.target;
+    if (input) {
+      input.value = '';
     }
   };
 
@@ -701,6 +749,16 @@ export const QRScanner = ({ onClose, onEntryComplete, currentUserId, isAdmin }: 
             </ul>
           </CardContent>
         </Card>
+        
+        {/* 非表示のネイティブカメラ入力（自動フォールバック用） */}
+        <input
+          ref={captureInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={handleFileInput}
+        />
       </div>
     </div>
   );

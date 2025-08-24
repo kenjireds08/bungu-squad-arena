@@ -1,8 +1,8 @@
 // BUNGU SQUAD Service Worker for PWA functionality with camera support
 // Update version to force SW update - Change this whenever you need to force update
-const SW_VERSION = '3.1.0'; // Fix: Worker files bypass for QR Scanner
-const CACHE_NAME = 'bungu-squad-v3-1-0';
-const STATIC_CACHE = 'bungu-squad-static-v3-1-0';
+const SW_VERSION = '3.2.0'; // Fix: Remove Permissions-Policy header
+const CACHE_NAME = 'bungu-squad-v3-2-0';
+const STATIC_CACHE = 'bungu-squad-static-v3-2-0';
 
 // Debug flag - only show logs in development (localhost)
 const DEBUG = self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1';
