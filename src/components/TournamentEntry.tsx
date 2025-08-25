@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Trophy, Calendar, MapPin, Users, Loader2, CheckCircle, XCircle, Mail, AlertCircle, QrCode } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
-import { TournamentWaiting } from './TournamentWaiting';
 import { useUpdatePlayerTournamentActive } from '@/hooks/useApi';
 
 interface Tournament {
@@ -54,7 +53,6 @@ export const TournamentEntry = () => {
   const [isEntering, setIsEntering] = useState(false);
   const [isEntered, setIsEntered] = useState(false);
   const [userTournamentActive, setUserTournamentActive] = useState(false);
-  const [showWaitingRoom, setShowWaitingRoom] = useState(false);
   
   // Email verification states
   const [showEmailForm, setShowEmailForm] = useState(false);
@@ -320,9 +318,11 @@ export const TournamentEntry = () => {
         
         setTournament(tournamentData);
         
-        // If user is logged in and tournament active, show waiting room
+        // If user is logged in and tournament active, redirect to waiting room
         if (userId && userIsActive) {
-          setShowWaitingRoom(true);
+          // Navigate to main dashboard with tournament-waiting page
+          navigate('/?page=tournament-waiting');
+          return;
         }
         
         // 既存ユーザーがQRコードからアクセスして、まだエントリーしていない場合は自動エントリー
@@ -330,8 +330,6 @@ export const TournamentEntry = () => {
           console.log('TournamentEntry: Auto-entry for existing user from QR');
           // 自動エントリーフラグを設定
           setTimeout(() => {
-            // 状態を更新して自動エントリーをトリガー
-            setShowWaitingRoom(false); // 一旦待機画面を非表示
             // 自動エントリーを実行するためのフラグ
             sessionStorage.setItem('autoEntryPending', 'true');
           }, 500);
@@ -515,27 +513,25 @@ export const TournamentEntry = () => {
         description: `${tournament.name}にエントリーしました！`,
       });
       
-      // Auto-redirect to waiting room immediately after showing success message
-      console.log('Setting timeout for waiting room transition...');
+      // Auto-redirect to entry complete page, which will auto-redirect to waiting room
+      console.log('Setting timeout for entry complete page transition...');
       setTimeout(() => {
-        console.log('Timeout executed, navigating to tournament waiting page');
+        console.log('Timeout executed, navigating to tournament entry complete page');
         try {
-          // Preserve from_qr parameter for PWA install prompt
-          const queryParams = isFromQR ? '?from_qr=true' : '';
-          const targetUrl = `/tournament-waiting${queryParams}`;
+          // Navigate to MainDashboard with tournament-entry-complete page
+          // This will show the success screen and auto-transition to waiting room
+          const queryParams = isFromQR ? '&from_qr=true' : '';
+          const targetUrl = `/?page=tournament-entry-complete${queryParams}`;
           console.log('Navigating to:', targetUrl);
           
-          // 本番環境とPWAでのナビゲーション問題を解決
-          // 常にwindow.location.hrefを使用して確実に遷移
-          const fullUrl = window.location.origin + targetUrl;
-          console.log('Full URL for navigation:', fullUrl);
-          window.location.href = fullUrl;
+          // Use navigate function for SPA navigation
+          navigate(targetUrl);
         } catch (navError) {
           console.error('Navigation error:', navError);
-          // Fallback: use direct location change
-          window.location.href = `/tournament-waiting${isFromQR ? '?from_qr=true' : ''}`;
+          // Fallback: use window.location for hard navigation
+          window.location.href = `/?page=tournament-entry-complete${isFromQR ? '&from_qr=true' : ''}`;
         }
-      }, 2000); // Reduced from 3000ms to 2000ms
+      }, 1500); // Reduced delay for better UX
       
     } catch (error) {
       console.error('Failed to enter tournament:', error);
@@ -671,21 +667,10 @@ export const TournamentEntry = () => {
     );
   }
 
-  // Show waiting room if user is already tournament active
-  if (showWaitingRoom && tournament) {
-    return (
-      <TournamentWaiting 
-        onClose={() => {
-          // QR code entry should stay in waiting room, not return to dashboard
-          if (isFromQR) {
-            console.log('TournamentWaiting: Ignoring close action for QR entry');
-            return;
-          }
-          navigate('/');
-        }}
-        onViewRanking={() => navigate('/ranking')}
-      />
-    );
+  // Redirect to waiting room if user is already tournament active
+  if (userTournamentActive && tournament) {
+    navigate('/?page=tournament-waiting');
+    return null;
   }
 
   return (
