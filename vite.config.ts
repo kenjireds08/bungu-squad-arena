@@ -34,6 +34,18 @@ export default defineConfig(({ mode }) => {
       // Exclude qr-scanner from optimization to avoid worker issues
       exclude: ['qr-scanner']
     },
+    build: {
+      // Ensure correct MIME types for production build
+      assetsInlineLimit: 0, // Don't inline assets
+      rollupOptions: {
+        output: {
+          // Ensure consistent file naming
+          entryFileNames: 'assets/[name]-[hash].js',
+          chunkFileNames: 'assets/[name]-[hash].js',
+          assetFileNames: 'assets/[name]-[hash].[ext]',
+        }
+      }
+    },
     esbuild: {
       // Remove console.* and debugger statements in production
       drop: mode === 'production' ? ['console', 'debugger'] : [],

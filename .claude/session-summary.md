@@ -492,3 +492,16 @@
 - 最終コミット: fbd66d9 fix: 順位表示とナビゲーション問題の完全修正
 
 ---
+
+## セッション: 2025-08-25 16:27:35
+
+### 最新のドキュメント
+- 091_tournament_checklist_sep5.md
+- 090_tournament_improvements_for_sep5.md
+- 089_qr_entry_complete_fix.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 4a652e6 Fix: 大会参加者の順位表示と画面遷移エラーを修正
+
+---

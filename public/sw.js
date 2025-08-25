@@ -1,8 +1,8 @@
 // BUNGU SQUAD Service Worker for PWA functionality with camera support
 // Update version to force SW update - Change this whenever you need to force update
-const SW_VERSION = '3.2.0'; // Fix: Remove Permissions-Policy header
-const CACHE_NAME = 'bungu-squad-v3-2-0';
-const STATIC_CACHE = 'bungu-squad-static-v3-2-0';
+const SW_VERSION = '3.3.0'; // Fix: MIME type issues and cache problems
+const CACHE_NAME = 'bungu-squad-v3-3-0';
+const STATIC_CACHE = 'bungu-squad-static-v3-3-0';
 
 // Debug flag - only show logs in development (localhost)
 const DEBUG = self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1';
@@ -157,21 +157,42 @@ self.addEventListener('fetch', (event) => {
     url.pathname.endsWith('.json');
 
   if (isAssetRequest) {
-    // CRITICAL: Never cache JS/MJS files to avoid MIME type issues
-    if (url.pathname.endsWith('.js') || url.pathname.endsWith('.mjs') || url.pathname.includes('/_next/')) {
+    // CRITICAL: Always fetch JS/CSS files fresh - NEVER cache or fallback to HTML
+    if (url.pathname.endsWith('.js') || url.pathname.endsWith('.mjs') || 
+        url.pathname.endsWith('.css') || url.pathname.includes('/assets/')) {
       event.respondWith(
-        fetch(event.request)
+        fetch(event.request, {
+          cache: 'no-cache', // Force fresh fetch
+          credentials: 'same-origin'
+        })
           .then(response => {
-            // Verify correct MIME type for JS files
-            if (response.ok && !response.headers.get('content-type')?.includes('javascript') && 
-                (url.pathname.endsWith('.js') || url.pathname.endsWith('.mjs'))) {
-              console.error(`SW: Invalid MIME type for JS file: ${url.pathname}`);
+            // Verify response is OK and has correct MIME type
+            if (!response.ok) {
+              console.error(`SW: Failed to fetch ${url.pathname}: ${response.status}`);
+              return new Response('Not Found', { status: 404 });
+            }
+            
+            const contentType = response.headers.get('content-type') || '';
+            
+            // Check MIME type for JS files
+            if ((url.pathname.endsWith('.js') || url.pathname.endsWith('.mjs')) && 
+                !contentType.includes('javascript')) {
+              console.error(`SW: Invalid MIME type for JS: ${url.pathname} - ${contentType}`);
               return new Response('Invalid MIME type', { status: 500 });
             }
+            
+            // Check MIME type for CSS files
+            if (url.pathname.endsWith('.css') && !contentType.includes('css')) {
+              console.error(`SW: Invalid MIME type for CSS: ${url.pathname} - ${contentType}`);
+              return new Response('Invalid MIME type', { status: 500 });
+            }
+            
             return response;
           })
-          .catch(() => {
-            return new Response('Not Found', { status: 404 });
+          .catch(error => {
+            console.error(`SW: Network error fetching ${url.pathname}:`, error);
+            // NEVER return HTML for asset requests
+            return new Response('Network Error', { status: 503 });
           })
       );
       return;
@@ -208,34 +229,36 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Navigation requests (HTML pages): Cache with HTML fallback
+  // Navigation requests (HTML pages): Network first with cache fallback
   if (isNavigationRequest) {
     event.respondWith(
-      caches.open(STATIC_CACHE).then(async (cache) => {
-        const cached = await cache.match(event.request);
-        
-        const fresh = fetch(event.request).then((response) => {
-          // Only cache successful responses (200-299) - clone FIRST
+      fetch(event.request, {
+        credentials: 'same-origin',
+        cache: 'default' // Use browser's default cache strategy
+      })
+        .then((response) => {
+          // Only cache successful HTML responses
           if (response.ok && response.type === 'basic') {
             const responseClone = response.clone();
-            // Async cache update without blocking response
-            (async () => {
-              try {
-                await cache.put(event.request, responseClone);
-              } catch (cacheError) {
-                if (DEBUG) console.warn('Failed to cache navigation response:', cacheError);
-              }
-            })();
+            caches.open(STATIC_CACHE).then(cache => {
+              cache.put(event.request, responseClone).catch(err => {
+                if (DEBUG) console.warn('Failed to cache navigation:', err);
+              });
+            });
           }
           return response;
-        }).catch(() => {
-          // For navigation, fallback to cached or root HTML
-          return cached || cache.match('/');
-        });
-
-        // Return cached version immediately if available, otherwise wait for network
-        return cached || fresh;
-      })
+        })
+        .catch(() => {
+          // Fallback to cache for offline support
+          return caches.match(event.request).then(cached => {
+            if (cached) return cached;
+            // Last resort: return root HTML for SPA routing
+            return caches.match('/').then(root => {
+              if (root) return root;
+              return new Response('Offline', { status: 503 });
+            });
+          });
+        })
     );
     return;
   }
