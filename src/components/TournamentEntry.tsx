@@ -320,8 +320,8 @@ export const TournamentEntry = () => {
         
         // If user is logged in and tournament active, redirect to waiting room
         if (userId && userIsActive) {
-          // Navigate to main dashboard with tournament-waiting page
-          navigate('/?page=tournament-waiting');
+          // Navigate directly to tournament-waiting route
+          navigate('/tournament-waiting');
           return;
         }
         
@@ -513,15 +513,14 @@ export const TournamentEntry = () => {
         description: `${tournament.name}にエントリーしました！`,
       });
       
-      // Auto-redirect to entry complete page, which will auto-redirect to waiting room
-      console.log('Setting timeout for entry complete page transition...');
+      // Auto-redirect to waiting room after entry success
+      console.log('Setting timeout for tournament waiting page transition...');
       setTimeout(() => {
-        console.log('Timeout executed, navigating to tournament entry complete page');
+        console.log('Timeout executed, navigating to tournament waiting page');
         try {
-          // Navigate to MainDashboard with tournament-entry-complete page
-          // This will show the success screen and auto-transition to waiting room
-          const queryParams = isFromQR ? '&from_qr=true' : '';
-          const targetUrl = `/?page=tournament-entry-complete${queryParams}`;
+          // Navigate directly to tournament-waiting route
+          const queryParams = isFromQR ? '?from_qr=true' : '';
+          const targetUrl = `/tournament-waiting${queryParams}`;
           console.log('Navigating to:', targetUrl);
           
           // Use navigate function for SPA navigation
@@ -529,7 +528,7 @@ export const TournamentEntry = () => {
         } catch (navError) {
           console.error('Navigation error:', navError);
           // Fallback: use window.location for hard navigation
-          window.location.href = `/?page=tournament-entry-complete${isFromQR ? '&from_qr=true' : ''}`;
+          window.location.href = `/tournament-waiting${isFromQR ? '?from_qr=true' : ''}`;
         }
       }, 1500); // Reduced delay for better UX
       
@@ -669,7 +668,7 @@ export const TournamentEntry = () => {
 
   // Redirect to waiting room if user is already tournament active
   if (userTournamentActive && tournament) {
-    navigate('/?page=tournament-waiting');
+    navigate('/tournament-waiting');
     return null;
   }
 

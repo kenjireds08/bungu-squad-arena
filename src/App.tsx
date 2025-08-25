@@ -3,11 +3,13 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, lazy, Suspense } from "react";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
-import TournamentWaitingPage from "./pages/TournamentWaitingPage";
-import { TournamentEntry } from "./components/TournamentEntry";
+
+// Lazy load tournament components to avoid circular dependencies
+const TournamentWaitingPage = lazy(() => import("./pages/TournamentWaitingPage"));
+const TournamentEntry = lazy(() => import("./components/TournamentEntry").then(module => ({ default: module.TournamentEntry })));
 
 // Add query client configuration for better error handling
 const queryClient = new QueryClient({
@@ -42,19 +44,28 @@ const App = () => {
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/tournament-entry/:tournamentId" element={<TournamentEntry />} />
-              <Route path="/tour" element={<TournamentEntry />} />
-              {/* More specific routes should come first */}
-              <Route path="/tournament/tournament_:tournamentId" element={<TournamentEntry />} />
-              <Route path="/tournament/:tournamentId" element={<TournamentEntry />} />
-              <Route path="/tournament/:date/:timeOrName" element={<TournamentEntry />} />
-              <Route path="/tournament/:date" element={<TournamentEntry />} />
-              <Route path="/tournament-waiting" element={<TournamentWaitingPage />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+            <Suspense fallback={
+              <div className="min-h-screen bg-gradient-parchment flex items-center justify-center">
+                <div className="text-center space-y-4">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                  <p className="text-muted-foreground">読み込み中...</p>
+                </div>
+              </div>
+            }>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/tournament-entry/:tournamentId" element={<TournamentEntry />} />
+                <Route path="/tour" element={<TournamentEntry />} />
+                {/* More specific routes should come first */}
+                <Route path="/tournament/tournament_:tournamentId" element={<TournamentEntry />} />
+                <Route path="/tournament/:tournamentId" element={<TournamentEntry />} />
+                <Route path="/tournament/:date/:timeOrName" element={<TournamentEntry />} />
+                <Route path="/tournament/:date" element={<TournamentEntry />} />
+                <Route path="/tournament-waiting" element={<TournamentWaitingPage />} />
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
           </BrowserRouter>
         </TooltipProvider>
       </QueryClientProvider>
