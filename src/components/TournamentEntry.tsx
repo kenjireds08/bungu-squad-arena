@@ -525,14 +525,11 @@ export const TournamentEntry = () => {
           const targetUrl = `/tournament-waiting${queryParams}`;
           console.log('Navigating to:', targetUrl);
           
-          // Try different navigation methods for better PWA compatibility
-          if (window.location.pathname.includes('/tournament-entry')) {
-            // If we're on tournament-entry page, use replace to avoid back button issues
-            window.location.replace(targetUrl);
-          } else {
-            // Otherwise use normal navigation
-            navigate(targetUrl);
-          }
+          // 本番環境とPWAでのナビゲーション問題を解決
+          // 常にwindow.location.hrefを使用して確実に遷移
+          const fullUrl = window.location.origin + targetUrl;
+          console.log('Full URL for navigation:', fullUrl);
+          window.location.href = fullUrl;
         } catch (navError) {
           console.error('Navigation error:', navError);
           // Fallback: use direct location change

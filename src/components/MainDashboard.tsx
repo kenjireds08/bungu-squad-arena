@@ -85,16 +85,30 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
 
   const currentUser = rankings?.find(player => player.id === CURRENT_USER_ID);
   
-  // 大会参加経験があるプレイヤーのみでフィルタリングして順位を計算
-  // total_matches > 0 のプレイヤーのみをランキング対象とする
-  const activeRankings = rankings?.filter(player => 
-    (player.total_matches && player.total_matches > 0) || player.id === CURRENT_USER_ID
+  // デバッグ用：ユーザー情報をログ出力
+  console.log('Current user data:', currentUser);
+  console.log('User total_matches:', currentUser?.total_matches);
+  console.log('User wins:', currentUser?.wins);
+  console.log('User losses:', currentUser?.losses);
+  
+  // 大会参加経験の判定：
+  // 1. total_matches > 0 または
+  // 2. wins + losses > 0 （バックアップ）
+  const hasMatchHistory = currentUser && (
+    (currentUser.total_matches && currentUser.total_matches > 0) ||
+    ((currentUser.wins || 0) + (currentUser.losses || 0) > 0)
   );
   
+  // 大会参加経験があるプレイヤーのみでフィルタリング
+  const activeRankings = rankings?.filter(player => {
+    const matches = player.total_matches || 0;
+    const totalGames = (player.wins || 0) + (player.losses || 0);
+    return matches > 0 || totalGames > 0;
+  });
+  
   // ランキング内での順位を計算
-  // 一度も大会に参加していない（total_matches === 0）の場合は順位なし
   let activeUserRank: number | string = 0;
-  if (currentUser && currentUser.total_matches && currentUser.total_matches > 0) {
+  if (hasMatchHistory) {
     const rankIndex = activeRankings?.findIndex(player => player.id === CURRENT_USER_ID) ?? -1;
     activeUserRank = rankIndex >= 0 ? rankIndex + 1 : 0;
   } else {

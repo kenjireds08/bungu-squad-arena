@@ -1,13 +1,7 @@
 import { useNavigate } from 'react-router-dom';
-import { useEffect, lazy, Suspense } from 'react';
+import { useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-
-// 遅延ロードで初期化エラーを回避
-const TournamentWaiting = lazy(() => 
-  import('@/components/TournamentWaiting').then(module => ({ 
-    default: module.TournamentWaiting 
-  }))
-);
+import { TournamentWaiting } from '@/components/TournamentWaiting';
 
 const TournamentWaitingPage = () => {
   const navigate = useNavigate();
@@ -54,22 +48,23 @@ const TournamentWaitingPage = () => {
     console.log('View ranking clicked');
   };
 
-  return (
-    <Suspense 
-      fallback={
-        <div className="min-h-screen flex items-center justify-center p-4">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-sm text-muted-foreground">読み込み中...</p>
-          </div>
+  // 初期化エラーを回避するためのチェック
+  if (!TournamentWaiting) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-sm text-muted-foreground">読み込み中...</p>
         </div>
-      }
-    >
-      <TournamentWaiting 
-        onClose={handleClose}
-        onViewRanking={handleViewRanking}
-      />
-    </Suspense>
+      </div>
+    );
+  }
+  
+  return (
+    <TournamentWaiting 
+      onClose={handleClose}
+      onViewRanking={handleViewRanking}
+    />
   );
 };
 
