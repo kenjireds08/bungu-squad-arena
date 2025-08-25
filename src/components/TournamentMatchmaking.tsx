@@ -63,7 +63,7 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
     // Initialize player match counts
     participants.forEach(player => {
       playerMatchCount.set(player.id, 0);
-      playerLastMatch.set(player.id, -2);
+      playerLastMatch.set(player.id, -999); // 十分な間隔を確保
     });
     
     for (let matchIndex = 0; matchIndex < matchCount; matchIndex++) {
@@ -80,12 +80,19 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
           const player1LastMatch = playerLastMatch.get(player1.id);
           const player2LastMatch = playerLastMatch.get(player2.id);
           
+          // 連続出場の完全禁止（1試合以上の間隔を強制）
+          const gap1 = matchIndex - player1LastMatch;
+          const gap2 = matchIndex - player2LastMatch;
+          
+          // 連続出場（間隔が1）の場合はスキップ
+          if (gap1 <= 1 || gap2 <= 1) {
+            continue; // このペアリングは選択肢から除外
+          }
+          
           // Calculate fairness score (lower match counts are better)
           const countScore = Math.max(0, 10 - (player1Count + player2Count));
           
           // Calculate gap score (higher gaps from last match are better)
-          const gap1 = matchIndex - player1LastMatch;
-          const gap2 = matchIndex - player2LastMatch;
           const gapScore = Math.min(gap1, gap2);
           
           // Calculate weight (higher weight = more likely to be selected)
@@ -120,10 +127,30 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
         }
       }
       
-      // Final fallback if no pairing found
+      // Final fallback if no pairing found (連続制約を緩和)
       if (!selectedPairing) {
-        const shuffled = [...participants].sort(() => Math.random() - 0.5);
-        selectedPairing = { player1: shuffled[0], player2: shuffled[1] };
+        // 連続制約が厳しすぎる場合、最小間隔で1つのペアを許可
+        for (let i = 0; i < participants.length; i++) {
+          for (let j = i + 1; j < participants.length; j++) {
+            const player1 = participants[i];
+            const player2 = participants[j];
+            const gap1 = matchIndex - (playerLastMatch.get(player1.id) || -999);
+            const gap2 = matchIndex - (playerLastMatch.get(player2.id) || -999);
+            
+            // 一方のみ連続の場合も許可（両方連続は避ける）
+            if (gap1 > 1 || gap2 > 1) {
+              selectedPairing = { player1, player2 };
+              break;
+            }
+          }
+          if (selectedPairing) break;
+        }
+        
+        // それでも見つからない場合の最終手段
+        if (!selectedPairing) {
+          const shuffled = [...participants].sort(() => Math.random() - 0.5);
+          selectedPairing = { player1: shuffled[0], player2: shuffled[1] };
+        }
       }
       
       matches.push({

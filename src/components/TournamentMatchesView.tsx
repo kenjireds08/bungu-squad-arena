@@ -352,11 +352,11 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
                   )}
                 </div>
 
-                {/* Next Up */}
+                {/* Next Up - 最大3試合表示 */}
                 {(() => {
-                  // Find the next scheduled match in sequence (not necessarily user's match)
+                  // Find the next scheduled matches in sequence
                   const scheduledMatches = Array.isArray(matches) ? matches.filter(m => m.status === 'scheduled') : [];
-                  const nextMatch = scheduledMatches.find(m => {
+                  const upcomingMatches = scheduledMatches.filter(m => {
                     const matchNumber = parseInt(m.match_number.replace(/^match_/, ''));
                     const completedMatches = Array.isArray(matches) ? matches.filter(match => match.status === 'approved' || match.status === 'completed') : [];
                     const completedMatchNumbers = completedMatches.map(match => parseInt(match.match_number.replace(/^match_/, '')));
@@ -369,27 +369,62 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
                       if (!completedMatchNumbers.includes(i)) return false;
                     }
                     return true;
-                  });
+                  }).slice(0, 3); // 最大3試合まで
                   
-                  if (nextMatch) {
+                  if (upcomingMatches.length > 0) {
                     return (
-                      <div className="p-3 bg-primary/10 border border-primary/20 rounded-lg">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <Clock className="h-4 w-4 text-primary" />
-                              <span className="font-medium text-primary">次の試合</span>
-                            </div>
-                            <div className="text-sm text-muted-foreground mt-1">
-                              {nextMatch.match_number.replace(/^match_/, '')}試合目: {nextMatch.player1_name} vs {nextMatch.player2_name}
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Clock className="h-4 w-4 text-primary" />
+                          <span className="font-medium text-primary">次の試合</span>
+                        </div>
+                        {upcomingMatches.map((match, index) => (
+                          <div 
+                            key={match.id} 
+                            className={`p-3 rounded-lg border ${
+                              index === 0 
+                                ? 'bg-primary/10 border-primary/20' 
+                                : 'bg-muted/50 border-muted'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  {index === 0 && (
+                                    <Badge className="bg-primary text-white text-xs">
+                                      次
+                                    </Badge>
+                                  )}
+                                  {index > 0 && (
+                                    <Badge variant="outline" className="text-xs">
+                                      予定{index + 1}
+                                    </Badge>
+                                  )}
+                                  <span className="text-sm font-medium">
+                                    {match.match_number.replace(/^match_/, '')}試合目
+                                  </span>
+                                </div>
+                                <div className="text-sm text-muted-foreground mt-1 ml-2">
+                                  {match.player1_name} vs {match.player2_name}
+                                </div>
+                              </div>
+                              {isUserInMatch(match) && (
+                                <Badge className={`${
+                                  index === 0 
+                                    ? 'bg-primary text-white animate-bounce' 
+                                    : 'bg-muted text-muted-foreground'
+                                }`}>
+                                  {index === 0 ? 'あなたの番！' : '予定'}
+                                </Badge>
+                              )}
                             </div>
                           </div>
-                          {isUserInMatch(nextMatch) && (
-                            <Badge className="bg-primary text-white animate-bounce">
-                              あなたの番！
-                            </Badge>
-                          )}
-                        </div>
+                        ))}
+                        {scheduledMatches.length > 3 && (
+                          <div className="text-xs text-muted-foreground text-center">
+                            他{scheduledMatches.length - 3}試合が予定されています
+                          </div>
+                        )}
                       </div>
                     );
                   }

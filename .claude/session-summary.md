@@ -401,3 +401,29 @@
 - 最終コミット: 1a0215e Fix: QRエントリー自動化とiOS PWAカメラ問題を修正
 
 ---
+
+## セッション: 2025-08-25 15:13:37
+
+### 最新のドキュメント
+- 089_qr_entry_complete_fix.md
+- 088_qr_entry_auto_complete_fix.md
+- 087_battlelog_generic_rating_app_requirements.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 4ba678b Fix: QRエントリーの実装を完全修正
+
+---
+
+## セッション: 2025-08-25 15:17:50
+
+### 最新のドキュメント
+- 089_qr_entry_complete_fix.md
+- 088_qr_entry_auto_complete_fix.md
+- 087_battlelog_generic_rating_app_requirements.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 4ba678b Fix: QRエントリーの実装を完全修正
+
+---
