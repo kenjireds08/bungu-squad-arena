@@ -519,10 +519,25 @@ export const TournamentEntry = () => {
       console.log('Setting timeout for waiting room transition...');
       setTimeout(() => {
         console.log('Timeout executed, navigating to tournament waiting page');
-        // Preserve from_qr parameter for PWA install prompt
-        const queryParams = isFromQR ? '?from_qr=true' : '';
-        // Use navigate for SPA routing
-        navigate(`/tournament-waiting${queryParams}`);
+        try {
+          // Preserve from_qr parameter for PWA install prompt
+          const queryParams = isFromQR ? '?from_qr=true' : '';
+          const targetUrl = `/tournament-waiting${queryParams}`;
+          console.log('Navigating to:', targetUrl);
+          
+          // Try different navigation methods for better PWA compatibility
+          if (window.location.pathname.includes('/tournament-entry')) {
+            // If we're on tournament-entry page, use replace to avoid back button issues
+            window.location.replace(targetUrl);
+          } else {
+            // Otherwise use normal navigation
+            navigate(targetUrl);
+          }
+        } catch (navError) {
+          console.error('Navigation error:', navError);
+          // Fallback: use direct location change
+          window.location.href = `/tournament-waiting${isFromQR ? '?from_qr=true' : ''}`;
+        }
       }, 2000); // Reduced from 3000ms to 2000ms
       
     } catch (error) {

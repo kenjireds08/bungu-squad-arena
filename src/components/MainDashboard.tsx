@@ -91,7 +91,14 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
   );
   
   // アクティブプレイヤーの中での順位を計算
-  const activeUserRank = activeRankings?.findIndex(player => player.id === CURRENT_USER_ID) + 1 || 0;
+  // 大会未参加者（tournament_active === false）の場合は順位なし
+  let activeUserRank: number | string = 0;
+  if (currentUser?.tournament_active === true) {
+    const rankIndex = activeRankings?.findIndex(player => player.id === CURRENT_USER_ID) ?? -1;
+    activeUserRank = rankIndex >= 0 ? rankIndex + 1 : 0;
+  } else {
+    activeUserRank = '-'; // 大会未参加の場合は順位なし
+  }
   // Get tournament data from API - prioritize today's tournament
   const today = new Date().toLocaleDateString('sv-SE'); // Use local date YYYY-MM-DD
   const { active, upcoming, completed } = getCategorizedTournaments(tournaments || []);
@@ -422,7 +429,7 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
                   <p className="text-lg font-medium text-foreground mb-2">{currentUser?.nickname || 'プレイヤー'}</p>
                 </div>
                 <h2 className="text-2xl font-bold text-foreground">
-                  {`現在 ${activeUserRank || '-'}位`}
+                  {activeUserRank === '-' ? '大会未参加' : `現在 ${activeUserRank}位`}
                 </h2>
                 <div className="flex items-center justify-center">
                   <span className="text-xl font-semibold text-primary">
