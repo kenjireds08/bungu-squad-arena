@@ -87,22 +87,22 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
   
   // デバッグ用：ユーザー情報をログ出力
   console.log('Current user data:', currentUser);
-  console.log('User total_matches:', currentUser?.total_matches);
-  console.log('User wins:', currentUser?.wins);
-  console.log('User losses:', currentUser?.losses);
+  console.log('User matches:', currentUser?.matches);
+  console.log('User annual_wins:', currentUser?.annual_wins);
+  console.log('User annual_losses:', currentUser?.annual_losses);
   
   // 大会参加経験の判定：
-  // 1. total_matches > 0 または
-  // 2. wins + losses > 0 （バックアップ）
+  // 1. matches > 0 または
+  // 2. annual_wins + annual_losses > 0 （バックアップ）
   const hasMatchHistory = currentUser && (
-    (currentUser.total_matches && currentUser.total_matches > 0) ||
-    ((currentUser.wins || 0) + (currentUser.losses || 0) > 0)
+    (currentUser.matches && currentUser.matches > 0) ||
+    ((currentUser.annual_wins || 0) + (currentUser.annual_losses || 0) > 0)
   );
   
   // 大会参加経験があるプレイヤーのみでフィルタリング
   const activeRankings = rankings?.filter(player => {
-    const matches = player.total_matches || 0;
-    const totalGames = (player.wins || 0) + (player.losses || 0);
+    const matches = player.matches || 0;
+    const totalGames = (player.annual_wins || 0) + (player.annual_losses || 0);
     return matches > 0 || totalGames > 0;
   });
   

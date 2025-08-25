@@ -39,7 +39,7 @@ export const useVersionPolling = (tournamentId: string = 'current') => {
     
     return () => clearInterval(interval);
   }, [tournamentId, queryClient]);
-};;
+};
 
 // Players hooks
 export const usePlayers = (enablePolling = false) => {
@@ -52,7 +52,7 @@ export const usePlayers = (enablePolling = false) => {
     retry: 1, // Limit retries
     refetchOnWindowFocus: false, // Disable refetch on window focus
   });
-};;
+};
 
 export const usePlayer = (id: string) => {
   return useQuery({

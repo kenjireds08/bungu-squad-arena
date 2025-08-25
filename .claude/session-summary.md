@@ -466,3 +466,29 @@
 - 最終コミット: 2b68e55 fix: 順位表示とJavaScript初期化エラーを修正
 
 ---
+
+## セッション: 2025-08-25 16:11:55
+
+### 最新のドキュメント
+- 091_tournament_checklist_sep5.md
+- 090_tournament_improvements_for_sep5.md
+- 089_qr_entry_complete_fix.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: fbd66d9 fix: 順位表示とナビゲーション問題の完全修正
+
+---
+
+## セッション: 2025-08-25 16:25:54
+
+### 最新のドキュメント
+- 091_tournament_checklist_sep5.md
+- 090_tournament_improvements_for_sep5.md
+- 089_qr_entry_complete_fix.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: fbd66d9 fix: 順位表示とナビゲーション問題の完全修正
+
+---
