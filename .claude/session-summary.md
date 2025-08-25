@@ -440,3 +440,16 @@
 - 最終コミット: 2c0ab7d feat: 9月5日大会に向けた改善
 
 ---
+
+## セッション: 2025-08-25 15:46:27
+
+### 最新のドキュメント
+- 091_tournament_checklist_sep5.md
+- 090_tournament_improvements_for_sep5.md
+- 089_qr_entry_complete_fix.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: e83a2dc fix: 大会未参加者の順位表示とPWAエントリー問題を修正
+
+---

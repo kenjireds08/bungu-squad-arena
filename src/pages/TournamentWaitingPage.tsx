@@ -1,7 +1,13 @@
 import { useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, lazy, Suspense } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { TournamentWaiting } from '@/components/TournamentWaiting';
+
+// 遅延ロードで初期化エラーを回避
+const TournamentWaiting = lazy(() => 
+  import('@/components/TournamentWaiting').then(module => ({ 
+    default: module.TournamentWaiting 
+  }))
+);
 
 const TournamentWaitingPage = () => {
   const navigate = useNavigate();
@@ -48,31 +54,23 @@ const TournamentWaitingPage = () => {
     console.log('View ranking clicked');
   };
 
-  // Add error boundary for debugging
-  try {
-    return (
+  return (
+    <Suspense 
+      fallback={
+        <div className="min-h-screen flex items-center justify-center p-4">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-sm text-muted-foreground">読み込み中...</p>
+          </div>
+        </div>
+      }
+    >
       <TournamentWaiting 
         onClose={handleClose}
         onViewRanking={handleViewRanking}
       />
-    );
-  } catch (error) {
-    console.error('TournamentWaitingPage render error:', error);
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="text-center">
-          <h1 className="text-xl font-bold mb-2">エラーが発生しました</h1>
-          <p className="text-sm text-muted-foreground mb-4">ページの読み込みに失敗しました</p>
-          <button 
-            onClick={() => window.location.href = '/'}
-            className="px-4 py-2 bg-primary text-white rounded"
-          >
-            ホームに戻る
-          </button>
-        </div>
-      </div>
-    );
-  }
+    </Suspense>
+  );
 };
 
 export default TournamentWaitingPage;

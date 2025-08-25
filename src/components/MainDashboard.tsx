@@ -85,15 +85,16 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
 
   const currentUser = rankings?.find(player => player.id === CURRENT_USER_ID);
   
-  // アクティブなプレイヤーのみでフィルタリングして順位を計算
+  // 大会参加経験があるプレイヤーのみでフィルタリングして順位を計算
+  // total_matches > 0 のプレイヤーのみをランキング対象とする
   const activeRankings = rankings?.filter(player => 
-    player.tournament_active === true || player.id === CURRENT_USER_ID
+    (player.total_matches && player.total_matches > 0) || player.id === CURRENT_USER_ID
   );
   
-  // アクティブプレイヤーの中での順位を計算
-  // 大会未参加者（tournament_active === false）の場合は順位なし
+  // ランキング内での順位を計算
+  // 一度も大会に参加していない（total_matches === 0）の場合は順位なし
   let activeUserRank: number | string = 0;
-  if (currentUser?.tournament_active === true) {
+  if (currentUser && currentUser.total_matches && currentUser.total_matches > 0) {
     const rankIndex = activeRankings?.findIndex(player => player.id === CURRENT_USER_ID) ?? -1;
     activeUserRank = rankIndex >= 0 ? rankIndex + 1 : 0;
   } else {
