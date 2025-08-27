@@ -325,14 +325,10 @@ export const TournamentEntry = () => {
           return;
         }
         
-        // 既存ユーザーがQRコードからアクセスして、まだエントリーしていない場合は自動エントリー
+        // 既存ユーザーがQRコードからアクセスして、まだエントリーしていない場合
+        // useEffectで自動エントリーを処理するため、ここでは何もしない
         if (isFromQR && userId && !userIsActive && tournamentData) {
-          console.log('TournamentEntry: Auto-entry for existing user from QR');
-          // 自動エントリーフラグを設定
-          setTimeout(() => {
-            // 自動エントリーを実行するためのフラグ
-            sessionStorage.setItem('autoEntryPending', 'true');
-          }, 500);
+          console.log('TournamentEntry: Existing user from QR detected, will auto-entry');
         }
       } catch (error) {
         console.error('Failed to load tournament:', error);
@@ -352,24 +348,31 @@ export const TournamentEntry = () => {
   
   // 既存ユーザーの自動エントリー処理
   useEffect(() => {
-    // 自動エントリーペンディングフラグをチェック
-    const autoEntryPending = sessionStorage.getItem('autoEntryPending');
     const userId = localStorage.getItem('userId');
     
-    if (autoEntryPending === 'true' && isFromQR && userId && tournament && !isEntered && !isEntering && !userTournamentActive) {
-      console.log('TournamentEntry: Executing auto-entry for existing user');
-      sessionStorage.removeItem('autoEntryPending'); // フラグをクリア
+    // 既存ユーザーがQRコードからアクセスした場合、自動エントリー
+    if (isFromQR && userId && tournament && !isEntered && !isEntering && !userTournamentActive && !isLoading) {
+      console.log('TournamentEntry: Auto-entry for existing user from QR', {
+        isFromQR,
+        userId,
+        tournament: tournament?.id,
+        isEntered,
+        isEntering,
+        userTournamentActive,
+        isLoading
+      });
       
-      // 直接handleEntryを呼び出す（少し遅延を入れて安定性を確保）
+      // 少し遅延を入れて安定性を確保してからボタンをクリック
       setTimeout(() => {
-        // handleEntry関数をここで直接呼び出さず、ボタンクリックをシミュレートする方法に変更
         const entryButton = document.querySelector('[data-auto-entry-button]');
-        if (entryButton instanceof HTMLButtonElement) {
+        console.log('Looking for entry button:', entryButton);
+        if (entryButton instanceof HTMLButtonElement && !entryButton.disabled) {
+          console.log('Clicking entry button for auto-entry');
           entryButton.click();
         }
-      }, 100);
+      }, 500); // 少し長めの遅延で確実に実行
     }
-  }, [isFromQR, tournament, isEntered, isEntering, userTournamentActive]);
+  }, [isFromQR, tournament, isEntered, isEntering, userTournamentActive, isLoading]);
 
   const handleEntry = useCallback(async () => {
     if (!tournament || !isFromQR) {

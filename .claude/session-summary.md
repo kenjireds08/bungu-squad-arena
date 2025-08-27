@@ -531,3 +531,68 @@
 - 最終コミット: 53720c0 Fix: 大会エントリー後の画面遷移エラーを修正
 
 ---
+
+## セッション: 2025-08-25 21:34:18
+
+### 最新のドキュメント
+- 091_tournament_checklist_sep5.md
+- 090_tournament_improvements_for_sep5.md
+- 089_qr_entry_complete_fix.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 70164df Fix: 循環参照エラーを完全に解決
+
+---
+
+## セッション: 2025-08-25 21:34:52
+
+### 最新のドキュメント
+- 091_tournament_checklist_sep5.md
+- 090_tournament_improvements_for_sep5.md
+- 089_qr_entry_complete_fix.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 70164df Fix: 循環参照エラーを完全に解決
+
+---
+
+## セッション: 2025-08-28 08:23:57
+
+### 最新のドキュメント
+- 091_tournament_checklist_sep5.md
+- 090_tournament_improvements_for_sep5.md
+- 089_qr_entry_complete_fix.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 70164df Fix: 循環参照エラーを完全に解決
+
+---
+
+## セッション: 2025-08-28 08:24:59
+
+### 最新のドキュメント
+- 091_tournament_checklist_sep5.md
+- 090_tournament_improvements_for_sep5.md
+- 089_qr_entry_complete_fix.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 70164df Fix: 循環参照エラーを完全に解決
+
+---
+
+## セッション: 2025-08-28 08:30:24
+
+### 最新のドキュメント
+- 091_tournament_checklist_sep5.md
+- 090_tournament_improvements_for_sep5.md
+- 089_qr_entry_complete_fix.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 7d6bda6 Fix: TournamentEntryコンポーネントの循環参照エラーを解決
+
+---
