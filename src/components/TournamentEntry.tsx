@@ -362,10 +362,14 @@ export const TournamentEntry = () => {
       
       // 直接handleEntryを呼び出す（少し遅延を入れて安定性を確保）
       setTimeout(() => {
-        handleEntry();
+        // handleEntry関数をここで直接呼び出さず、ボタンクリックをシミュレートする方法に変更
+        const entryButton = document.querySelector('[data-auto-entry-button]');
+        if (entryButton instanceof HTMLButtonElement) {
+          entryButton.click();
+        }
       }, 100);
     }
-  }, [isFromQR, tournament, isEntered, isEntering, userTournamentActive, handleEntry]);
+  }, [isFromQR, tournament, isEntered, isEntering, userTournamentActive]);
 
   const handleEntry = useCallback(async () => {
     if (!tournament || !isFromQR) {
@@ -883,6 +887,7 @@ export const TournamentEntry = () => {
                         onClick={handleEntry}
                         disabled={isEntering}
                         className="w-full"
+                        data-auto-entry-button
                       >
                         {isEntering ? (
                           <>
