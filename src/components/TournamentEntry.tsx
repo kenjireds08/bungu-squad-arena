@@ -363,16 +363,25 @@ export const TournamentEntry = () => {
       });
       
       // 少し遅延を入れて安定性を確保してからボタンをクリック
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         const entryButton = document.querySelector('[data-auto-entry-button]');
         console.log('Looking for entry button:', entryButton);
         if (entryButton instanceof HTMLButtonElement && !entryButton.disabled) {
           console.log('Clicking entry button for auto-entry');
           entryButton.click();
+        } else {
+          console.log('Entry button not found or disabled, checking if already active');
+          // ボタンが見つからない場合は、すでにエントリー済みの可能性がある
+          if (userTournamentActive) {
+            console.log('User is already tournament active, redirecting to waiting room');
+            navigate('/tournament-waiting?from_qr=true');
+          }
         }
-      }, 500); // 少し長めの遅延で確実に実行
+      }, 1000); // より長めの遅延で確実に実行
+      
+      return () => clearTimeout(timer);
     }
-  }, [isFromQR, tournament, isEntered, isEntering, userTournamentActive, isLoading]);
+  }, [isFromQR, tournament, isEntered, isEntering, userTournamentActive, isLoading, navigate]);
 
   const handleEntry = useCallback(async () => {
     if (!tournament || !isFromQR) {
@@ -503,8 +512,8 @@ export const TournamentEntry = () => {
         try {
           console.log('Updating tournament active status for user:', userId);
           await updateTournamentActive.mutateAsync({ 
-            playerId: userId, 
-            tournamentActive: true 
+            id: userId, 
+            active: true 
           });
           console.log('Tournament active status updated successfully');
         } catch (updateError) {
