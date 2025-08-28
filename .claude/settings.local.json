@@ -112,7 +112,11 @@
       "Read(/Users/kikuchikenji/Library/Application Support/CleanShot/media/media_7H9RsIv26S/**)",
       "Read(/var/folders/qx/6_t416w11yv492lx56z4lzr00000gn/T/TemporaryItems/NSIRD_screencaptureui_wx6imU/**)",
       "Read(/Users/kikuchikenji/Pictures/Photos Library.photoslibrary/resources/derivatives/D/**)",
-      "Read(/Users/kikuchikenji/Pictures/Photos Library.photoslibrary/resources/derivatives/5/**)"
+      "Read(/Users/kikuchikenji/Pictures/Photos Library.photoslibrary/resources/derivatives/5/**)",
+      "Read(/Users/kikuchikenji/Dropbox/My Mac (kikuchikenjinoMacBook-Air.local)/Desktop/**)",
+      "Read(/Users/kikuchikenji/Dropbox/My Mac (kikuchikenjinoMacBook-Air.local)/Desktop/**)",
+      "Read(/Users/kikuchikenji/Library/Application Support/CleanShot/media/media_nPU7ufYBs6/**)",
+      "Read(/Users/kikuchikenji/Library/Application Support/CleanShot/media/media_BCIKY5UgEN/**)"
     ],
     "deny": []
   }

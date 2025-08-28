@@ -97,12 +97,13 @@ class SheetsService {
       const headers = [
         'match_id', 'tournament_id', 'round', 'player1_id', 'player1_name', 
         'player2_id', 'player2_name', 'game_type', 'status', 'winner_id', 
-        'result_details', 'created_at', 'completed_at', 'approved_at'
+        'result_details', 'created_at', 'completed_at', 'approved_at',
+        'player1_rating_change', 'player2_rating_change'
       ];
       
       await this.sheets.spreadsheets.values.update({
         spreadsheetId: this.spreadsheetId,
-        range: 'TournamentMatches!A1:N1',
+        range: 'TournamentMatches!A1:P1',
         valueInputOption: 'USER_ENTERED',
         requestBody: { values: [headers] }
       });
@@ -2912,26 +2913,36 @@ class SheetsService {
           const oldWinnerOriginalRating = oldWinner.current_rating - oldWinnerRatingChange;
           const oldLoserOriginalRating = oldLoser.current_rating - oldLoserRatingChange;
           
-          // Calculate new rating changes with swapped winner/loser
+          console.log(`[editCompletedMatch] Restoring original ratings - ${oldWinnerId}: ${oldWinner.current_rating} -> ${oldWinnerOriginalRating}, ${oldLoserId}: ${oldLoser.current_rating} -> ${oldLoserOriginalRating}`);
+          
+          // Calculate new rating changes based on ORIGINAL ratings
           const K = 32;
-          // New winner was the old loser, new loser was the old winner
-          const expectedNewWinner = 1 / (1 + Math.pow(10, (oldWinnerOriginalRating - oldLoserOriginalRating) / 400));
+          // Get the new winner and loser's ORIGINAL ratings
+          const newWinner = players.find(p => p.id === newWinnerId);
+          const newLoser = players.find(p => p.id === newLoserId);
+          const newWinnerOriginalRating = newWinnerId === oldWinnerId ? oldWinnerOriginalRating : oldLoserOriginalRating;
+          const newLoserOriginalRating = newLoserId === oldWinnerId ? oldWinnerOriginalRating : oldLoserOriginalRating;
+          
+          // Calculate expected score for new winner vs new loser
+          const expectedNewWinner = 1 / (1 + Math.pow(10, (newLoserOriginalRating - newWinnerOriginalRating) / 400));
           const expectedNewLoser = 1 - expectedNewWinner;
           
           const newWinnerDelta = Math.round(K * (1 - expectedNewWinner));
           const newLoserDelta = Math.round(K * (0 - expectedNewLoser));
           
-          // Apply new ratings (old loser is now winner, old winner is now loser)
-          const newWinnerRating = oldLoserOriginalRating + newWinnerDelta;
-          const newLoserRating = oldWinnerOriginalRating + newLoserDelta;
+          // Apply new ratings based on ORIGINAL ratings
+          const newWinnerRating = newWinnerOriginalRating + newWinnerDelta;
+          const newLoserRating = newLoserOriginalRating + newLoserDelta;
+          
+          console.log(`[editCompletedMatch] New ratings - ${newWinnerId}: ${newWinnerOriginalRating} + ${newWinnerDelta} = ${newWinnerRating}, ${newLoserId}: ${newLoserOriginalRating} + ${newLoserDelta} = ${newLoserRating}`);
           
           // Update player ratings
           await this.updatePlayerRating(newWinnerId, newWinnerRating);
           await this.updatePlayerRating(newLoserId, newLoserRating);
         
           // Update match with new winner and rating changes (use matchRow from beginning)
-          // 正しい列の順序: H=game_type, I=status, J=winner_id, K=result_details, L=created_at, M=completed_at, N=approved_at
-          const updateRange = `TournamentMatches!H${matchRow}:N${matchRow}`;
+          // 正しい列の順序: H=game_type, I=status, J=winner_id, K=result_details, L=created_at, M=completed_at, N=approved_at, O=player1_rating_change, P=player2_rating_change
+          const updateRange = `TournamentMatches!H${matchRow}:P${matchRow}`;
           console.log(`[editCompletedMatch] Updating match at row ${matchRow} with new winner`);
             const newRatingChanges = {
               player1: match.player1_id === newWinnerId ? newWinnerDelta : newLoserDelta,
@@ -2953,7 +2964,9 @@ class SheetsService {
                   resultDetails,                // K: result_details (rating changes)
                   match.created_at || '',       // L: created_at (preserve original)
                   match.completed_at || new Date().toISOString(),     // M: completed_at (preserve if exists)
-                  new Date().toISOString()      // N: approved_at (update to now)
+                  new Date().toISOString(),     // N: approved_at (update to now)
+                  newRatingChanges.player1,     // O: player1_rating_change
+                  newRatingChanges.player2       // P: player2_rating_change
                 ]]
               }
           });
@@ -2988,7 +3001,7 @@ class SheetsService {
         
         // Update match (use matchRow from beginning)
         console.log(`[editCompletedMatch] Setting initial winner at row ${matchRow}`);
-        const updateRange = `TournamentMatches!H${matchRow}:N${matchRow}`;
+        const updateRange = `TournamentMatches!H${matchRow}:P${matchRow}`;
           const ratingChanges = {
             player1: match.player1_id === newWinnerId ? winnerDelta : loserDelta,
             player2: match.player2_id === newWinnerId ? winnerDelta : loserDelta
@@ -3007,7 +3020,9 @@ class SheetsService {
                 resultDetails,     // K: result_details
                 match.created_at || '',       // L: created_at (preserve original)
                 match.completed_at || new Date().toISOString(),     // M: completed_at (preserve if exists)
-                new Date().toISOString()      // N: approved_at
+                new Date().toISOString(),     // N: approved_at
+                ratingChanges.player1,         // O: player1_rating_change
+                ratingChanges.player2          // P: player2_rating_change
               ]]
             }
           });
@@ -3099,8 +3114,8 @@ class SheetsService {
       // Update match status to invalidated
       const matchRow = await this.findMatchRow(matchId);
       if (matchRow) {
-        // Update status and clear winner
-        const updateRange = `TournamentMatches!I${matchRow}:K${matchRow}`;
+        // Update status, clear winner and rating changes
+        const updateRange = `TournamentMatches!I${matchRow}:P${matchRow}`;
         await this.sheets.spreadsheets.values.update({
           spreadsheetId: this.spreadsheetId,
           range: updateRange,
@@ -3109,7 +3124,12 @@ class SheetsService {
             values: [[
               'invalidated',  // I: status
               '',             // J: winner_id (clear)
-              reason || 'Admin invalidated'  // K: result_details
+              reason || 'Admin invalidated',  // K: result_details
+              '',             // L: created_at (preserve by leaving empty)
+              '',             // M: completed_at (preserve by leaving empty)
+              '',             // N: approved_at (preserve by leaving empty)
+              0,              // O: player1_rating_change (reset to 0)
+              0               // P: player2_rating_change (reset to 0)
             ]]
           }
         });

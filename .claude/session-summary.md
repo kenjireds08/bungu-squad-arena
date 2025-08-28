@@ -817,3 +817,16 @@
 - 最終コミット: 281e420 Fix: PWAでのキーボード表示問題とプレースホルダー色の修正
 
 ---
+
+## セッション: 2025-08-28 18:21:24
+
+### 最新のドキュメント
+- 091_tournament_checklist_sep5.md
+- 090_tournament_improvements_for_sep5.md
+- 089_qr_entry_complete_fix.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 69a5b39 Fix: レーティング表示の不整合と試合編集機能を修正
+
+---
