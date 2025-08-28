@@ -2793,6 +2793,26 @@ class SheetsService {
   }
 
   /**
+   * Update match result (called from match edit UI)
+   */
+  async updateMatchResult(matchId, updateData) {
+    try {
+      await this.authenticate();
+      console.log(`[updateMatchResult] Updating match ${matchId} with data:`, updateData);
+      
+      const { winnerId, gameType } = updateData;
+      
+      // Delegate to editCompletedMatch for actual implementation
+      const result = await this.editCompletedMatch(matchId, winnerId, gameType);
+      
+      return result;
+    } catch (error) {
+      console.error('Error updating match result:', error);
+      throw new Error(`Failed to update match result: ${error.message}`);
+    }
+  }
+
+  /**
    * Edit completed match (change winner or game type)
    */
   async editCompletedMatch(matchId, newWinnerId, newGameType) {

@@ -778,3 +778,42 @@
 - 最終コミット: 666e1ca Fix: 完了試合編集時の重複作成バグを修正
 
 ---
+
+## セッション: 2025-08-28 15:37:04
+
+### 最新のドキュメント
+- 091_tournament_checklist_sep5.md
+- 090_tournament_improvements_for_sep5.md
+- 089_qr_entry_complete_fix.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 281e420 Fix: PWAでのキーボード表示問題とプレースホルダー色の修正
+
+---
+
+## セッション: 2025-08-28 16:25:55
+
+### 最新のドキュメント
+- 091_tournament_checklist_sep5.md
+- 090_tournament_improvements_for_sep5.md
+- 089_qr_entry_complete_fix.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 281e420 Fix: PWAでのキーボード表示問題とプレースホルダー色の修正
+
+---
+
+## セッション: 2025-08-28 18:19:50
+
+### 最新のドキュメント
+- 091_tournament_checklist_sep5.md
+- 090_tournament_improvements_for_sep5.md
+- 089_qr_entry_complete_fix.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 281e420 Fix: PWAでのキーボード表示問題とプレースホルダー色の修正
+
+---

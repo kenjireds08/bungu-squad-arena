@@ -28,6 +28,8 @@ interface Match {
   created_at: string;
   completed_at: string;
   approved_at: string;
+  player1_rating_change?: string | number;
+  player2_rating_change?: string | number;
 }
 
 export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: TournamentMatchesViewProps) => {
@@ -515,10 +517,31 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
                                       );
                                     }
                                   }
-                                  // result_detailsがない場合、デフォルト値を表示
-                                  return <span className="text-sm font-bold text-success">+15</span>;
+                                  // result_detailsがない場合、player1_rating_change/player2_rating_changeを使用
+                                  const ratingChange = match.winner_id === match.player1_id
+                                    ? match.player1_rating_change
+                                    : match.player2_rating_change;
+                                  if (ratingChange) {
+                                    return (
+                                      <span className="text-sm font-bold text-success">
+                                        {Number(ratingChange) > 0 ? '+' : ''}{ratingChange}
+                                      </span>
+                                    );
+                                  }
+                                  return null;
                                 } catch {
-                                  return <span className="text-sm font-bold text-success">+15</span>;
+                                  // エラー時もplayer1_rating_change/player2_rating_changeを使用
+                                  const ratingChange = match.winner_id === match.player1_id
+                                    ? match.player1_rating_change
+                                    : match.player2_rating_change;
+                                  if (ratingChange) {
+                                    return (
+                                      <span className="text-sm font-bold text-success">
+                                        {Number(ratingChange) > 0 ? '+' : ''}{ratingChange}
+                                      </span>
+                                    );
+                                  }
+                                  return null;
                                 }
                               })()}
                             </div>
@@ -542,10 +565,31 @@ export const TournamentMatchesView = ({ onClose, currentUserId, tournamentId }: 
                                       );
                                     }
                                   }
-                                  // result_detailsがない場合、デフォルト値を表示
-                                  return <span className="text-xs font-bold text-red-600">-15</span>;
+                                  // result_detailsがない場合、player1_rating_change/player2_rating_changeを使用
+                                  const ratingChange = match.winner_id === match.player1_id
+                                    ? match.player2_rating_change
+                                    : match.player1_rating_change;
+                                  if (ratingChange) {
+                                    return (
+                                      <span className="text-xs font-bold text-red-600">
+                                        {Number(ratingChange) > 0 ? '+' : ''}{ratingChange}
+                                      </span>
+                                    );
+                                  }
+                                  return null;
                                 } catch {
-                                  return <span className="text-xs font-bold text-red-600">-15</span>;
+                                  // エラー時もplayer1_rating_change/player2_rating_changeを使用
+                                  const ratingChange = match.winner_id === match.player1_id
+                                    ? match.player2_rating_change
+                                    : match.player1_rating_change;
+                                  if (ratingChange) {
+                                    return (
+                                      <span className="text-xs font-bold text-red-600">
+                                        {Number(ratingChange) > 0 ? '+' : ''}{ratingChange}
+                                      </span>
+                                    );
+                                  }
+                                  return null;
                                 }
                               })()}
                             </div>
