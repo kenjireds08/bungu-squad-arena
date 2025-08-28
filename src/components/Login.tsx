@@ -235,6 +235,18 @@ export const Login = ({ onLoginSuccess, isNewPlayer = false }: LoginProps) => {
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   autoFocus={!isSignUp}
+                  autoComplete="email"
+                  autoCapitalize="off"
+                  autoCorrect="off"
+                  inputMode="email"
+                  onFocus={(e) => {
+                    // Force focus on PWA
+                    e.target.setAttribute('readonly', 'false');
+                    setTimeout(() => {
+                      e.target.removeAttribute('readonly');
+                      e.target.focus();
+                    }, 100);
+                  }}
                 />
               </div>
 

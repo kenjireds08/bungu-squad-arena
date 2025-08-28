@@ -29,7 +29,7 @@
 
     /* Muted - Subtle backgrounds */
     --muted: 40 15% 88%;                /* Muted parchment */
-    --muted-foreground: 30 25% 35%;     /* Muted brown text */
+    --muted-foreground: 30 15% 55%;     /* Lighter muted brown text for better placeholder visibility */
 
     /* Accent - Highlight elements */
     --accent: 43 75% 49%;               /* Gold accent */
