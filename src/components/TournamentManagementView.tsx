@@ -1113,7 +1113,10 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
                     className="h-12 flex items-center justify-center gap-2"
                     onClick={() => {
                       // 現在の勝者を保持してゲームタイプのみ変更
-                      handleEditCompletedMatch(editCompletedMatch.winner_id, 'trump');
+                      // winner_idがない場合は現在のまま（勝者を変更しない）
+                      const currentWinner = editCompletedMatch.winner_id || 
+                        (editCompletedMatch.status === 'approved' ? editCompletedMatch.player1_id : editCompletedMatch.player1_id);
+                      handleEditCompletedMatch(currentWinner, 'trump');
                     }}
                     disabled={isSaving}
                   >
@@ -1126,7 +1129,10 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
                     className="h-12 flex items-center justify-center gap-2"
                     onClick={() => {
                       // 現在の勝者を保持してゲームタイプのみ変更
-                      handleEditCompletedMatch(editCompletedMatch.winner_id, 'cardplus');
+                      // winner_idがない場合は現在のまま（勝者を変更しない）
+                      const currentWinner = editCompletedMatch.winner_id || 
+                        (editCompletedMatch.status === 'approved' ? editCompletedMatch.player1_id : editCompletedMatch.player1_id);
+                      handleEditCompletedMatch(currentWinner, 'cardplus');
                     }}
                     disabled={isSaving}
                   >

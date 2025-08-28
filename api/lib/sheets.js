@@ -2817,6 +2817,10 @@ class SheetsService {
       const newLoserId = newWinnerId === match.player1_id ? match.player2_id : match.player1_id;
       const gameType = newGameType || match.game_type;
       
+      console.log(`[editCompletedMatch] Old winner: ${oldWinnerId}, New winner: ${newWinnerId}`);
+      console.log(`[editCompletedMatch] Old game type: ${match.game_type}, New game type: ${gameType}`);
+      console.log(`[editCompletedMatch] Winner changed: ${oldWinnerId !== newWinnerId}, Game type changed: ${gameType !== match.game_type}`);
+      
       // Get player ratings before changes
       const players = await this.getPlayers();
       const player1 = players.find(p => p.id === match.player1_id);
@@ -2827,7 +2831,7 @@ class SheetsService {
       }
 
       // If winner changed, reverse old rating changes and apply new ones
-      if (oldWinnerId !== newWinnerId) {
+      if (oldWinnerId && oldWinnerId !== newWinnerId) {
         console.log(`[editCompletedMatch] Winner changed from ${oldWinnerId} to ${newWinnerId}`);
         
         // Reverse old rating changes
@@ -2893,20 +2897,26 @@ class SheetsService {
             }
           });
         }
-      } else if (gameType !== match.game_type) {
-        // Only game type changed, update it
-        console.log(`[editCompletedMatch] Game type changed from ${match.game_type} to ${gameType}`);
+      } else {
+        // Winner not changed OR game type only changed
+        console.log(`[editCompletedMatch] Updating game type or no winner change`);
         const matchRow = await this.findMatchRow(matchId);
         if (matchRow) {
-          const updateRange = `TournamentMatches!J${matchRow}`;
+          // Update winner and game type (even if winner is the same, ensure it's set)
+          const updateRange = `TournamentMatches!H${matchRow}:J${matchRow}`;
           await this.sheets.spreadsheets.values.update({
             spreadsheetId: this.spreadsheetId,
             range: updateRange,
             valueInputOption: 'USER_ENTERED',
             requestBody: {
-              values: [[gameType]]
+              values: [[
+                newWinnerId || oldWinnerId,  // H: winner_id (ensure winner is set)
+                'approved',                   // I: status
+                gameType                      // J: game_type
+              ]]
             }
           });
+          console.log(`[editCompletedMatch] Updated match with winner: ${newWinnerId || oldWinnerId}, game type: ${gameType}`);
         }
       }
 
