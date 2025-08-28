@@ -2809,6 +2809,14 @@ class SheetsService {
         throw new Error(`Match not found: ${matchId}`);
       }
       
+      // IMPORTANT: Find match row once at the beginning to ensure we're updating the right row
+      const matchRow = await this.findMatchRow(matchId);
+      if (!matchRow) {
+        console.error(`[editCompletedMatch] Match row not found in spreadsheet: ${matchId}`);
+        throw new Error(`Match row not found in spreadsheet: ${matchId}`);
+      }
+      console.log(`[editCompletedMatch] Found match at row: ${matchRow}`);
+      
       if (match.status !== 'completed' && match.status !== 'approved') {
         console.error(`[editCompletedMatch] Match status invalid: ${match.status}`);
         throw new Error(`Can only edit completed matches. Current status: ${match.status}`);
@@ -2901,11 +2909,10 @@ class SheetsService {
           await this.updatePlayerRating(newWinnerId, newWinnerRating);
           await this.updatePlayerRating(newLoserId, newLoserRating);
         
-          // Update match with new winner and rating changes
-          const matchRow = await this.findMatchRow(matchId);
-          if (matchRow) {
-            // 正しい列の順序: H=game_type, I=status, J=winner_id, K=result_details, L=created_at, M=completed_at, N=approved_at
-            const updateRange = `TournamentMatches!H${matchRow}:N${matchRow}`;
+          // Update match with new winner and rating changes (use matchRow from beginning)
+          // 正しい列の順序: H=game_type, I=status, J=winner_id, K=result_details, L=created_at, M=completed_at, N=approved_at
+          const updateRange = `TournamentMatches!H${matchRow}:N${matchRow}`;
+          console.log(`[editCompletedMatch] Updating match at row ${matchRow} with new winner`);
             const newRatingChanges = {
               player1: match.player1_id === newWinnerId ? newWinnerDelta : newLoserDelta,
               player2: match.player2_id === newWinnerId ? newWinnerDelta : newLoserDelta
@@ -2925,12 +2932,12 @@ class SheetsService {
                   newWinnerId,                  // J: winner_id
                   resultDetails,                // K: result_details (rating changes)
                   match.created_at || '',       // L: created_at (preserve original)
-                  new Date().toISOString(),     // M: completed_at
-                  new Date().toISOString()      // N: approved_at
+                  match.completed_at || new Date().toISOString(),     // M: completed_at (preserve if exists)
+                  new Date().toISOString()      // N: approved_at (update to now)
                 ]]
               }
-            });
-          }
+          });
+          console.log(`[editCompletedMatch] Updated match winner from ${oldWinnerId} to ${newWinnerId}`);
         }
       } else if (!oldWinnerId && newWinnerId) {
         // No previous winner, just setting a new winner
@@ -2959,10 +2966,9 @@ class SheetsService {
         await this.updatePlayerRating(newWinnerId, newWinnerRating);
         await this.updatePlayerRating(newLoserId, newLoserRating);
         
-        // Update match
-        const matchRow = await this.findMatchRow(matchId);
-        if (matchRow) {
-          const updateRange = `TournamentMatches!H${matchRow}:K${matchRow}`;
+        // Update match (use matchRow from beginning)
+        console.log(`[editCompletedMatch] Setting initial winner at row ${matchRow}`);
+        const updateRange = `TournamentMatches!H${matchRow}:N${matchRow}`;
           const ratingChanges = {
             player1: match.player1_id === newWinnerId ? winnerDelta : loserDelta,
             player2: match.player2_id === newWinnerId ? winnerDelta : loserDelta
@@ -2978,32 +2984,32 @@ class SheetsService {
                 gameType,          // H: game_type
                 'approved',        // I: status  
                 newWinnerId,       // J: winner_id
-                resultDetails      // K: result_details
+                resultDetails,     // K: result_details
+                match.created_at || '',       // L: created_at (preserve original)
+                match.completed_at || new Date().toISOString(),     // M: completed_at (preserve if exists)
+                new Date().toISOString()      // N: approved_at
               ]]
             }
           });
-        }
+          console.log(`[editCompletedMatch] Set initial winner: ${newWinnerId}`);
       } else {
         // Game type only changed (winner unchanged)
-        console.log(`[editCompletedMatch] Updating game type only`);
-        const matchRow = await this.findMatchRow(matchId);
-        if (matchRow) {
+        console.log(`[editCompletedMatch] Updating game type only at row ${matchRow}`);
           // 正しい列の順序: H=game_type, I=status, J=winner_id
           const updateRange = `TournamentMatches!H${matchRow}:J${matchRow}`;
-          await this.sheets.spreadsheets.values.update({
-            spreadsheetId: this.spreadsheetId,
-            range: updateRange,
-            valueInputOption: 'USER_ENTERED',
-            requestBody: {
-              values: [[
-                gameType,                     // H: game_type
-                'approved',                   // I: status
-                newWinnerId || oldWinnerId   // J: winner_id
-              ]]
-            }
-          });
-          console.log(`[editCompletedMatch] Updated match with winner: ${newWinnerId || oldWinnerId}, game type: ${gameType}`);
-        }
+        await this.sheets.spreadsheets.values.update({
+          spreadsheetId: this.spreadsheetId,
+          range: updateRange,
+          valueInputOption: 'USER_ENTERED',
+          requestBody: {
+            values: [[
+              gameType,                     // H: game_type
+              match.status || 'approved',   // I: status (preserve current status)
+              newWinnerId || oldWinnerId || match.winner_id   // J: winner_id
+            ]]
+          }
+        });
+        console.log(`[editCompletedMatch] Updated game type from ${match.game_type} to ${gameType}`);
       }
 
       console.log(`[editCompletedMatch] Match ${matchId} edited successfully`);
