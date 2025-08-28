@@ -172,12 +172,12 @@ async function handleTournamentEntry(req, res) {
         tournament_active: true  // Set to true so player is tournament active from creation
       };
       
-      console.log('TEMP: Creating player with data:', tempPlayerData);
+      console.log('TEMP: Creating player with data:', JSON.stringify(tempPlayerData, null, 2));
       
       try {
         console.log('TEMP: About to call sheetsService.addPlayer...');
         const addResult = await sheetsService.addPlayer(tempPlayerData);
-        console.log('TEMP: addPlayer result:', addResult);
+        console.log('TEMP: addPlayer result:', JSON.stringify(addResult, null, 2));
         player = tempPlayerData;
         console.log('TEMP: Created temporary user successfully with nickname:', finalNickname, 'email:', finalEmail);
         
@@ -186,13 +186,23 @@ async function handleTournamentEntry(req, res) {
         const allPlayers = await sheetsService.getPlayers();
         const addedPlayer = allPlayers.find(p => p.id === userId);
         if (addedPlayer) {
-          console.log('TEMP: Player verified in sheet:', addedPlayer.nickname);
+          console.log('TEMP: Player verified in sheet:', JSON.stringify(addedPlayer, null, 2));
+          // Use the actual data from sheets
+          player = addedPlayer;
         } else {
           console.error('TEMP: Player NOT found in sheet after adding!');
+          console.error('TEMP: All players:', allPlayers.map(p => ({ id: p.id, nickname: p.nickname })));
         }
       } catch (addPlayerError) {
         console.error('TEMP: Failed to create temporary user:', addPlayerError);
         console.error('TEMP: Error stack:', addPlayerError.stack);
+        console.error('TEMP: Error details:', {
+          userId,
+          tempNickname,
+          tempEmail,
+          finalNickname,
+          finalEmail
+        });
         throw new Error(`Failed to create temporary user: ${addPlayerError.message}`);
       }
     }
@@ -236,15 +246,27 @@ async function handleTournamentEntry(req, res) {
 
     // 4. 大会参加者リストに追加（TournamentParticipantsが真実の源）
     try {
-      await sheetsService.addTournamentParticipant({
+      const participantData = {
+        participation_id: `part_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         player_id: userId,
         tournament_id: tournamentId,
-        registered_at: new Date().toISOString(),
+        joined_at: new Date().toISOString(),
+        entry_method: 'qr_code',
         status: 'registered'
-      });
-      console.log(`Added tournament participant: ${userId} -> ${tournamentId}`);
+      };
+      console.log(`Adding tournament participant with data:`, participantData);
+      
+      const result = await sheetsService.addTournamentParticipant(participantData);
+      
+      console.log(`Added tournament participant: ${userId} -> ${tournamentId}, Result:`, result);
     } catch (participantError) {
       console.error(`Failed to add tournament participant:`, participantError);
+      console.error(`Error stack:`, participantError.stack);
+      console.error(`Error details:`, {
+        userId,
+        tournamentId,
+        message: participantError.message
+      });
       throw new Error(`Tournament participant registration failed: ${participantError.message}`);
     }
 

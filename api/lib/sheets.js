@@ -2229,11 +2229,17 @@ class SheetsService {
   async addTournamentParticipant(participant) {
     await this.authenticate();
     try {
+      console.log('[addTournamentParticipant] Starting with participant:', participant);
+      
       // まずヘッダーを取得して列構造を確認
       const { headers, idx } = await this._getHeaders('TournamentParticipants!1:1');
       
-      if (headers.length === 0) {
-        throw new Error('TournamentParticipants sheet headers not found');
+      console.log('[addTournamentParticipant] Headers retrieved:', headers);
+      
+      if (!headers || headers.length === 0) {
+        // TournamentParticipantsシートが存在しない場合、作成を試みる
+        console.error('[addTournamentParticipant] TournamentParticipants sheet headers not found, attempting to create sheet');
+        throw new Error('TournamentParticipants sheet headers not found - sheet might not exist');
       }
 
       // 既存データを全て取得
@@ -2259,11 +2265,11 @@ class SheetsService {
       }
       
       if (existingRowIndex >= 0) {
-        // 既存の参加者が見つかった場合：statusを'active'に更新
+        // 既存の参加者が見つかった場合：statusを'registered'に更新
         console.log(`[addTournamentParticipant] Updating existing participant at row ${existingRowIndex}`);
         
         if (statusIdx >= 0) {
-          rows[existingRowIndex][statusIdx] = 'active';
+          rows[existingRowIndex][statusIdx] = participant.status || 'registered';
         }
         
         // 更新日時も設定
@@ -2284,10 +2290,21 @@ class SheetsService {
         return { ok: true, updated: true };
       } else {
         // 新規参加者を追加
-        console.log(`[addTournamentParticipant] Adding new participant`);
+        console.log(`[addTournamentParticipant] Adding new participant with data:`, participant);
+        
+        // デフォルト値を設定
+        const participantWithDefaults = {
+          ...participant,
+          status: participant.status || 'registered',
+          registered_at: participant.registered_at || new Date().toISOString(),
+          joined_at: participant.joined_at || new Date().toISOString()
+        };
         
         // participantオブジェクトをヘッダー順の配列に変換
-        const row = headers.map(header => participant[header] || '');
+        const row = headers.map(header => participantWithDefaults[header] || '');
+        
+        console.log(`[addTournamentParticipant] Row to append:`, row);
+        console.log(`[addTournamentParticipant] Headers:`, headers);
 
         // 新しい行を追加
         await this.sheets.spreadsheets.values.append({
