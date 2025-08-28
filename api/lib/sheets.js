@@ -2826,13 +2826,17 @@ class SheetsService {
       }
 
       const oldWinnerId = match.winner_id;
-      const oldLoserId = oldWinnerId === match.player1_id ? match.player2_id : match.player1_id;
-      const newLoserId = newWinnerId === match.player1_id ? match.player2_id : match.player1_id;
       const gameType = newGameType || match.game_type;
       
-      console.log(`[editCompletedMatch] Old winner: ${oldWinnerId}, New winner: ${newWinnerId}`);
-      console.log(`[editCompletedMatch] Old game type: ${match.game_type}, New game type: ${gameType}`);
-      console.log(`[editCompletedMatch] Winner changed: ${oldWinnerId !== newWinnerId}, Game type changed: ${gameType !== match.game_type}`);
+      console.log(`[editCompletedMatch] Match data:`, {
+        matchId: match.match_id,
+        player1_id: match.player1_id,
+        player2_id: match.player2_id,
+        oldWinnerId,
+        newWinnerId,
+        oldGameType: match.game_type,
+        newGameType: gameType
+      });
       
       // Get player ratings before changes
       const players = await this.getPlayers();
@@ -2840,19 +2844,26 @@ class SheetsService {
       const player2 = players.find(p => p.id === match.player2_id);
       
       if (!player1 || !player2) {
-        throw new Error('Players not found');
+        console.error(`[editCompletedMatch] Players not found. Player1: ${match.player1_id}, Player2: ${match.player2_id}`);
+        console.error(`[editCompletedMatch] Available players:`, players.map(p => p.id));
+        throw new Error('Players not found in database');
       }
 
       // If winner changed, reverse old rating changes and apply new ones
       if (oldWinnerId && oldWinnerId !== newWinnerId) {
         console.log(`[editCompletedMatch] Winner changed from ${oldWinnerId} to ${newWinnerId}`);
         
+        const oldLoserId = oldWinnerId === match.player1_id ? match.player2_id : match.player1_id;
+        const newLoserId = newWinnerId === match.player1_id ? match.player2_id : match.player1_id;
+        
         // Reverse old rating changes
         const oldWinner = players.find(p => p.id === oldWinnerId);
         const oldLoser = players.find(p => p.id === oldLoserId);
         
         if (!oldWinner || !oldLoser) {
-          throw new Error('Old winner or loser not found');
+          console.error(`[editCompletedMatch] Old winner/loser not found. OldWinner: ${oldWinnerId}, OldLoser: ${oldLoserId}`);
+          console.error(`[editCompletedMatch] Available players:`, players.map(p => ({ id: p.id, nickname: p.nickname })));
+          throw new Error(`Old winner (${oldWinnerId}) or loser (${oldLoserId}) not found in players list`);
         }
         
         // Get the old rating changes from match data (handle null/undefined)
@@ -2914,9 +2925,60 @@ class SheetsService {
             }
           });
         }
+      } else if (!oldWinnerId && newWinnerId) {
+        // No previous winner, just setting a new winner
+        console.log(`[editCompletedMatch] Setting initial winner: ${newWinnerId}`);
+        
+        const newLoserId = newWinnerId === match.player1_id ? match.player2_id : match.player1_id;
+        const winner = players.find(p => p.id === newWinnerId);
+        const loser = players.find(p => p.id === newLoserId);
+        
+        if (!winner || !loser) {
+          throw new Error('Winner or loser not found');
+        }
+        
+        // Calculate rating changes
+        const K = 32;
+        const expectedWinner = 1 / (1 + Math.pow(10, (loser.current_rating - winner.current_rating) / 400));
+        const expectedLoser = 1 - expectedWinner;
+        
+        const winnerDelta = Math.round(K * (1 - expectedWinner));
+        const loserDelta = Math.round(K * (0 - expectedLoser));
+        
+        // Apply new ratings
+        const newWinnerRating = winner.current_rating + winnerDelta;
+        const newLoserRating = loser.current_rating + loserDelta;
+        
+        await this.updatePlayerRating(newWinnerId, newWinnerRating);
+        await this.updatePlayerRating(newLoserId, newLoserRating);
+        
+        // Update match
+        const matchRow = await this.findMatchRow(matchId);
+        if (matchRow) {
+          const updateRange = `TournamentMatches!H${matchRow}:K${matchRow}`;
+          const ratingChanges = {
+            player1: match.player1_id === newWinnerId ? winnerDelta : loserDelta,
+            player2: match.player2_id === newWinnerId ? winnerDelta : loserDelta
+          };
+          const resultDetails = `P1:${ratingChanges.player1}, P2:${ratingChanges.player2}`;
+          
+          await this.sheets.spreadsheets.values.update({
+            spreadsheetId: this.spreadsheetId,
+            range: updateRange,
+            valueInputOption: 'USER_ENTERED',
+            requestBody: {
+              values: [[
+                gameType,          // H: game_type
+                'approved',        // I: status  
+                newWinnerId,       // J: winner_id
+                resultDetails      // K: result_details
+              ]]
+            }
+          });
+        }
       } else {
-        // Winner not changed OR game type only changed
-        console.log(`[editCompletedMatch] Updating game type or no winner change`);
+        // Game type only changed (winner unchanged)
+        console.log(`[editCompletedMatch] Updating game type only`);
         const matchRow = await this.findMatchRow(matchId);
         if (matchRow) {
           // 正しい列の順序: H=game_type, I=status, J=winner_id
@@ -2947,6 +3009,88 @@ class SheetsService {
     } catch (error) {
       console.error('Error editing completed match:', error);
       throw new Error(`Failed to edit completed match: ${error.message}`);
+    }
+  }
+
+  /**
+   * Invalidate match (cancel match without rating changes)
+   */
+  async invalidateMatch(matchId, reason) {
+    try {
+      await this.authenticate();
+      console.log(`[invalidateMatch] Invalidating match ${matchId} with reason: ${reason}`);
+
+      // Get the match details
+      const matches = await this.getTournamentMatches(null);
+      const match = matches.find(m => m.match_id === matchId);
+      
+      if (!match) {
+        console.error(`[invalidateMatch] Match not found: ${matchId}`);
+        throw new Error(`Match not found: ${matchId}`);
+      }
+      
+      console.log(`[invalidateMatch] Match found:`, {
+        matchId: match.match_id,
+        status: match.status,
+        winner_id: match.winner_id,
+        player1: match.player1_id,
+        player2: match.player2_id
+      });
+
+      // If match was completed with rating changes, reverse them
+      if ((match.status === 'completed' || match.status === 'approved') && match.winner_id) {
+        const players = await this.getPlayers();
+        const player1 = players.find(p => p.id === match.player1_id);
+        const player2 = players.find(p => p.id === match.player2_id);
+        
+        if (player1 && player2) {
+          // Get rating changes from match
+          const player1RatingChange = match.player1_rating_change || 0;
+          const player2RatingChange = match.player2_rating_change || 0;
+          
+          // Reverse rating changes if they exist
+          if (player1RatingChange !== 0) {
+            const originalRating1 = player1.current_rating - player1RatingChange;
+            await this.updatePlayerRating(match.player1_id, originalRating1);
+            console.log(`[invalidateMatch] Reversed rating for ${match.player1_id}: ${player1.current_rating} -> ${originalRating1}`);
+          }
+          
+          if (player2RatingChange !== 0) {
+            const originalRating2 = player2.current_rating - player2RatingChange;
+            await this.updatePlayerRating(match.player2_id, originalRating2);
+            console.log(`[invalidateMatch] Reversed rating for ${match.player2_id}: ${player2.current_rating} -> ${originalRating2}`);
+          }
+        }
+      }
+
+      // Update match status to invalidated
+      const matchRow = await this.findMatchRow(matchId);
+      if (matchRow) {
+        // Update status and clear winner
+        const updateRange = `TournamentMatches!I${matchRow}:K${matchRow}`;
+        await this.sheets.spreadsheets.values.update({
+          spreadsheetId: this.spreadsheetId,
+          range: updateRange,
+          valueInputOption: 'USER_ENTERED',
+          requestBody: {
+            values: [[
+              'invalidated',  // I: status
+              '',             // J: winner_id (clear)
+              reason || 'Admin invalidated'  // K: result_details
+            ]]
+          }
+        });
+        console.log(`[invalidateMatch] Match ${matchId} invalidated successfully`);
+      }
+
+      return { 
+        success: true, 
+        matchId,
+        reason
+      };
+    } catch (error) {
+      console.error('Error invalidating match:', error);
+      throw new Error(`Failed to invalidate match: ${error.message}`);
     }
   }
 

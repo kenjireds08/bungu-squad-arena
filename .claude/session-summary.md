@@ -726,3 +726,16 @@
 - 最終コミット: d1fcfe8 Fix: 完了した試合の編集機能のエラーを修正
 
 ---
+
+## セッション: 2025-08-28 14:03:26
+
+### 最新のドキュメント
+- 091_tournament_checklist_sep5.md
+- 090_tournament_improvements_for_sep5.md
+- 089_qr_entry_complete_fix.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: c48336b Fix: 完了した試合の編集機能を修正
+
+---
