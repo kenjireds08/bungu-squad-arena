@@ -609,3 +609,29 @@
 - 最終コミット: cd9e79a Fix: 既存ユーザーのQRコード経由の自動エントリー処理を改善
 
 ---
+
+## セッション: 2025-08-28 08:51:40
+
+### 最新のドキュメント
+- 091_tournament_checklist_sep5.md
+- 090_tournament_improvements_for_sep5.md
+- 089_qr_entry_complete_fix.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 954338e Fix: 自動エントリー処理とAPIパラメータエラーを修正
+
+---
+
+## セッション: 2025-08-28 09:11:46
+
+### 最新のドキュメント
+- 091_tournament_checklist_sep5.md
+- 090_tournament_improvements_for_sep5.md
+- 089_qr_entry_complete_fix.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 5423f6a Fix: 新規プレイヤーのQRコードエントリー処理を修正
+
+---

@@ -299,10 +299,11 @@ class SheetsService {
 
         const rows = response.data.values || [];
         
-        // Auto-reset tournament participation flags for new day (fire-and-forget to avoid deadlock)
-        this.autoResetOldTournamentParticipation()
-          .then(() => console.log('Auto-reset check completed'))
-          .catch(resetError => console.warn('Auto-reset failed:', resetError.message));
+        // DISABLED: Auto-reset causes issues with same-day tournament entries
+        // The reset should only happen via admin action or scheduled job, not on every getPlayers call
+        // this.autoResetOldTournamentParticipation()
+        //   .then(() => console.log('Auto-reset check completed'))
+        //   .catch(resetError => console.warn('Auto-reset failed:', resetError.message));
         
         return rows.map((row, index) => ({
           id: row[0] || `row${index + 2}`,
