@@ -2805,11 +2805,24 @@ class SheetsService {
       const match = matches.find(m => m.match_id === matchId);
       
       if (!match) {
-        throw new Error('Match not found');
+        console.error(`[editCompletedMatch] Match not found: ${matchId}`);
+        throw new Error(`Match not found: ${matchId}`);
       }
       
       if (match.status !== 'completed' && match.status !== 'approved') {
-        throw new Error('Can only edit completed matches');
+        console.error(`[editCompletedMatch] Match status invalid: ${match.status}`);
+        throw new Error(`Can only edit completed matches. Current status: ${match.status}`);
+      }
+
+      // Validate newWinnerId
+      if (!newWinnerId) {
+        console.error(`[editCompletedMatch] Winner ID is required but not provided`);
+        throw new Error('Winner ID is required');
+      }
+
+      if (newWinnerId !== match.player1_id && newWinnerId !== match.player2_id) {
+        console.error(`[editCompletedMatch] Invalid winner ID: ${newWinnerId}. Must be ${match.player1_id} or ${match.player2_id}`);
+        throw new Error('Winner must be one of the match participants');
       }
 
       const oldWinnerId = match.winner_id;

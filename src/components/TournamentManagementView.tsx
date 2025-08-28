@@ -445,6 +445,15 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
   const handleEditCompletedMatch = async (newWinnerId: string, newGameType?: string) => {
     if (!editCompletedMatch) return;
 
+    console.log('Editing match:', {
+      matchId: editCompletedMatch.match_id,
+      currentWinner: editCompletedMatch.winner_id,
+      newWinnerId,
+      currentGameType: editCompletedMatch.game_type,
+      newGameType,
+      tournamentId
+    });
+
     try {
       setIsSaving(true);
       
@@ -467,13 +476,15 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
         await fetchMatches();
         setEditCompletedMatch(null);
       } else {
-        throw new Error('Failed to edit completed match');
+        const errorData = await response.json();
+        console.error('Edit match error response:', errorData);
+        throw new Error(errorData.error || 'Failed to edit completed match');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to edit completed match:', error);
       toast({
         title: 'エラー',
-        description: '試合の編集に失敗しました',
+        description: error.message || '試合の編集に失敗しました',
         variant: 'destructive',
       });
     } finally {
@@ -1113,10 +1124,16 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
                     className="h-12 flex items-center justify-center gap-2"
                     onClick={() => {
                       // 現在の勝者を保持してゲームタイプのみ変更
-                      // winner_idがない場合は現在のまま（勝者を変更しない）
-                      const currentWinner = editCompletedMatch.winner_id || 
-                        (editCompletedMatch.status === 'approved' ? editCompletedMatch.player1_id : editCompletedMatch.player1_id);
-                      handleEditCompletedMatch(currentWinner, 'trump');
+                      const currentWinner = editCompletedMatch.winner_id;
+                      if (currentWinner) {
+                        handleEditCompletedMatch(currentWinner, 'trump');
+                      } else {
+                        toast({
+                          title: 'エラー',
+                          description: '試合の勝者が設定されていません',
+                          variant: 'destructive',
+                        });
+                      }
                     }}
                     disabled={isSaving}
                   >
@@ -1129,10 +1146,16 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
                     className="h-12 flex items-center justify-center gap-2"
                     onClick={() => {
                       // 現在の勝者を保持してゲームタイプのみ変更
-                      // winner_idがない場合は現在のまま（勝者を変更しない）
-                      const currentWinner = editCompletedMatch.winner_id || 
-                        (editCompletedMatch.status === 'approved' ? editCompletedMatch.player1_id : editCompletedMatch.player1_id);
-                      handleEditCompletedMatch(currentWinner, 'cardplus');
+                      const currentWinner = editCompletedMatch.winner_id;
+                      if (currentWinner) {
+                        handleEditCompletedMatch(currentWinner, 'cardplus');
+                      } else {
+                        toast({
+                          title: 'エラー',
+                          description: '試合の勝者が設定されていません',
+                          variant: 'destructive',
+                        });
+                      }
                     }}
                     disabled={isSaving}
                   >

@@ -674,3 +674,55 @@
 - 最終コミット: 6b698bf Fix: 完了試合編集エラーとリアルタイム画面遷移の改善
 
 ---
+
+## セッション: 2025-08-28 13:33:21
+
+### 最新のドキュメント
+- 091_tournament_checklist_sep5.md
+- 090_tournament_improvements_for_sep5.md
+- 089_qr_entry_complete_fix.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 0ec9661 Fix: 完了試合編集のゲームルール変更が反映されない問題を修正
+
+---
+
+## セッション: 2025-08-28 13:46:30
+
+### 最新のドキュメント
+- 091_tournament_checklist_sep5.md
+- 090_tournament_improvements_for_sep5.md
+- 089_qr_entry_complete_fix.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 0ec9661 Fix: 完了試合編集のゲームルール変更が反映されない問題を修正
+
+---
+
+## セッション: 2025-08-28 13:48:16
+
+### 最新のドキュメント
+- 091_tournament_checklist_sep5.md
+- 090_tournament_improvements_for_sep5.md
+- 089_qr_entry_complete_fix.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: d1fcfe8 Fix: 完了した試合の編集機能のエラーを修正
+
+---
+
+## セッション: 2025-08-28 14:02:17
+
+### 最新のドキュメント
+- 091_tournament_checklist_sep5.md
+- 090_tournament_improvements_for_sep5.md
+- 089_qr_entry_complete_fix.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: d1fcfe8 Fix: 完了した試合の編集機能のエラーを修正
+
+---
