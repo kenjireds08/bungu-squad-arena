@@ -739,3 +739,16 @@
 - 最終コミット: c48336b Fix: 完了した試合の編集機能を修正
 
 ---
+
+## セッション: 2025-08-28 14:17:53
+
+### 最新のドキュメント
+- 091_tournament_checklist_sep5.md
+- 090_tournament_improvements_for_sep5.md
+- 089_qr_entry_complete_fix.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 86e3e55 Fix: 試合編集・無効化機能の完全修正
+
+---

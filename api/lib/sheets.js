@@ -2825,7 +2825,12 @@ class SheetsService {
         throw new Error('Winner must be one of the match participants');
       }
 
-      const oldWinnerId = match.winner_id;
+      // Clean up winner_id if it contains invalid values like "approved"
+      let oldWinnerId = match.winner_id;
+      if (oldWinnerId === 'approved' || oldWinnerId === 'completed' || oldWinnerId === 'invalidated' || oldWinnerId === '') {
+        console.warn(`[editCompletedMatch] Found invalid winner_id: "${oldWinnerId}". Treating as no previous winner.`);
+        oldWinnerId = null;
+      }
       const gameType = newGameType || match.game_type;
       
       console.log(`[editCompletedMatch] Match data:`, {
@@ -2850,7 +2855,7 @@ class SheetsService {
       }
 
       // If winner changed, reverse old rating changes and apply new ones
-      if (oldWinnerId && oldWinnerId !== newWinnerId) {
+      if (oldWinnerId && oldWinnerId !== newWinnerId && oldWinnerId !== 'approved' && oldWinnerId !== 'completed') {
         console.log(`[editCompletedMatch] Winner changed from ${oldWinnerId} to ${newWinnerId}`);
         
         const oldLoserId = oldWinnerId === match.player1_id ? match.player2_id : match.player1_id;
@@ -2863,67 +2868,69 @@ class SheetsService {
         if (!oldWinner || !oldLoser) {
           console.error(`[editCompletedMatch] Old winner/loser not found. OldWinner: ${oldWinnerId}, OldLoser: ${oldLoserId}`);
           console.error(`[editCompletedMatch] Available players:`, players.map(p => ({ id: p.id, nickname: p.nickname })));
-          throw new Error(`Old winner (${oldWinnerId}) or loser (${oldLoserId}) not found in players list`);
-        }
-        
-        // Get the old rating changes from match data (handle null/undefined)
-        const oldWinnerRatingChange = match.player1_id === oldWinnerId 
-          ? (match.player1_rating_change || 0) 
-          : (match.player2_rating_change || 0);
-        const oldLoserRatingChange = match.player1_id === oldLoserId 
-          ? (match.player1_rating_change || 0) 
-          : (match.player2_rating_change || 0);
-        
-        // Restore original ratings (subtract the changes)
-        const oldWinnerOriginalRating = oldWinner.current_rating - oldWinnerRatingChange;
-        const oldLoserOriginalRating = oldLoser.current_rating - oldLoserRatingChange;
-        
-        // Calculate new rating changes with swapped winner/loser
-        const K = 32;
-        // New winner was the old loser, new loser was the old winner
-        const expectedNewWinner = 1 / (1 + Math.pow(10, (oldWinnerOriginalRating - oldLoserOriginalRating) / 400));
-        const expectedNewLoser = 1 - expectedNewWinner;
-        
-        const newWinnerDelta = Math.round(K * (1 - expectedNewWinner));
-        const newLoserDelta = Math.round(K * (0 - expectedNewLoser));
-        
-        // Apply new ratings (old loser is now winner, old winner is now loser)
-        const newWinnerRating = oldLoserOriginalRating + newWinnerDelta;
-        const newLoserRating = oldWinnerOriginalRating + newLoserDelta;
-        
-        // Update player ratings
-        await this.updatePlayerRating(newWinnerId, newWinnerRating);
-        await this.updatePlayerRating(newLoserId, newLoserRating);
-        
-        // Update match with new winner and rating changes
-        const matchRow = await this.findMatchRow(matchId);
-        if (matchRow) {
-          // 正しい列の順序: H=game_type, I=status, J=winner_id, K=result_details, L=created_at, M=completed_at, N=approved_at
-          const updateRange = `TournamentMatches!H${matchRow}:N${matchRow}`;
-          const newRatingChanges = {
-            player1: match.player1_id === newWinnerId ? newWinnerDelta : newLoserDelta,
-            player2: match.player2_id === newWinnerId ? newWinnerDelta : newLoserDelta
-          };
+          // If old winner/loser not found, just proceed with setting new winner without reversing
+          console.warn(`[editCompletedMatch] Proceeding without reversing old ratings`);
+          oldWinnerId = null; // Force to treat as no previous winner
+        } else {
+          // Get the old rating changes from match data (handle null/undefined)
+          const oldWinnerRatingChange = match.player1_id === oldWinnerId 
+            ? (match.player1_rating_change || 0) 
+            : (match.player2_rating_change || 0);
+          const oldLoserRatingChange = match.player1_id === oldLoserId 
+            ? (match.player1_rating_change || 0) 
+            : (match.player2_rating_change || 0);
           
-          // result_detailsに評価変動を記録
-          const resultDetails = `P1:${newRatingChanges.player1}, P2:${newRatingChanges.player2}`;
+          // Restore original ratings (subtract the changes)
+          const oldWinnerOriginalRating = oldWinner.current_rating - oldWinnerRatingChange;
+          const oldLoserOriginalRating = oldLoser.current_rating - oldLoserRatingChange;
           
-          await this.sheets.spreadsheets.values.update({
-            spreadsheetId: this.spreadsheetId,
-            range: updateRange,
-            valueInputOption: 'USER_ENTERED',
-            requestBody: {
-              values: [[
-                gameType,                     // H: game_type
-                'approved',                   // I: status
-                newWinnerId,                  // J: winner_id
-                resultDetails,                // K: result_details (rating changes)
-                match.created_at || '',       // L: created_at (preserve original)
-                new Date().toISOString(),     // M: completed_at
-                new Date().toISOString()      // N: approved_at
-              ]]
-            }
-          });
+          // Calculate new rating changes with swapped winner/loser
+          const K = 32;
+          // New winner was the old loser, new loser was the old winner
+          const expectedNewWinner = 1 / (1 + Math.pow(10, (oldWinnerOriginalRating - oldLoserOriginalRating) / 400));
+          const expectedNewLoser = 1 - expectedNewWinner;
+          
+          const newWinnerDelta = Math.round(K * (1 - expectedNewWinner));
+          const newLoserDelta = Math.round(K * (0 - expectedNewLoser));
+          
+          // Apply new ratings (old loser is now winner, old winner is now loser)
+          const newWinnerRating = oldLoserOriginalRating + newWinnerDelta;
+          const newLoserRating = oldWinnerOriginalRating + newLoserDelta;
+          
+          // Update player ratings
+          await this.updatePlayerRating(newWinnerId, newWinnerRating);
+          await this.updatePlayerRating(newLoserId, newLoserRating);
+        
+          // Update match with new winner and rating changes
+          const matchRow = await this.findMatchRow(matchId);
+          if (matchRow) {
+            // 正しい列の順序: H=game_type, I=status, J=winner_id, K=result_details, L=created_at, M=completed_at, N=approved_at
+            const updateRange = `TournamentMatches!H${matchRow}:N${matchRow}`;
+            const newRatingChanges = {
+              player1: match.player1_id === newWinnerId ? newWinnerDelta : newLoserDelta,
+              player2: match.player2_id === newWinnerId ? newWinnerDelta : newLoserDelta
+            };
+            
+            // result_detailsに評価変動を記録
+            const resultDetails = `P1:${newRatingChanges.player1}, P2:${newRatingChanges.player2}`;
+            
+            await this.sheets.spreadsheets.values.update({
+              spreadsheetId: this.spreadsheetId,
+              range: updateRange,
+              valueInputOption: 'USER_ENTERED',
+              requestBody: {
+                values: [[
+                  gameType,                     // H: game_type
+                  'approved',                   // I: status
+                  newWinnerId,                  // J: winner_id
+                  resultDetails,                // K: result_details (rating changes)
+                  match.created_at || '',       // L: created_at (preserve original)
+                  new Date().toISOString(),     // M: completed_at
+                  new Date().toISOString()      // N: approved_at
+                ]]
+              }
+            });
+          }
         }
       } else if (!oldWinnerId && newWinnerId) {
         // No previous winner, just setting a new winner
@@ -3092,6 +3099,18 @@ class SheetsService {
       console.error('Error invalidating match:', error);
       throw new Error(`Failed to invalidate match: ${error.message}`);
     }
+  }
+
+  /**
+   * Helper function to convert column index to letter (0=A, 1=B, etc)
+   */
+  _columnToLetter(index) {
+    let letter = '';
+    while (index >= 0) {
+      letter = String.fromCharCode((index % 26) + 65) + letter;
+      index = Math.floor(index / 26) - 1;
+    }
+    return letter;
   }
 
   /**
