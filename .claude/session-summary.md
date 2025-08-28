@@ -635,3 +635,29 @@
 - 最終コミット: 5423f6a Fix: 新規プレイヤーのQRコードエントリー処理を修正
 
 ---
+
+## セッション: 2025-08-28 09:30:15
+
+### 最新のドキュメント
+- 091_tournament_checklist_sep5.md
+- 090_tournament_improvements_for_sep5.md
+- 089_qr_entry_complete_fix.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 20c8cf1 Fix: 新規プレイヤーエントリー時に既存プレイヤーが非アクティブになる問題を修正
+
+---
+
+## セッション: 2025-08-28 09:56:53
+
+### 最新のドキュメント
+- 091_tournament_checklist_sep5.md
+- 090_tournament_improvements_for_sep5.md
+- 089_qr_entry_complete_fix.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 1f99c22 Fix: 完了試合編集エラー修正とリアルタイム性能改善
+
+---

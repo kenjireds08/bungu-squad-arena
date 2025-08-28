@@ -2834,19 +2834,32 @@ class SheetsService {
         const oldWinner = players.find(p => p.id === oldWinnerId);
         const oldLoser = players.find(p => p.id === oldLoserId);
         
-        // Restore original ratings (subtract the changes)
-        const oldWinnerOriginalRating = oldWinner.current_rating - (match.player1_id === oldWinnerId ? match.player1_rating_change : match.player2_rating_change);
-        const oldLoserOriginalRating = oldLoser.current_rating - (match.player1_id === oldLoserId ? match.player1_rating_change : match.player2_rating_change);
+        if (!oldWinner || !oldLoser) {
+          throw new Error('Old winner or loser not found');
+        }
         
-        // Calculate new rating changes with new winner
+        // Get the old rating changes from match data (handle null/undefined)
+        const oldWinnerRatingChange = match.player1_id === oldWinnerId 
+          ? (match.player1_rating_change || 0) 
+          : (match.player2_rating_change || 0);
+        const oldLoserRatingChange = match.player1_id === oldLoserId 
+          ? (match.player1_rating_change || 0) 
+          : (match.player2_rating_change || 0);
+        
+        // Restore original ratings (subtract the changes)
+        const oldWinnerOriginalRating = oldWinner.current_rating - oldWinnerRatingChange;
+        const oldLoserOriginalRating = oldLoser.current_rating - oldLoserRatingChange;
+        
+        // Calculate new rating changes with swapped winner/loser
         const K = 32;
-        const expectedNewWinner = 1 / (1 + Math.pow(10, (oldLoserOriginalRating - oldWinnerOriginalRating) / 400));
+        // New winner was the old loser, new loser was the old winner
+        const expectedNewWinner = 1 / (1 + Math.pow(10, (oldWinnerOriginalRating - oldLoserOriginalRating) / 400));
         const expectedNewLoser = 1 - expectedNewWinner;
         
-        // Note: New winner is old loser, new loser is old winner
-        const newWinnerDelta = Math.round(K * (1 - expectedNewLoser));
-        const newLoserDelta = Math.round(K * (0 - expectedNewWinner));
+        const newWinnerDelta = Math.round(K * (1 - expectedNewWinner));
+        const newLoserDelta = Math.round(K * (0 - expectedNewLoser));
         
+        // Apply new ratings (old loser is now winner, old winner is now loser)
         const newWinnerRating = oldLoserOriginalRating + newWinnerDelta;
         const newLoserRating = oldWinnerOriginalRating + newLoserDelta;
         

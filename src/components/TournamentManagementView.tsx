@@ -55,6 +55,7 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
   const [directInputMatch, setDirectInputMatch] = useState<Match | null>(null);
   const [invalidateMatchId, setInvalidateMatchId] = useState<string | null>(null);
   const [editCompletedMatch, setEditCompletedMatch] = useState<Match | null>(null);
+  const [optimisticUpdateInProgress, setOptimisticUpdateInProgress] = useState(false);
   const { data: players } = useRankings();
   const adminDirectInputMutation = useAdminDirectInput();
   const startMatchMutation = useStartMatch();
@@ -71,6 +72,11 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
 
   // Fetch matches
   const fetchMatches = async () => {
+    // Skip fetch if optimistic update is in progress
+    if (optimisticUpdateInProgress) {
+      return;
+    }
+    
     try {
       setIsLoading(true);
       const response = await fetch(`/api/matches?tournamentId=${tournamentId}`);
@@ -163,6 +169,9 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
   const handleAdminDirectInput = async (match: Match, winnerId: string) => {
     const loserId = winnerId === match.player1_id ? match.player2_id : match.player1_id;
     
+    // Set optimistic update flag
+    setOptimisticUpdateInProgress(true);
+    
     // 楽観的更新：即座にUIを更新（completed_at も設定）
     const now = new Date().toISOString();
     setMatches(prevMatches => 
@@ -194,9 +203,6 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
         winnerId,
         loserId
       });
-
-      // サーバーから最新データを取得（バックグラウンド）
-      fetchMatches();
       
       // バッジ付与結果に応じて追加メッセージ
       if ((result as any)?.badgeAdded === true) {
@@ -207,8 +213,15 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
           });
         }, 500);
       }
+      
+      // Wait a bit then allow polling again
+      setTimeout(() => {
+        setOptimisticUpdateInProgress(false);
+        fetchMatches();
+      }, 2000);
     } catch (error) {
       // エラー時は楽観的更新を元に戻す
+      setOptimisticUpdateInProgress(false);
       await fetchMatches();
       toast({
         title: "エラー",
@@ -228,11 +241,14 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
 
   // 試合開始ハンドラー（即時反映）
   const handleStartMatch = async (matchId: string) => {
+    // Set optimistic update flag
+    setOptimisticUpdateInProgress(true);
+    
     // 楽観的更新：即座にUIを更新
     setMatches(prevMatches => 
       prevMatches.map(match => 
         match.match_id === matchId 
-          ? { ...match, status: 'in_progress' as const }
+          ? { ...match, status: 'in_progress' as const, started_at: new Date().toISOString() }
           : match
       )
     );
@@ -245,11 +261,15 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
     
     try {
       await startMatchMutation.mutateAsync(matchId);
-      // サーバーから最新データを取得（バックグラウンド）
-      fetchMatches();
+      // Wait a bit then allow polling again
+      setTimeout(() => {
+        setOptimisticUpdateInProgress(false);
+        fetchMatches();
+      }, 2000);
     } catch (error) {
       console.error('Start match failed:', error);
       // エラー時は楽観的更新を元に戻す
+      setOptimisticUpdateInProgress(false);
       await fetchMatches();
       toast({
         title: "エラー",
