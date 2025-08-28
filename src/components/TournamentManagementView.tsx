@@ -92,8 +92,19 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
 
   useEffect(() => {
     fetchMatches();
-    // Auto-refresh every 5 seconds for real-time updates
-    const interval = setInterval(fetchMatches, 5000);
+    
+    // Dynamic polling interval based on tournament activity
+    const getPollingInterval = () => {
+      // If there are active matches, poll more frequently
+      const hasActiveMatches = matches.some(m => 
+        m.status === 'in_progress' || m.status === 'pending'
+      );
+      
+      // During active tournament: 2 seconds, otherwise: 5 seconds
+      return hasActiveMatches ? 2000 : 5000;
+    };
+    
+    const interval = setInterval(fetchMatches, getPollingInterval());
     return () => clearInterval(interval);
   }, [tournamentId]);
 
@@ -152,14 +163,24 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
   const handleAdminDirectInput = async (match: Match, winnerId: string) => {
     const loserId = winnerId === match.player1_id ? match.player2_id : match.player1_id;
     
-    // 楽観的更新：即座にUIを更新
+    // 楽観的更新：即座にUIを更新（completed_at も設定）
+    const now = new Date().toISOString();
     setMatches(prevMatches => 
       prevMatches.map(m => 
         m.match_id === match.match_id 
-          ? { ...m, status: 'approved' as const, winner_id: winnerId }
+          ? { 
+              ...m, 
+              status: 'approved' as const, 
+              winner_id: winnerId,
+              completed_at: now,
+              approved_at: now
+            }
           : m
       )
     );
+    
+    // ダイアログを即座に閉じる
+    setDirectInputMatch(null);
     
     // 成功を即座に通知
     toast({
