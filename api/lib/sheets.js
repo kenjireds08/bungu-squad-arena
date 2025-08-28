@@ -2800,8 +2800,8 @@ class SheetsService {
       await this.authenticate();
       console.log(`[editCompletedMatch] Editing match ${matchId} with winner ${newWinnerId} and game type ${newGameType}`);
 
-      // Get the match details
-      const matches = await this.getTournamentMatches();
+      // Get the match details - pass null to get ALL matches
+      const matches = await this.getTournamentMatches(null);
       const match = matches.find(m => m.match_id === matchId);
       
       if (!match) {
@@ -2874,11 +2874,15 @@ class SheetsService {
         // Update match with new winner and rating changes
         const matchRow = await this.findMatchRow(matchId);
         if (matchRow) {
+          // 正しい列の順序: H=game_type, I=status, J=winner_id, K=result_details, L=created_at, M=completed_at, N=approved_at
           const updateRange = `TournamentMatches!H${matchRow}:N${matchRow}`;
           const newRatingChanges = {
             player1: match.player1_id === newWinnerId ? newWinnerDelta : newLoserDelta,
             player2: match.player2_id === newWinnerId ? newWinnerDelta : newLoserDelta
           };
+          
+          // result_detailsに評価変動を記録
+          const resultDetails = `P1:${newRatingChanges.player1}, P2:${newRatingChanges.player2}`;
           
           await this.sheets.spreadsheets.values.update({
             spreadsheetId: this.spreadsheetId,
@@ -2886,13 +2890,13 @@ class SheetsService {
             valueInputOption: 'USER_ENTERED',
             requestBody: {
               values: [[
-                newWinnerId,           // H: winner_id
-                'approved',            // I: status
-                gameType,             // J: game_type/game_rule
-                new Date().toISOString(), // K: started_at
-                new Date().toISOString(), // L: completed_at
-                newRatingChanges.player1, // M: player1_rating_change
-                newRatingChanges.player2  // N: player2_rating_change
+                gameType,                     // H: game_type
+                'approved',                   // I: status
+                newWinnerId,                  // J: winner_id
+                resultDetails,                // K: result_details (rating changes)
+                match.created_at || '',       // L: created_at (preserve original)
+                new Date().toISOString(),     // M: completed_at
+                new Date().toISOString()      // N: approved_at
               ]]
             }
           });
@@ -2902,7 +2906,7 @@ class SheetsService {
         console.log(`[editCompletedMatch] Updating game type or no winner change`);
         const matchRow = await this.findMatchRow(matchId);
         if (matchRow) {
-          // Update winner and game type (even if winner is the same, ensure it's set)
+          // 正しい列の順序: H=game_type, I=status, J=winner_id
           const updateRange = `TournamentMatches!H${matchRow}:J${matchRow}`;
           await this.sheets.spreadsheets.values.update({
             spreadsheetId: this.spreadsheetId,
@@ -2910,9 +2914,9 @@ class SheetsService {
             valueInputOption: 'USER_ENTERED',
             requestBody: {
               values: [[
-                newWinnerId || oldWinnerId,  // H: winner_id (ensure winner is set)
+                gameType,                     // H: game_type
                 'approved',                   // I: status
-                gameType                      // J: game_type
+                newWinnerId || oldWinnerId   // J: winner_id
               ]]
             }
           });
