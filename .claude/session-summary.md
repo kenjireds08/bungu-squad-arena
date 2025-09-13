@@ -830,3 +830,141 @@
 - 最終コミット: 69a5b39 Fix: レーティング表示の不整合と試合編集機能を修正
 
 ---
+
+## セッション: 2025-08-28 18:58:56
+
+### 最新のドキュメント
+- 091_tournament_checklist_sep5.md
+- 090_tournament_improvements_for_sep5.md
+- 089_qr_entry_complete_fix.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 4372308 Fix: 試合編集時のレーティング計算バグを修正
+
+---
+
+## セッション: 2025-08-28 21:08:32
+
+### 最新のドキュメント
+- 091_tournament_checklist_sep5.md
+- 090_tournament_improvements_for_sep5.md
+- 089_qr_entry_complete_fix.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 4372308 Fix: 試合編集時のレーティング計算バグを修正
+
+---
+
+## セッション: 2025-08-28 21:56:43
+
+### 最新のドキュメント
+- 092_multiple_upcoming_matches_display.md
+- 091_tournament_checklist_sep5.md
+- 090_tournament_improvements_for_sep5.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 4372308 Fix: 試合編集時のレーティング計算バグを修正
+
+---
+
+## セッション: 2025-08-29 06:05:42
+
+### 最新のドキュメント
+- 092_multiple_upcoming_matches_display.md
+- 091_tournament_checklist_sep5.md
+- 090_tournament_improvements_for_sep5.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 4372308 Fix: 試合編集時のレーティング計算バグを修正
+
+---
+
+## セッション: 2025-08-29 06:10:14
+
+### 最新のドキュメント
+- 092_multiple_upcoming_matches_display.md
+- 091_tournament_checklist_sep5.md
+- 090_tournament_improvements_for_sep5.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 4372308 Fix: 試合編集時のレーティング計算バグを修正
+
+---
+
+## セッション: 2025-09-13 13:59:34
+
+### 最新のドキュメント
+- 092_multiple_upcoming_matches_display.md
+- 091_tournament_checklist_sep5.md
+- 090_tournament_improvements_for_sep5.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 4372308 Fix: 試合編集時のレーティング計算バグを修正
+
+---
+
+## セッション: 2025-09-13 14:06:35
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+- 091_tournament_checklist_sep5.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 4372308 Fix: 試合編集時のレーティング計算バグを修正
+
+---
+
+## セッション: 2025-09-13 14:08:08
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+- 091_tournament_checklist_sep5.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 4372308 Fix: 試合編集時のレーティング計算バグを修正
+
+---
+
+## セッション: 2025-09-13 14:09:13
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+- 091_tournament_checklist_sep5.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 4372308 Fix: 試合編集時のレーティング計算バグを修正
+
+---
+
+## セッション: 2025-09-13 14:24:38
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+- 091_tournament_checklist_sep5.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 4372308 Fix: 試合編集時のレーティング計算バグを修正
+
+---

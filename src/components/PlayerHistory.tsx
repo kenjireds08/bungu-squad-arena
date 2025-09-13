@@ -32,11 +32,13 @@ interface Match {
 interface TournamentArchive {
   archive_id: string;
   tournament_date: string;
+  tournament_name: string;
   player_id: string;
   player_nickname: string;
   entry_timestamp: string;
   total_participants_that_day: number;
   created_at: string;
+  matches_count?: number;
 }
 
 
@@ -363,7 +365,7 @@ export const PlayerHistory = ({ onClose, currentUserId }: PlayerHistoryProps) =>
                     <div className="flex items-start justify-between mb-2">
                       <div className="space-y-1">
                         <h3 className="font-semibold text-foreground">
-                          {entry.tournament_date || 'BUNGU SQUAD大会'}
+                          {entry.tournament_name || 'BUNGU SQUAD大会'}
                         </h3>
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Calendar className="h-3 w-3" />

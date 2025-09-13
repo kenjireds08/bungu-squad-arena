@@ -120,12 +120,13 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
   const inProgressMatches = matchesArray.filter(m => m.status === 'in_progress');
   const completedMatches = matchesArray.filter(m => m.status === 'approved');
   
-  // 次に開始できる試合（順番に並んでいる最初のscheduled）
-  const nextMatch = scheduledMatches.length > 0 ? scheduledMatches.sort((a, b) => {
+  // 次に開始できる試合（順番に並んでいる最初の3つのscheduled）
+  const upcomingMatches = scheduledMatches.length > 0 ? scheduledMatches.sort((a, b) => {
     const aNum = parseInt(a.match_number.replace(/^match_/, '')) || 0;
     const bNum = parseInt(b.match_number.replace(/^match_/, '')) || 0;
     return aNum - bNum;
-  })[0] : null;
+  }).slice(0, 3) : [];
+  const nextMatch = upcomingMatches.length > 0 ? upcomingMatches[0] : null;
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -724,40 +725,73 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
               </CardContent>
             </Card>
 
-            {/* Next Match to Start */}
-            {nextMatch && (
+            {/* Upcoming Matches */}
+            {upcomingMatches.length > 0 && (
               <Card className="border-fantasy-frame shadow-soft bg-primary/5">
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2">
                     <Timer className="h-5 w-5 text-primary" />
-                    次の試合
+                    今後の試合予定 ({upcomingMatches.length}試合)
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="p-4 bg-primary/10 border border-primary/20 rounded-lg">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="space-y-1">
-                        <h3 className="font-semibold text-foreground text-lg">
-                          {nextMatch.player1_name} vs {nextMatch.player2_name}
-                        </h3>
-                        <div className="text-sm text-muted-foreground">
-                          {nextMatch.match_number.replace(/^match_/, '')}試合目 • {nextMatch.game_type === 'trump' ? 'トランプルール' : 'カードプラスルール'}
+                <CardContent className="space-y-3">
+                  {upcomingMatches.map((match, index) => (
+                    <div key={match.match_id} className={`p-4 border rounded-lg transition-all ${
+                      index === 0 ? 'bg-primary/10 border-primary/20 shadow-md' : 'bg-background/50 border-muted hover:bg-background/80'
+                    }`}>
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div className="space-y-1 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            {index === 0 && (
+                              <Badge className="bg-primary text-primary-foreground animate-pulse">次の試合</Badge>
+                            )}
+                            {index === 1 && (
+                              <Badge variant="outline" className="text-muted-foreground">予定2番目</Badge>
+                            )}
+                            {index === 2 && (
+                              <Badge variant="outline" className="text-muted-foreground">予定3番目</Badge>
+                            )}
+                            <span className="text-sm font-medium text-muted-foreground">
+                              第{match.match_number.replace(/^match_/, '')}試合
+                            </span>
+                            {match.game_type === 'trump' ? (
+                              <div className="flex items-center gap-1 text-primary">
+                                <Spade className="h-3 w-3" />
+                                <span className="text-xs">トランプ</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-1 text-accent">
+                                <PlusIcon className="h-3 w-3" />
+                                <span className="text-xs">カード+</span>
+                              </div>
+                            )}
+                          </div>
+                          <h3 className={`font-semibold ${index === 0 ? 'text-lg' : 'text-base'}`}>
+                            {match.player1_name} <span className="text-muted-foreground mx-1">vs</span> {match.player2_name}
+                          </h3>
                         </div>
+                        <Button
+                          onClick={() => handleStartMatch(match.match_id)}
+                          size={index === 0 ? "lg" : "default"}
+                          className={`whitespace-nowrap ${
+                            index === 0 
+                              ? "bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-6 shadow-lg" 
+                              : ""
+                          }`}
+                          variant={index === 0 ? "default" : "outline"}
+                          disabled={startMatchMutation.isPending}
+                        >
+                          <Play className="h-4 w-4 mr-2" />
+                          試合開始
+                        </Button>
                       </div>
-                      <Button
-                        onClick={() => handleStartMatch(nextMatch.match_id)}
-                        size="lg"
-                        className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-6"
-                        disabled={startMatchMutation.isPending}
-                      >
-                        <Play className="h-4 w-4 mr-2" />
-                        {startMatchMutation.isPending ? '開始中...' : '試合開始'}
-                      </Button>
+                      {index === 0 && (
+                        <div className="text-xs text-muted-foreground bg-background/50 p-2 rounded mt-3">
+                          💡 プレイヤーが席に着いたら「試合開始」ボタンを押してください
+                        </div>
+                      )}
                     </div>
-                    <div className="text-xs text-muted-foreground bg-background/50 p-2 rounded">
-                      💡 プレイヤーが席に着いたら「試合開始」ボタンを押してください
-                    </div>
-                  </div>
+                  ))}
                 </CardContent>
               </Card>
             )}
