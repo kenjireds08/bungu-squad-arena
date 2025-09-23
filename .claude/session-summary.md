@@ -1013,3 +1013,108 @@
 - 最終コミット: 10f2c43 docs: 大会参加履歴の大会名表示を完了済みとして記録
 
 ---
+
+## セッション: 2025-09-23 16:29:14
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+- 091_tournament_checklist_sep5.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 832e75c fix: Service Workerのキャッシュ問題を修正し、証明書エラーへの対応を追加
+
+---
+
+## セッション: 2025-09-23 16:43:46
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+- 091_tournament_checklist_sep5.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 832e75c fix: Service Workerのキャッシュ問題を修正し、証明書エラーへの対応を追加
+
+---
+
+## セッション: 2025-09-23 16:48:13
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+- 091_tournament_checklist_sep5.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 832e75c fix: Service Workerのキャッシュ問題を修正し、証明書エラーへの対応を追加
+
+---
+
+## セッション: 2025-09-23 16:58:44
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+- 091_tournament_checklist_sep5.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 832e75c fix: Service Workerのキャッシュ問題を修正し、証明書エラーへの対応を追加
+
+---
+
+## セッション: 2025-09-23 17:05:34
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+- 091_tournament_checklist_sep5.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 832e75c fix: Service Workerのキャッシュ問題を修正し、証明書エラーへの対応を追加
+
+---
+
+## セッション: 2025-09-23 17:25:17
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+- 091_tournament_checklist_sep5.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 832e75c fix: Service Workerのキャッシュ問題を修正し、証明書エラーへの対応を追加
+
+---
+
+## セッション: 2025-09-23 17:27:12
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+- 091_tournament_checklist_sep5.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 832e75c fix: Service Workerのキャッシュ問題を修正し、証明書エラーへの対応を追加
+
+---
