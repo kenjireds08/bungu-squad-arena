@@ -19,7 +19,7 @@ export const QRCodeDisplay = ({ tournamentId, tournamentName, tournamentDate, on
   
   // Generate entry URL using tournament ID - more reliable than time-based URLs
   // This avoids time format issues and provides unique URLs
-  const baseUrl = 'https://ranking.bungu-squad.jp'; // Use production domain for QR codes
+  const baseUrl = 'https://ranking.bungu-squad.com'; // Use production domain for QR codes
   let entryUrl = `${baseUrl}/tournament/${tournamentId}?from_qr=true`;
   
   const handleCopyUrl = async () => {

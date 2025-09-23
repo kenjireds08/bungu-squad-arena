@@ -1118,3 +1118,33 @@
 - 最終コミット: 832e75c fix: Service Workerのキャッシュ問題を修正し、証明書エラーへの対応を追加
 
 ---
+
+## セッション: 2025-09-23 17:30:31
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+- 091_tournament_checklist_sep5.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 0fc0c48 feat: ドメインを.jpから.comに変更（グローバル展開対応）
+
+---
+
+## セッション: 2025-09-23 17:32:50
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+- 091_tournament_checklist_sep5.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 0fc0c48 feat: ドメインを.jpから.comに変更（グローバル展開対応）
+
+---
