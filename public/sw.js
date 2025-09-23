@@ -1,8 +1,8 @@
 // BUNGU SQUAD Service Worker for PWA functionality with camera support
 // Update version to force SW update - Change this whenever you need to force update
-const SW_VERSION = '3.3.0'; // Fix: MIME type issues and cache problems
-const CACHE_NAME = 'bungu-squad-v3-3-0';
-const STATIC_CACHE = 'bungu-squad-static-v3-3-0';
+const SW_VERSION = '3.4.0'; // Fix: Certificate and cache issues
+const CACHE_NAME = 'bungu-squad-v3-4-0';
+const STATIC_CACHE = 'bungu-squad-static-v3-4-0';
 
 // Debug flag - only show logs in development (localhost)
 const DEBUG = self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1';
@@ -158,12 +158,13 @@ self.addEventListener('fetch', (event) => {
 
   if (isAssetRequest) {
     // CRITICAL: Always fetch JS/CSS files fresh - NEVER cache or fallback to HTML
-    if (url.pathname.endsWith('.js') || url.pathname.endsWith('.mjs') || 
+    if (url.pathname.endsWith('.js') || url.pathname.endsWith('.mjs') ||
         url.pathname.endsWith('.css') || url.pathname.includes('/assets/')) {
       event.respondWith(
         fetch(event.request, {
-          cache: 'no-cache', // Force fresh fetch
-          credentials: 'same-origin'
+          cache: 'reload', // Force bypass cache completely
+          credentials: 'same-origin',
+          mode: 'cors' // Handle CORS properly
         })
           .then(response => {
             // Verify response is OK and has correct MIME type
@@ -192,6 +193,19 @@ self.addEventListener('fetch', (event) => {
           .catch(error => {
             console.error(`SW: Network error fetching ${url.pathname}:`, error);
             // NEVER return HTML for asset requests
+            // Return empty response for CSS/JS to prevent blocking
+            if (url.pathname.endsWith('.css')) {
+              return new Response('/* Network error - empty CSS */', {
+                status: 200,
+                headers: { 'Content-Type': 'text/css' }
+              });
+            }
+            if (url.pathname.endsWith('.js') || url.pathname.endsWith('.mjs')) {
+              return new Response('// Network error - empty JS', {
+                status: 200,
+                headers: { 'Content-Type': 'application/javascript' }
+              });
+            }
             return new Response('Network Error', { status: 503 });
           })
       );

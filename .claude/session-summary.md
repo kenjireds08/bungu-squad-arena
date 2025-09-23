@@ -968,3 +968,48 @@
 - 最終コミット: 4372308 Fix: 試合編集時のレーティング計算バグを修正
 
 ---
+
+## セッション: 2025-09-13 14:25:40
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+- 091_tournament_checklist_sep5.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 941ecbe feat: 大会参加履歴に大会名を表示、TODO管理をdocs/000に集約
+
+---
+
+## セッション: 2025-09-13 14:32:03
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+- 091_tournament_checklist_sep5.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 10f2c43 docs: 大会参加履歴の大会名表示を完了済みとして記録
+
+---
+
+## セッション: 2025-09-23 16:25:12
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+- 091_tournament_checklist_sep5.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 10f2c43 docs: 大会参加履歴の大会名表示を完了済みとして記録
+
+---
