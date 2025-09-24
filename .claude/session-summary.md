@@ -1148,3 +1148,18 @@
 - 最終コミット: 0fc0c48 feat: ドメインを.jpから.comに変更（グローバル展開対応）
 
 ---
+
+## セッション: 2025-09-23 17:39:35
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+- 091_tournament_checklist_sep5.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 62545b3 fix: QRコード生成URLを.comドメインに修正
+
+---

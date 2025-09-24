@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -20,6 +20,30 @@ export const Login = ({ onLoginSuccess, isNewPlayer = false }: LoginProps) => {
     password: '' // 既存ユーザーログイン用（管理者のみ）
   });
   const { toast } = useToast();
+
+  // PWA環境でのキーボード問題対策
+  useEffect(() => {
+    // iOS PWA detection and fix
+    const isPWA = window.matchMedia('(display-mode: standalone)').matches ||
+                  (window.navigator as any).standalone ||
+                  document.referrer.includes('android-app://');
+
+    if (isPWA) {
+      // Add touch event listener to body to ensure keyboard triggers
+      const handleTouch = () => {
+        const activeElement = document.activeElement as HTMLInputElement;
+        if (activeElement && activeElement.tagName === 'INPUT') {
+          activeElement.focus();
+        }
+      };
+
+      document.body.addEventListener('touchstart', handleTouch, { passive: true });
+
+      return () => {
+        document.body.removeEventListener('touchstart', handleTouch);
+      };
+    }
+  }, []);
 
   const handleClearCache = async () => {
     try {
@@ -239,13 +263,18 @@ export const Login = ({ onLoginSuccess, isNewPlayer = false }: LoginProps) => {
                   autoCapitalize="off"
                   autoCorrect="off"
                   inputMode="email"
-                  onFocus={(e) => {
-                    // Force focus on PWA
-                    e.target.setAttribute('readonly', 'false');
-                    setTimeout(() => {
-                      e.target.removeAttribute('readonly');
-                      e.target.focus();
-                    }, 100);
+                  onTouchStart={(e) => {
+                    // iOS PWA keyboard fix - touch event triggers keyboard
+                    const target = e.target as HTMLInputElement;
+                    target.focus();
+                  }}
+                  onClick={(e) => {
+                    // Additional click handler for PWA
+                    const target = e.target as HTMLInputElement;
+                    if (document.activeElement !== target) {
+                      target.focus();
+                      target.click();
+                    }
                   }}
                 />
               </div>
