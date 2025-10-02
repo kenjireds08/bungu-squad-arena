@@ -14,7 +14,7 @@ import { QRCodeDisplay } from './QRCodeDisplay';
 import { TournamentManagementView } from './TournamentManagementView';
 import { TournamentMatchmaking } from './TournamentMatchmaking';
 import { TournamentResultsView } from './TournamentResultsView';
-import { useRankings, useTournaments, useCreateTournament, useUpdateTournament, useDeleteTournament } from '@/hooks/useApi';
+import { useTournaments, useCreateTournament, useUpdateTournament, useDeleteTournament } from '@/hooks/useApi';
 import { useToast } from '@/components/ui/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { getCategorizedTournaments, getTournamentStatus } from '@/utils/tournamentData';
@@ -30,9 +30,7 @@ export const AdminTournaments = ({ onBack, initialView = 'list', selectedTournam
   const [currentView, setCurrentView] = useState<'list' | 'create' | 'management' | 'participants' | 'management-progress' | 'results' | 'matchmaking'>(initialView);
   const [selectedTournament, setSelectedTournament] = useState<any>(null);
   const [showQRCode, setShowQRCode] = useState(false);
-  const [activeParticipants, setActiveParticipants] = useState(0);
-  const { data: rankings, isLoading: rankingsLoading } = useRankings();
-  const { data: tournamentsData, isLoading: tournamentsLoading } = useTournaments();
+  const { data: tournamentsData, isLoading: tournamentsLoading } = useTournaments(true);
   const createTournamentMutation = useCreateTournament();
   const updateTournamentMutation = useUpdateTournament();
   const deleteTournamentMutation = useDeleteTournament();
@@ -51,14 +49,6 @@ export const AdminTournaments = ({ onBack, initialView = 'list', selectedTournam
     location: '',
     description: ''
   });
-
-  // Calculate active participants from rankings data
-  useEffect(() => {
-    if (!rankingsLoading && rankings) {
-      const activeCount = rankings.filter(player => player.tournament_active === true).length;
-      setActiveParticipants(activeCount);
-    }
-  }, [rankingsLoading, rankings]); // Include rankings in dependencies
 
   // Handle selectedTournamentId - automatically navigate to tournament management
   useEffect(() => {
@@ -531,7 +521,7 @@ export const AdminTournaments = ({ onBack, initialView = 'list', selectedTournam
                     <div className="space-y-1">
                       <div className="flex items-center gap-1 cursor-pointer hover:text-primary" onClick={() => handleShowParticipants(tournament)}>
                         <Users className="h-3 w-3" />
-                        参加者: {tournament.status === '開催中' ? activeParticipants : tournament.participants}名
+                        参加者: {tournament.participants}名
                       </div>
                     </div>
                   </div>
@@ -661,7 +651,7 @@ export const AdminTournaments = ({ onBack, initialView = 'list', selectedTournam
                         <div className="text-muted-foreground">{tournament.date}</div>
                       </TableCell>
                       <TableCell className="text-center whitespace-nowrap">
-                        <div className="font-medium">{tournament.status === '開催中' ? activeParticipants : tournament.participants}名</div>
+                        <div className="font-medium">{tournament.participants}名</div>
                       </TableCell>
                       <TableCell className="text-center whitespace-nowrap">
                         <Badge variant="outline" className="whitespace-nowrap">
