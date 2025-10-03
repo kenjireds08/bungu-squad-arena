@@ -412,8 +412,11 @@ export const TournamentResultsView = ({ onClose, tournament }: TournamentResults
           variant: 'destructive',
         });
       }
-      // 削除失敗時は常にエラーを再送出（編集処理で検知するため）
-      throw error;
+      // 削除失敗時は編集処理のときのみエラーを再送出（skipConfirm=true）
+      // 一覧の削除ボタン（skipConfirm=false）では再送出せず、toastのみ表示
+      if (skipConfirm) {
+        throw error;
+      }
     }
   };
 

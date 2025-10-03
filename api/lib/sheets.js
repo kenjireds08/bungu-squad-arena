@@ -1228,13 +1228,15 @@ class SheetsService {
       try {
         const participantsResponse = await this.sheets.spreadsheets.values.get({
           spreadsheetId: this.spreadsheetId,
-          range: 'TournamentParticipants!A2:B10000'
+          range: 'TournamentParticipants!A2:C10000'
         });
 
         const participantRows = participantsResponse.data.values || [];
         participantRows.forEach(row => {
-          const tournamentId = row[0];
-          if (tournamentId) {
+          const tournamentId = row[1]; // B列がtournament_id（A列はparticipation_id）
+          const status = row[2]; // C列がステータス
+          // アクティブな参加者のみカウント
+          if (tournamentId && (!status || status === 'active' || status === 'registered')) {
             participantCounts[tournamentId] = (participantCounts[tournamentId] || 0) + 1;
           }
         });
