@@ -215,7 +215,7 @@ export const PlayerStats = ({ onClose, currentUserId = "player_001" }: PlayerSta
             // 最後の試合のレート変動を累積してレートを計算
             quarterMatches.forEach((match: any) => {
               if (match.rating_change) {
-                currentRating += match.rating_change;
+                currentRating += Number(match.rating_change) || 0;
               }
             });
 
