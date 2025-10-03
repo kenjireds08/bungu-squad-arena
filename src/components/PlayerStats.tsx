@@ -139,26 +139,34 @@ export const PlayerStats = ({ onClose, currentUserId = "player_001" }: PlayerSta
         // 初期レート（試合参加前）
         const INITIAL_RATING = 1200;
 
-        // 試合履歴を四半期ごとに集計
+        // 現在の年を取得（年度リセット用）
+        const currentYear = new Date().getFullYear();
+
+        // 試合履歴を四半期ごとに集計（現在の年のみ）
         matchHistory.forEach((match: any) => {
           if (!match.timestamp) return;
 
-          // 日付から月を取得（YYYY-MM-DD形式を想定）
+          // 日付から年と月を取得（YYYY-MM-DD形式を想定）
           const timestamp = match.timestamp;
+          let year = 0;
           let month = 0;
 
           // ISO形式やその他の形式に対応
-          const dateMatch = timestamp.match(/\d{4}-(\d{2})/);
+          const dateMatch = timestamp.match(/(\d{4})-(\d{2})/);
           if (dateMatch) {
-            month = parseInt(dateMatch[1], 10);
+            year = parseInt(dateMatch[1], 10);
+            month = parseInt(dateMatch[2], 10);
           } else {
             // フォールバック: Dateオブジェクトで解析
             const date = new Date(timestamp);
             if (!isNaN(date.getTime())) {
+              year = date.getFullYear();
               month = date.getMonth() + 1; // 0-11 → 1-12
             }
           }
 
+          // 現在の年の試合のみを集計
+          if (year !== currentYear) return;
           if (month < 1 || month > 12) return; // 無効な月はスキップ
 
           // 四半期を判定（1-3月=Q1, 4-6月=Q2, 7-9月=Q3, 10-12月=Q4）
@@ -179,22 +187,27 @@ export const PlayerStats = ({ onClose, currentUserId = "player_001" }: PlayerSta
         let currentRating = INITIAL_RATING;
         const matchesByQuarter: { [key: number]: any[] } = { 0: [], 1: [], 2: [], 3: [] };
 
-        // 四半期ごとに試合を分類（古い順にソート）
+        // 四半期ごとに試合を分類（古い順にソート、現在の年のみ）
         matchHistory.slice().reverse().forEach((match: any) => {
           if (!match.timestamp) return;
 
           const timestamp = match.timestamp;
+          let year = 0;
           let month = 0;
-          const dateMatch = timestamp.match(/\d{4}-(\d{2})/);
+          const dateMatch = timestamp.match(/(\d{4})-(\d{2})/);
           if (dateMatch) {
-            month = parseInt(dateMatch[1], 10);
+            year = parseInt(dateMatch[1], 10);
+            month = parseInt(dateMatch[2], 10);
           } else {
             const date = new Date(timestamp);
             if (!isNaN(date.getTime())) {
+              year = date.getFullYear();
               month = date.getMonth() + 1;
             }
           }
 
+          // 現在の年の試合のみを対象
+          if (year !== currentYear) return;
           if (month < 1 || month > 12) return;
 
           let quarterIndex = 0;
