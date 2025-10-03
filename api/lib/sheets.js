@@ -1223,25 +1223,80 @@ class SheetsService {
 
       const rows = response.data.values || [];
 
-      // Get actual participant counts from TournamentParticipants sheet
+      // Get actual participant counts from TournamentMatches (most reliable)
       let participantCounts = {};
       try {
-        const participantsResponse = await this.sheets.spreadsheets.values.get({
+        const matchesResponse = await this.sheets.spreadsheets.values.get({
           spreadsheetId: this.spreadsheetId,
-          range: 'TournamentParticipants!A2:C10000'
+          range: 'TournamentMatches!A2:Z10000'
         });
 
-        const participantRows = participantsResponse.data.values || [];
-        participantRows.forEach(row => {
-          const tournamentId = row[1]; // B列がtournament_id（A列はparticipation_id）
-          const status = row[2]; // C列がステータス
-          // アクティブな参加者のみカウント
-          if (tournamentId && (!status || status === 'active' || status === 'registered')) {
-            participantCounts[tournamentId] = (participantCounts[tournamentId] || 0) + 1;
+        const matchRows = matchesResponse.data.values || [];
+
+        // Get headers for TournamentMatches to find column indices dynamically
+        const matchHeadersResponse = await this.sheets.spreadsheets.values.get({
+          spreadsheetId: this.spreadsheetId,
+          range: 'TournamentMatches!1:1'
+        });
+        const matchHeaders = matchHeadersResponse.data.values?.[0] || [];
+        const tournamentIdIdx = matchHeaders.indexOf('tournament_id');
+        const player1IdIdx = matchHeaders.indexOf('player1_id');
+        const player2IdIdx = matchHeaders.indexOf('player2_id');
+        const statusIdx = matchHeaders.indexOf('match_status');
+        const winnerIdIdx = matchHeaders.indexOf('winner_id');
+
+        // Count unique players per tournament from approved matches
+        matchRows.forEach(row => {
+          const tournamentId = row[tournamentIdIdx];
+          const player1Id = row[player1IdIdx];
+          const player2Id = row[player2IdIdx];
+          const status = row[statusIdx];
+          const winnerId = row[winnerIdIdx];
+
+          // Count players from approved matches with winner
+          if (tournamentId && status === 'approved' && winnerId) {
+            if (!participantCounts[tournamentId]) {
+              participantCounts[tournamentId] = new Set();
+            }
+            if (player1Id) participantCounts[tournamentId].add(player1Id);
+            if (player2Id) participantCounts[tournamentId].add(player2Id);
           }
         });
+
+        // Convert Sets to counts
+        Object.keys(participantCounts).forEach(tid => {
+          participantCounts[tid] = participantCounts[tid].size;
+        });
       } catch (error) {
-        console.warn('Failed to fetch participant counts, using default 0:', error.message);
+        console.warn('Failed to fetch match-based participant counts, trying participants sheet:', error.message);
+
+        // Fallback: TournamentParticipants sheet with dynamic headers
+        try {
+          const participantsHeadersResponse = await this.sheets.spreadsheets.values.get({
+            spreadsheetId: this.spreadsheetId,
+            range: 'TournamentParticipants!1:1'
+          });
+          const participantsHeaders = participantsHeadersResponse.data.values?.[0] || [];
+          const pTournamentIdIdx = participantsHeaders.indexOf('tournament_id');
+          const pStatusIdx = participantsHeaders.indexOf('status');
+
+          const participantsResponse = await this.sheets.spreadsheets.values.get({
+            spreadsheetId: this.spreadsheetId,
+            range: 'TournamentParticipants!A2:Z10000'
+          });
+
+          const participantRows = participantsResponse.data.values || [];
+          participantRows.forEach(row => {
+            const tournamentId = row[pTournamentIdIdx];
+            const status = row[pStatusIdx];
+            // Count all except explicitly cancelled
+            if (tournamentId && (!status || !['cancelled', 'withdrawn', 'no_show'].includes(status))) {
+              participantCounts[tournamentId] = (participantCounts[tournamentId] || 0) + 1;
+            }
+          });
+        } catch (fallbackError) {
+          console.warn('Failed to fetch fallback participant counts, using default 0:', fallbackError.message);
+        }
       }
 
       return rows.map((row, index) => {
