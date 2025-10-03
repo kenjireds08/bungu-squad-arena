@@ -726,7 +726,14 @@ export const AdminTournaments = ({ onBack, initialView = 'list', selectedTournam
                 </div>
 
                 <div className="pt-4 space-y-2">
-                  <Button variant="outline" className="w-full">
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {
+                      handleShowResults(selectedTournament);
+                      setSelectedTournament(null);
+                    }}
+                  >
                     <Calendar className="h-4 w-4 mr-2" />
                     結果確認
                   </Button>

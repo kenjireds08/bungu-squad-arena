@@ -1213,7 +1213,7 @@ class SheetsService {
   async getTournaments() {
     return cached('tournaments', 15000, async () => {
       await this.authenticate();
-    
+
     try {
       // Skip structure check for read operations to avoid 500 errors
       const response = await this.sheets.spreadsheets.values.get({
@@ -1222,21 +1222,44 @@ class SheetsService {
       });
 
       const rows = response.data.values || [];
-      return rows.map((row, index) => ({
-        id: row[0] || `tournament_${index + 1}`,
-        tournament_name: row[1] || '',
-        date: row[2] || '',
-        start_time: row[3] || '',
-        location: row[4] || '',
-        qr_code_url: row[5] || '',
-        created_by: row[6] || '',
-        created_at: row[7] || '',
-        status: row[8] || 'upcoming',
-        max_participants: parseInt(row[9]) || 20,
-        current_participants: parseInt(row[10]) || 0,
-        tournament_type: row[11] || 'random',
-        description: row[12] || ''
-      }));
+
+      // Get actual participant counts from TournamentParticipants sheet
+      let participantCounts = {};
+      try {
+        const participantsResponse = await this.sheets.spreadsheets.values.get({
+          spreadsheetId: this.spreadsheetId,
+          range: 'TournamentParticipants!A2:B10000'
+        });
+
+        const participantRows = participantsResponse.data.values || [];
+        participantRows.forEach(row => {
+          const tournamentId = row[0];
+          if (tournamentId) {
+            participantCounts[tournamentId] = (participantCounts[tournamentId] || 0) + 1;
+          }
+        });
+      } catch (error) {
+        console.warn('Failed to fetch participant counts, using default 0:', error.message);
+      }
+
+      return rows.map((row, index) => {
+        const tournamentId = row[0] || `tournament_${index + 1}`;
+        return {
+          id: tournamentId,
+          tournament_name: row[1] || '',
+          date: row[2] || '',
+          start_time: row[3] || '',
+          location: row[4] || '',
+          qr_code_url: row[5] || '',
+          created_by: row[6] || '',
+          created_at: row[7] || '',
+          status: row[8] || 'upcoming',
+          max_participants: parseInt(row[9]) || 20,
+          current_participants: participantCounts[tournamentId] || 0,
+          tournament_type: row[11] || 'random',
+          description: row[12] || ''
+        };
+      });
     } catch (error) {
       console.error('Error fetching tournaments:', error);
       // Handle specific Google Sheets API errors
