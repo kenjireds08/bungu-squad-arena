@@ -206,6 +206,16 @@ export const TournamentResultsView = ({ onClose, tournament }: TournamentResults
       return;
     }
 
+    // 勝者が選択中のプレイヤーと一致するか検証
+    if (newMatch.winner_id !== newMatch.player1_id && newMatch.winner_id !== newMatch.player2_id) {
+      toast({
+        title: 'エラー',
+        description: '勝者は選択したプレイヤーのいずれかである必要があります',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     try {
       // Step 1: Add match to tournament
       const addResponse = await fetch('/api/matches', {
@@ -297,6 +307,16 @@ export const TournamentResultsView = ({ onClose, tournament }: TournamentResults
       return;
     }
 
+    // 勝者が選択中のプレイヤーと一致するか検証
+    if (newMatch.winner_id !== newMatch.player1_id && newMatch.winner_id !== newMatch.player2_id) {
+      toast({
+        title: 'エラー',
+        description: '勝者は選択したプレイヤーのいずれかである必要があります',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     try {
       // Delete old match and create new one
       await handleDeleteMatch(editingMatch.match_id, true);
@@ -362,7 +382,7 @@ export const TournamentResultsView = ({ onClose, tournament }: TournamentResults
     }
   };
 
-  const handleDeleteMatch = async (matchId: string, skipConfirm: boolean = false) => {
+  const handleDeleteMatch = async (matchId: string, skipConfirm: boolean = false): Promise<void> => {
     if (!skipConfirm && !confirm('この試合を削除しますか？この操作は取り消せません。')) {
       return;
     }
@@ -392,6 +412,8 @@ export const TournamentResultsView = ({ onClose, tournament }: TournamentResults
           variant: 'destructive',
         });
       }
+      // 削除失敗時は常にエラーを再送出（編集処理で検知するため）
+      throw error;
     }
   };
 
@@ -551,7 +573,12 @@ export const TournamentResultsView = ({ onClose, tournament }: TournamentResults
               <Label>プレイヤー1</Label>
               <Select
                 value={newMatch.player1_id}
-                onValueChange={(value) => setNewMatch(prev => ({ ...prev, player1_id: value }))}
+                onValueChange={(value) => setNewMatch(prev => ({
+                  ...prev,
+                  player1_id: value,
+                  // プレイヤー1を変更したら、勝者IDがプレイヤー1だった場合はリセット
+                  winner_id: prev.winner_id === prev.player1_id ? '' : prev.winner_id
+                }))}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="プレイヤーを選択" />
@@ -570,7 +597,12 @@ export const TournamentResultsView = ({ onClose, tournament }: TournamentResults
               <Label>プレイヤー2</Label>
               <Select
                 value={newMatch.player2_id}
-                onValueChange={(value) => setNewMatch(prev => ({ ...prev, player2_id: value }))}
+                onValueChange={(value) => setNewMatch(prev => ({
+                  ...prev,
+                  player2_id: value,
+                  // プレイヤー2を変更したら、勝者IDがプレイヤー2だった場合はリセット
+                  winner_id: prev.winner_id === prev.player2_id ? '' : prev.winner_id
+                }))}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="プレイヤーを選択" />
@@ -655,7 +687,12 @@ export const TournamentResultsView = ({ onClose, tournament }: TournamentResults
               <Label>プレイヤー1</Label>
               <Select
                 value={newMatch.player1_id}
-                onValueChange={(value) => setNewMatch(prev => ({ ...prev, player1_id: value }))}
+                onValueChange={(value) => setNewMatch(prev => ({
+                  ...prev,
+                  player1_id: value,
+                  // プレイヤー1を変更したら、勝者IDがプレイヤー1だった場合はリセット
+                  winner_id: prev.winner_id === prev.player1_id ? '' : prev.winner_id
+                }))}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="プレイヤーを選択" />
@@ -674,7 +711,12 @@ export const TournamentResultsView = ({ onClose, tournament }: TournamentResults
               <Label>プレイヤー2</Label>
               <Select
                 value={newMatch.player2_id}
-                onValueChange={(value) => setNewMatch(prev => ({ ...prev, player2_id: value }))}
+                onValueChange={(value) => setNewMatch(prev => ({
+                  ...prev,
+                  player2_id: value,
+                  // プレイヤー2を変更したら、勝者IDがプレイヤー2だった場合はリセット
+                  winner_id: prev.winner_id === prev.player2_id ? '' : prev.winner_id
+                }))}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="プレイヤーを選択" />
