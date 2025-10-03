@@ -7,7 +7,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { 
   ArrowLeft, Edit, Trash2, Plus, Save, Users, Spade, Plus as PlusIcon, 
   AlertCircle, RefreshCw, Trophy, Clock, Play, CheckCircle, 
-  Edit2, Timer, Shuffle, Settings, X
+  Edit2, Timer, Shuffle, Settings, X, Loader2
 } from 'lucide-react';
 import { useRankings, useAdminDirectInput, useStartMatch } from '@/hooks/useApi';
 import { toast } from '@/components/ui/use-toast';
@@ -46,6 +46,8 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
   const [activeTab, setActiveTab] = useState(initialTab);
   const [matches, setMatches] = useState<Match[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [hasFetchedOnce, setHasFetchedOnce] = useState(false);
   const [showMatchmaking, setShowMatchmaking] = useState(false);
   const [editingMatch, setEditingMatch] = useState<Match | null>(null);
   const [showAddMatch, setShowAddMatch] = useState(false);
@@ -77,12 +79,20 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
       return;
     }
     
+    const isFirstFetch = !hasFetchedOnce;
     try {
-      setIsLoading(true);
+      if (isFirstFetch) {
+        setIsLoading(true);
+      } else {
+        setIsRefreshing(true);
+      }
       const response = await fetch(`/api/matches?tournamentId=${tournamentId}`);
       if (response.ok) {
         const data = await response.json();
         setMatches(data);
+        if (isFirstFetch) {
+          setHasFetchedOnce(true);
+        }
       }
     } catch (error) {
       console.error('Failed to fetch matches:', error);
@@ -92,7 +102,11 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
         variant: 'destructive',
       });
     } finally {
-      setIsLoading(false);
+      if (isFirstFetch) {
+        setIsLoading(false);
+      } else {
+        setIsRefreshing(false);
+      }
     }
   };
 
@@ -617,7 +631,7 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
               </Button>
             </div>
 
-            {isLoading ? (
+            {!hasFetchedOnce && isLoading ? (
               <Card className="border-fantasy-frame shadow-soft">
                 <CardContent className="p-8 text-center">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
@@ -637,6 +651,12 @@ export const TournamentManagementView = ({ onClose, tournamentId, tournamentName
               </Card>
             ) : (
               <div className="space-y-3">
+                {isRefreshing && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground px-1">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>最新の状態に更新しています...</span>
+                  </div>
+                )}
                 {matchesArray.map((match) => (
                   <Card key={match.match_id} className="border-fantasy-frame shadow-soft">
                     <CardContent className="p-4">
