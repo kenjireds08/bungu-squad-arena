@@ -124,10 +124,109 @@ export const PlayerStats = ({ onClose, currentUserId = "player_001" }: PlayerSta
         }
         
         // 最近の成績を作成（直近10戦）
-        const recentFormArray = matchHistory.slice(0, 10).map((match: any) => 
+        const recentFormArray = matchHistory.slice(0, 10).map((match: any) =>
           match.result === 'win' ? 1 : 0
         );
-        
+
+        // 四半期別統計を計算（1-3月、4-6月、7-9月、10-12月）
+        const quarterStats = [
+          { month: '第1四半期', games: 0, wins: 0, rating: 1200, lastRating: 1200 },
+          { month: '第2四半期', games: 0, wins: 0, rating: 1200, lastRating: 1200 },
+          { month: '第3四半期', games: 0, wins: 0, rating: 1200, lastRating: 1200 },
+          { month: '第4四半期', games: 0, wins: 0, rating: 1200, lastRating: 1200 }
+        ];
+
+        // 初期レート（試合参加前）
+        const INITIAL_RATING = 1200;
+
+        // 試合履歴を四半期ごとに集計
+        matchHistory.forEach((match: any) => {
+          if (!match.timestamp) return;
+
+          // 日付から月を取得（YYYY-MM-DD形式を想定）
+          const timestamp = match.timestamp;
+          let month = 0;
+
+          // ISO形式やその他の形式に対応
+          const dateMatch = timestamp.match(/\d{4}-(\d{2})/);
+          if (dateMatch) {
+            month = parseInt(dateMatch[1], 10);
+          } else {
+            // フォールバック: Dateオブジェクトで解析
+            const date = new Date(timestamp);
+            if (!isNaN(date.getTime())) {
+              month = date.getMonth() + 1; // 0-11 → 1-12
+            }
+          }
+
+          if (month < 1 || month > 12) return; // 無効な月はスキップ
+
+          // 四半期を判定（1-3月=Q1, 4-6月=Q2, 7-9月=Q3, 10-12月=Q4）
+          let quarterIndex = 0;
+          if (month >= 1 && month <= 3) quarterIndex = 0;
+          else if (month >= 4 && month <= 6) quarterIndex = 1;
+          else if (month >= 7 && month <= 9) quarterIndex = 2;
+          else if (month >= 10 && month <= 12) quarterIndex = 3;
+
+          quarterStats[quarterIndex].games++;
+          if (match.result === 'win') {
+            quarterStats[quarterIndex].wins++;
+          }
+        });
+
+        // 各四半期の最終レートを計算（試合がある場合）
+        // 試合履歴は最新→古い順なので、逆順で処理してレートを追跡
+        let currentRating = INITIAL_RATING;
+        const matchesByQuarter: { [key: number]: any[] } = { 0: [], 1: [], 2: [], 3: [] };
+
+        // 四半期ごとに試合を分類（古い順にソート）
+        matchHistory.slice().reverse().forEach((match: any) => {
+          if (!match.timestamp) return;
+
+          const timestamp = match.timestamp;
+          let month = 0;
+          const dateMatch = timestamp.match(/\d{4}-(\d{2})/);
+          if (dateMatch) {
+            month = parseInt(dateMatch[1], 10);
+          } else {
+            const date = new Date(timestamp);
+            if (!isNaN(date.getTime())) {
+              month = date.getMonth() + 1;
+            }
+          }
+
+          if (month < 1 || month > 12) return;
+
+          let quarterIndex = 0;
+          if (month >= 1 && month <= 3) quarterIndex = 0;
+          else if (month >= 4 && month <= 6) quarterIndex = 1;
+          else if (month >= 7 && month <= 9) quarterIndex = 2;
+          else if (month >= 10 && month <= 12) quarterIndex = 3;
+
+          matchesByQuarter[quarterIndex].push(match);
+        });
+
+        // 各四半期の最終レートを計算
+        [0, 1, 2, 3].forEach(quarterIndex => {
+          if (matchesByQuarter[quarterIndex].length > 0) {
+            // この四半期に試合があった場合
+            const quarterMatches = matchesByQuarter[quarterIndex];
+
+            // 最後の試合のレート変動を累積してレートを計算
+            quarterMatches.forEach((match: any) => {
+              if (match.rating_change) {
+                currentRating += match.rating_change;
+              }
+            });
+
+            quarterStats[quarterIndex].lastRating = currentRating;
+            quarterStats[quarterIndex].rating = currentRating;
+          } else {
+            // この四半期に試合がない場合は初期レート（1200）を表示
+            quarterStats[quarterIndex].rating = INITIAL_RATING;
+          }
+        });
+
         const stats: PlayerStatsData = {
           currentRating: currentUser.current_rating || 1500,
           highestRating: currentUser.highest_rating || currentUser.current_rating || 1500,
@@ -139,12 +238,7 @@ export const PlayerStats = ({ onClose, currentUserId = "player_001" }: PlayerSta
           recentForm: recentFormArray,
           averageRatingChange: Math.round(averageRatingChange * 10) / 10,
           maxWinStreak: maxWinStreak,
-          monthlyStats: [
-            { month: '第1四半期', games: 0, wins: 0, rating: currentUser.current_rating || 1500 },
-            { month: '第2四半期', games: 0, wins: 0, rating: currentUser.current_rating || 1500 },
-            { month: '第3四半期', games: matchHistory.length, wins: actualWins, rating: currentUser.current_rating || 1500 },
-            { month: '第4四半期', games: 0, wins: 0, rating: currentUser.current_rating || 1500 }
-          ]
+          monthlyStats: quarterStats
         };
         
         setStatsData(stats);
