@@ -9,6 +9,18 @@ globalThis.matchesCache = globalThis.matchesCache || {
 // Deduplication for concurrent requests
 const pendingRequests = new Map();
 
+function invalidateMatchesCache(reason = 'update') {
+  if (globalThis.matchesCache?.data) {
+    globalThis.matchesCache.data = {};
+  }
+  if (pendingRequests.size > 0) {
+    pendingRequests.clear();
+  }
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`Matches cache invalidated (${reason})`);
+  }
+}
+
 // Normalize game_type to prevent errors
 function normalizeGameType(gameType) {
   if (!gameType) return 'trump';
@@ -179,6 +191,7 @@ module.exports = async function handler(req, res) {
               const result = await sheetsService.addSingleTournamentMatch(tournamentId, matchData);
               console.log(`Single match added for tournament ${tournamentId}`);
               
+              invalidateMatchesCache('saveTournamentMatches:single');
               return res.status(201).json(result);
             } catch (error) {
               console.error('Error adding single match:', error);
@@ -208,6 +221,7 @@ module.exports = async function handler(req, res) {
               const result = await sheetsService.saveTournamentMatches(tournamentId, transformedMatches);
               console.log(`Tournament matches created for ${tournamentId}, should notify players`);
               
+              invalidateMatchesCache('saveTournamentMatches:bulk');
               return res.status(201).json(result);
             } catch (error) {
               console.error('Error saving tournament matches:', error);
@@ -241,6 +255,7 @@ module.exports = async function handler(req, res) {
           const winnerId = result === 'win' ? playerId : opponentId;
           await sheetsService.updateMatchStatus(matchId, 'completed', winnerId);
 
+          invalidateMatchesCache('submitResult');
           return res.status(200).json({
             success: true,
             resultId,
@@ -257,6 +272,7 @@ module.exports = async function handler(req, res) {
           // 試合ステータスを 'scheduled' から 'in_progress' に変更
           await sheetsService.updateMatchStatus(matchId, 'in_progress');
 
+          invalidateMatchesCache('start');
           return res.status(200).json({
             success: true,
             message: '試合が開始されました'
@@ -280,6 +296,7 @@ module.exports = async function handler(req, res) {
             }
           }
           
+          invalidateMatchesCache('recalculateRatings');
           return res.status(200).json({
             success: true,
             message: `Rating recalculation completed for ${updatedCount} matches`,
@@ -309,6 +326,7 @@ module.exports = async function handler(req, res) {
               console.warn('Failed to supersede pending results:', e.message);
             }
 
+            invalidateMatchesCache('adminDirectInput');
             return res.status(200).json({
               success: true,
               message: '試合を完了しました',
@@ -366,6 +384,7 @@ module.exports = async function handler(req, res) {
             ratingChanges
           );
 
+          invalidateMatchesCache('addMatchResult');
           return res.status(201).json({
             ...matchResult,
             ratingChanges
@@ -387,6 +406,7 @@ module.exports = async function handler(req, res) {
           }
 
           const result = await sheetsService.approveMatchResult(resultId, approved);
+          invalidateMatchesCache('approveMatchResult');
           return res.status(200).json(result);
         }
 
@@ -395,6 +415,7 @@ module.exports = async function handler(req, res) {
         }
 
         const result = await sheetsService.updateMatchResult(matchId, updateData);
+        invalidateMatchesCache('updateMatchResult');
         return res.status(200).json(result);
       }
 
@@ -407,6 +428,7 @@ module.exports = async function handler(req, res) {
         }
 
         const deleteResult = await sheetsService.deleteMatch(deleteMatchId);
+        invalidateMatchesCache('deleteMatch');
         return res.status(200).json(deleteResult);
       }
 

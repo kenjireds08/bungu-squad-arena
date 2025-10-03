@@ -1178,3 +1178,123 @@
 - 最終コミット: d3385fd fix: PWAでキーボードが表示されない問題を修正
 
 ---
+
+## セッション: 2025-10-03 10:56:53
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 6aaf493 revert: PWAキーボード修正を差し戻し、対応手順書を作成
+
+---
+
+## セッション: 2025-10-03 11:01:34
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 6aaf493 revert: PWAキーボード修正を差し戻し、対応手順書を作成
+
+---
+
+## セッション: 2025-10-03 11:07:05
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 6aaf493 revert: PWAキーボード修正を差し戻し、対応手順書を作成
+
+---
+
+## セッション: 2025-10-03 11:15:25
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 6aaf493 revert: PWAキーボード修正を差し戻し、対応手順書を作成
+
+---
+
+## セッション: 2025-10-03 11:19:40
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 6aaf493 revert: PWAキーボード修正を差し戻し、対応手順書を作成
+
+---
+
+## セッション: 2025-10-03 11:30:03
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 6aaf493 revert: PWAキーボード修正を差し戻し、対応手順書を作成
+
+---
+
+## セッション: 2025-10-03 11:35:41
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 6aaf493 revert: PWAキーボード修正を差し戻し、対応手順書を作成
+
+---
+
+## セッション: 2025-10-03 11:49:18
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 64a8792 deploy: revert済み バージョンを本番環境に再デプロイ
+
+---
