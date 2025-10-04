@@ -5,6 +5,11 @@ if (!globalThis.rankingsCache) {
   globalThis.rankingsCache = { data: null, timestamp: 0, ttl: 30000 };
 }
 
+// 年度チェック用（1日1回のみ実行）
+if (!globalThis.yearlyArchiveCheck) {
+  globalThis.yearlyArchiveCheck = { lastChecked: null };
+}
+
 module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') {
     return res.status(200).json({ message: 'OK' });
@@ -14,18 +19,41 @@ module.exports = async function handler(req, res) {
     const sheetsService = new SheetsService();
 
     if (req.method === 'GET') {
+      // 年度チェック（1日1回のみ）
+      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+      const archiveCheck = globalThis.yearlyArchiveCheck;
+
+      if (archiveCheck.lastChecked !== today) {
+        console.log('[YearlyArchive] Daily check triggered');
+        try {
+          const archiveResult = await sheetsService.checkAndArchiveIfNeeded();
+          console.log('[YearlyArchive] Check result:', archiveResult);
+          archiveCheck.lastChecked = today;
+
+          // If archiving was performed, invalidate cache
+          if (archiveResult.archived) {
+            console.log('[YearlyArchive] Archiving performed, invalidating rankings cache');
+            globalThis.rankingsCache.data = null;
+            globalThis.rankingsCache.timestamp = 0;
+          }
+        } catch (error) {
+          console.error('[YearlyArchive] Check failed:', error);
+          // Continue even if archive check fails
+        }
+      }
+
       // Add caching to reduce API calls
       res.setHeader('Cache-Control', 'public, s-maxage=15, stale-while-revalidate=60');
-      
+
       // Check in-memory cache first
       const now = Date.now();
       const cache = globalThis.rankingsCache;
-      
+
       if (cache.data && (now - cache.timestamp) < cache.ttl) {
         console.log('Returning cached rankings data');
         return res.status(200).json(cache.data);
       }
-      
+
       // Get rankings from API with fallback
       try {
         const rankings = await sheetsService.getRankings();

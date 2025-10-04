@@ -243,11 +243,62 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
             });
           }
 
-          // チャンピオンバッジを年度別統計とchampion_badgesから生成
+          // チャンピオンバッジをYearlyArchiveから取得
           const championBadges: Achievement[] = [];
 
-          // champion_badgesフィールドから過去のバッジを取得（年度付き形式に対応）
-          if (currentUser.champion_badges) {
+          try {
+            const archiveResponse = await fetch(`/api/yearly-archive?playerId=${currentUserId}`);
+            if (archiveResponse.ok) {
+              const archives = await archiveResponse.json();
+
+              // 年度別アーカイブからバッジを生成
+              archives.forEach((archive: any) => {
+                const year = parseInt(archive.year, 10);
+                const rank = parseInt(archive.annual_rank, 10);
+                const badge = archive.champion_badge;
+
+                if (badge && rank <= 3) {
+                  let title = '';
+                  let description = '';
+
+                  if (rank === 1) {
+                    title = `${year}年度 チャンピオン`;
+                    description = '年間ランキング1位を獲得';
+                  } else if (rank === 2) {
+                    title = `${year}年度 準優勝`;
+                    description = '年間ランキング2位を獲得';
+                  } else if (rank === 3) {
+                    title = `${year}年度 3位`;
+                    description = '年間ランキング3位を獲得';
+                  }
+
+                  if (title) {
+                    championBadges.push({
+                      badge,
+                      title,
+                      description,
+                      date: archive.archived_at || `${year}-12-31`
+                    });
+                  }
+                }
+              });
+
+              // バッジを年度降順でソート
+              championBadges.sort((a, b) => {
+                const yearA = parseInt(a.date.split('-')[0], 10);
+                const yearB = parseInt(b.date.split('-')[0], 10);
+                return yearB - yearA;
+              });
+
+              console.log(`[PlayerAchievements] Loaded ${championBadges.length} champion badges from YearlyArchive`);
+            }
+          } catch (error) {
+            console.warn('Failed to fetch yearly archive, falling back to champion_badges field:', error);
+          }
+
+          // フォールバック: champion_badgesフィールドから取得（旧形式対応）
+          if (championBadges.length === 0 && currentUser.champion_badges) {
+            console.log('[PlayerAchievements] Using fallback: champion_badges field');
             const badges = currentUser.champion_badges.split(',').filter(b => b.trim());
             badges.forEach(badge => {
               const badgeTrim = badge.trim();
@@ -306,14 +357,14 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
                 }
               }
             });
-          }
 
-          // バッジを年度降順でソート
-          championBadges.sort((a, b) => {
-            const yearA = parseInt(a.date.split('-')[0], 10);
-            const yearB = parseInt(b.date.split('-')[0], 10);
-            return yearB - yearA;
-          });
+            // バッジを年度降順でソート
+            championBadges.sort((a, b) => {
+              const yearA = parseInt(a.date.split('-')[0], 10);
+              const yearB = parseInt(b.date.split('-')[0], 10);
+              return yearB - yearA;
+            });
+          }
 
           setAchievementsData({
             championBadges,

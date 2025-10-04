@@ -3622,6 +3622,73 @@ class SheetsService {
       console.log(`[YearlyArchive] Archived ${archiveData.length} players for year ${year}`);
       console.log(`[YearlyArchive] Champions: 1st=${rankedPlayers[0]?.nickname}, 2nd=${rankedPlayers[1]?.nickname}, 3rd=${rankedPlayers[2]?.nickname}`);
 
+      // Playersシートのchampion_badgesを更新（上位3名）
+      const championsToUpdate = rankedPlayers.slice(0, 3); // 上位3名
+      const { headers: playerHeaders, idx: playerIdx } = await this._getHeaders('Players!1:1');
+
+      for (let i = 0; i < championsToUpdate.length; i++) {
+        const player = championsToUpdate[i];
+        const rank = i + 1;
+        let badge = '';
+
+        if (rank === 1) badge = '🥇';
+        else if (rank === 2) badge = '🥈';
+        else if (rank === 3) badge = '🥉';
+
+        // 新しいバッジ形式: "年度:絵文字"
+        const newBadge = `${year}:${badge}`;
+
+        // プレイヤーの現在のchampion_badgesを取得
+        const playersResponse = await this.sheets.spreadsheets.values.get({
+          spreadsheetId: this.spreadsheetId,
+          range: 'Players!A:Z'
+        });
+
+        const playerRows = playersResponse.data.values || [];
+        let playerRowIndex = -1;
+
+        // プレイヤーの行を探す
+        for (let j = 1; j < playerRows.length; j++) {
+          if (playerRows[j][playerIdx('id')] === player.id) {
+            playerRowIndex = j;
+            break;
+          }
+        }
+
+        if (playerRowIndex > 0) {
+          const currentBadges = playerRows[playerRowIndex][playerIdx('champion_badges')] || '';
+          let updatedBadges = currentBadges;
+
+          // 既にこの年度のバッジが存在するかチェック
+          const badgesList = currentBadges.split(',').map(b => b.trim()).filter(b => b);
+          const yearBadgeExists = badgesList.some(b => b.startsWith(`${year}:`));
+
+          if (!yearBadgeExists) {
+            // 新しいバッジを追加
+            if (updatedBadges) {
+              updatedBadges = `${updatedBadges},${newBadge}`;
+            } else {
+              updatedBadges = newBadge;
+            }
+
+            // Playersシートを更新
+            const badgeColumnLetter = this._columnToLetter(playerIdx('champion_badges') + 1);
+            await this.sheets.spreadsheets.values.update({
+              spreadsheetId: this.spreadsheetId,
+              range: `Players!${badgeColumnLetter}${playerRowIndex + 1}`,
+              valueInputOption: 'RAW',
+              requestBody: {
+                values: [[updatedBadges]]
+              }
+            });
+
+            console.log(`[YearlyArchive] Updated ${player.nickname} champion_badges: ${updatedBadges}`);
+          } else {
+            console.log(`[YearlyArchive] ${player.nickname} already has ${year} badge, skipping`);
+          }
+        }
+      }
+
       return {
         success: true,
         year,
