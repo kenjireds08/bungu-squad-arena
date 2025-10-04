@@ -400,22 +400,19 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
             role="combobox"
             aria-expanded={isOpen}
             className={cn(
-              "w-full justify-between h-auto min-h-[80px] p-3",
+              "w-full justify-between h-auto min-h-[60px] p-2 text-xs",
               !selectedPlayer && "text-muted-foreground border-dashed"
             )}
           >
             {selectedPlayer ? (
-              <div className="flex flex-col items-start gap-1 w-full">
-                <p className="font-medium text-left">{selectedPlayer.nickname}</p>
+              <div className="flex flex-col items-start gap-0.5 w-full">
+                <p className="font-medium text-left text-sm">{selectedPlayer.nickname}</p>
                 <p className="text-xs text-muted-foreground">{selectedPlayer.current_rating}pt</p>
-                <div className="flex flex-wrap gap-1">
-                  {getPlayerBadges(selectedPlayer)}
-                </div>
               </div>
             ) : (
-              <span className="text-center w-full">{position === 'player1' ? 'プレイヤー1' : 'プレイヤー2'}</span>
+              <span className="text-center w-full text-xs">{position === 'player1' ? 'P1' : 'P2'}</span>
             )}
-            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-[300px] p-0" align="start">
@@ -592,10 +589,30 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
                 エントリー済みの参加者がいません
               </p>
             ) : (
-              <div className="text-sm text-muted-foreground">
+              <div className="space-y-2">
                 {matches.length > 0 && (
-                  <p>平均試合数: {averageMatchCount.toFixed(1)}試合/人</p>
+                  <p className="text-sm text-muted-foreground">
+                    平均試合数: {averageMatchCount.toFixed(1)}試合/人
+                  </p>
                 )}
+                <div className="flex flex-wrap gap-2">
+                  {tournamentParticipants.map((player) => {
+                    const matchCount = playerMatchCounts[player.id] || 0;
+                    return (
+                      <div
+                        key={player.id}
+                        className="inline-flex items-center gap-1 px-2 py-1 bg-muted/50 rounded text-xs"
+                      >
+                        <span className="font-medium">{player.nickname}</span>
+                        {matches.length > 0 && (
+                          <Badge variant="outline" className={cn("text-xs h-4 px-1", getMatchCountColor(matchCount))}>
+                            {matchCount}
+                          </Badge>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </CardContent>
@@ -604,74 +621,80 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
         {/* Matches */}
         {matches.length > 0 && (
           <Card className="border-fantasy-frame shadow-soft">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>
-                対戦組み合わせ ({matches.length}試合)
-                <span className="text-sm font-normal text-muted-foreground ml-2">
-                  (タップして選択)
-                </span>
-              </CardTitle>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    variant="heroic"
-                    disabled={matches.some(m => !m.player1 || !m.player2) || isGenerating}
-                  >
-                    {isGenerating ? (
-                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" />保存中...</>
-                    ) : (
-                      <><Play className="h-4 w-4 mr-2" />組み合わせ確定</>
-                    )}
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>組み合わせを確定しますか？</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      確定後、参加者全員にプッシュ通知が送信されます。
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>キャンセル</AlertDialogCancel>
-                    <AlertDialogAction onClick={confirmMatches}>確定</AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+            <CardHeader>
+              <div className="space-y-3">
+                <CardTitle>
+                  対戦組み合わせ ({matches.length}試合)
+                  <div className="text-sm font-normal text-muted-foreground mt-1">
+                    (タップして選択)
+                  </div>
+                </CardTitle>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="heroic"
+                      className="w-full"
+                      size="lg"
+                      disabled={matches.some(m => !m.player1 || !m.player2) || isGenerating}
+                    >
+                      {isGenerating ? (
+                        <><Loader2 className="h-4 w-4 mr-2 animate-spin" />保存中...</>
+                      ) : (
+                        <><Play className="h-4 w-4 mr-2" />組み合わせ確定</>
+                      )}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>組み合わせを確定しますか？</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        確定後、参加者全員にプッシュ通知が送信されます。
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>キャンセル</AlertDialogCancel>
+                      <AlertDialogAction onClick={confirmMatches}>確定</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {matches.map((match) => (
-                  <div key={match.id} className="p-4 bg-muted/50 rounded-lg border">
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="font-medium">試合 {match.id.split('_')[1]}</span>
-                      <div className="flex items-center gap-2">
-                        <Settings className="h-3 w-3 text-muted-foreground" />
-                        <Select
-                          value={match.gameType}
-                          onValueChange={(value: 'trump' | 'cardplus') => updateMatchGameType(match.id, value)}
-                        >
-                          <SelectTrigger className="w-32 h-8">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="trump">
-                              <div className="flex items-center gap-2">
-                                <Spade className="h-3 w-3" />
-                                トランプ
-                              </div>
-                            </SelectItem>
-                            <SelectItem value="cardplus">
-                              <div className="flex items-center gap-2">
-                                <Plus className="h-3 w-3" />
-                                カード+
-                              </div>
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
+                  <div key={match.id} className="p-3 bg-muted/50 rounded-lg border">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-medium text-sm">試合 {match.id.split('_')[1]}</span>
+                      <Select
+                        value={match.gameType}
+                        onValueChange={(value: 'trump' | 'cardplus') => updateMatchGameType(match.id, value)}
+                      >
+                        <SelectTrigger className="w-28 h-7 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="trump">
+                            <div className="flex items-center gap-1">
+                              <Spade className="h-3 w-3" />
+                              <span className="text-xs">トランプ</span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="cardplus">
+                            <div className="flex items-center gap-1">
+                              <Plus className="h-3 w-3" />
+                              <span className="text-xs">カード+</span>
+                            </div>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
                       <PlayerSelector matchId={match.id} position="player1" />
+                      <div className="text-center">
+                        <div className="w-8 h-8 rounded-full bg-gradient-gold flex items-center justify-center">
+                          <span className="text-xs font-bold text-white">VS</span>
+                        </div>
+                      </div>
                       <PlayerSelector matchId={match.id} position="player2" />
                     </div>
                   </div>
