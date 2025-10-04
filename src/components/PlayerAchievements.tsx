@@ -64,33 +64,64 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
           let winRate50AchievedDate: string | null = null;
           let rating1300AchievedDate: string | null = null;
           
+          // 年度別統計を格納する変数
+          const yearlyStatsMap: { [year: number]: YearlyStats } = {};
+
           try {
             const matchResponse = await fetch(`/api/matches?playerId=${currentUserId}`);
             if (matchResponse.ok) {
               const matchHistory = await matchResponse.json();
-              
+
               // Find first win date and calculate win streaks
               const wins = matchHistory.filter((match: any) => match.result === 'win');
               if (wins.length > 0) {
                 // Get the earliest win date - prefer timestamp over other fields
-                const sortedWins = wins.sort((a: any, b: any) => 
-                  new Date(a.timestamp || a.match_date || a.created_at).getTime() - 
+                const sortedWins = wins.sort((a: any, b: any) =>
+                  new Date(a.timestamp || a.match_date || a.created_at).getTime() -
                   new Date(b.timestamp || b.match_date || b.created_at).getTime()
                 );
                 firstWinDate = sortedWins[0].timestamp || sortedWins[0].match_date || sortedWins[0].created_at;
               }
-              
+
               // Calculate win streak and find achievement dates
               let totalWins = 0;
               let totalLosses = 0;
               let currentRating = 1200; // Starting rating
-              
-              matchHistory.forEach((match: any, index: number) => {
+
+              // 年度ごとに試合を分類して統計を計算（古い順に処理）
+              const sortedMatches = matchHistory.slice().reverse();
+
+              sortedMatches.forEach((match: any, index: number) => {
+                // 年度を取得
+                const matchDate = new Date(match.timestamp || match.match_date || match.created_at);
+                const year = matchDate.getFullYear();
+
+                // 年度別統計の初期化
+                if (!yearlyStatsMap[year]) {
+                  yearlyStatsMap[year] = {
+                    year,
+                    rank: 0,
+                    rating: 1200,
+                    highestRating: 1200,
+                    games: 0,
+                    wins: 0,
+                    losses: 0,
+                    badge: '進行中'
+                  };
+                }
+
+                // 年度別の試合数・勝敗を集計
+                yearlyStatsMap[year].games++;
+
                 if (match.result === 'win') {
                   currentWinStreak++;
                   totalWins++;
-                  currentRating += 15; // Approximate rating change
-                  
+                  yearlyStatsMap[year].wins++;
+
+                  // レート変動を加算（実際のrating_changeがあればそれを使用）
+                  const ratingChange = Number(match.rating_change) || 15;
+                  currentRating += ratingChange;
+
                   // 3連勝を初めて達成した時の日付を記録
                   if (currentWinStreak === 3 && !winStreakAchievedDate) {
                     winStreakAchievedDate = match.timestamp || match.match_date || match.created_at;
@@ -99,21 +130,32 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
                 } else if (match.result === 'lose') {
                   currentWinStreak = 0;
                   totalLosses++;
-                  currentRating -= 15; // Approximate rating change
+                  yearlyStatsMap[year].losses++;
+
+                  // レート変動を減算
+                  const ratingChange = Number(match.rating_change) || -15;
+                  currentRating += ratingChange;
                 }
-                
+
+                // 年度の最終レートと最高レートを更新
+                yearlyStatsMap[year].rating = currentRating;
+                yearlyStatsMap[year].highestRating = Math.max(
+                  yearlyStatsMap[year].highestRating,
+                  currentRating
+                );
+
                 const totalGamesPlayed = totalWins + totalLosses;
-                
+
                 // 10試合目の日付を記録
                 if (totalGamesPlayed === 10 && !tenGamesAchievedDate) {
                   tenGamesAchievedDate = match.timestamp || match.match_date || match.created_at;
                 }
-                
+
                 // 10戦以上で勝率50%を達成した日付を記録
                 if (totalGamesPlayed >= 10 && totalWins / totalGamesPlayed >= 0.5 && !winRate50AchievedDate) {
                   winRate50AchievedDate = match.timestamp || match.match_date || match.created_at;
                 }
-                
+
                 // レート1300を超えた日付を記録
                 if (currentRating >= 1300 && !rating1300AchievedDate) {
                   rating1300AchievedDate = match.timestamp || match.match_date || match.created_at;
@@ -199,19 +241,37 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
             }
           ];
 
-          // Generate yearly stats
-          const yearlyStats: YearlyStats[] = [
-            {
-              year: new Date().getFullYear(),
+          // Generate yearly stats（年度別統計を配列に変換、降順ソート）
+          const currentYear = new Date().getFullYear();
+          const yearlyStats: YearlyStats[] = Object.values(yearlyStatsMap).sort((a, b) => b.year - a.year);
+
+          // 現在年度のランキング順位とバッジを設定
+          yearlyStats.forEach(stat => {
+            if (stat.year === currentYear) {
+              stat.rank = currentUser.rank || 0;
+              stat.rating = currentUser.current_rating || stat.rating;
+              stat.highestRating = currentUser.highest_rating || stat.highestRating;
+              stat.badge = currentUser.rank <= 3
+                ? (currentUser.rank === 1 ? '🥇' : currentUser.rank === 2 ? '🥈' : '🥉')
+                : '進行中';
+            }
+          });
+
+          // 試合履歴がない場合は現在年度のデータを追加
+          if (yearlyStats.length === 0) {
+            yearlyStats.push({
+              year: currentYear,
               rank: currentUser.rank || 0,
               rating: currentUser.current_rating || 1200,
               highestRating: currentUser.highest_rating || currentUser.current_rating || 1200,
               games: totalGames,
               wins: currentUser.annual_wins || 0,
               losses: currentUser.annual_losses || 0,
-              badge: currentUser.rank <= 3 ? (currentUser.rank === 1 ? '🥇' : currentUser.rank === 2 ? '🥈' : '🥉') : '進行中'
-            }
-          ];
+              badge: currentUser.rank <= 3
+                ? (currentUser.rank === 1 ? '🥇' : currentUser.rank === 2 ? '🥈' : '🥉')
+                : '進行中'
+            });
+          }
 
           setAchievementsData({
             championBadges,
