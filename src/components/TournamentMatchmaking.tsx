@@ -1,13 +1,16 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { ArrowLeft, Users, Shuffle, Grid3X3, Hand, Play, Spade, Plus, Loader2, Settings, Hash } from 'lucide-react';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ArrowLeft, Users, Shuffle, Grid3X3, Hand, Play, Spade, Plus, Loader2, Settings, Hash, Check, ChevronsUpDown, X } from 'lucide-react';
 import { usePlayers } from '@/hooks/useApi';
 import { toast } from '@/components/ui/use-toast';
+import { cn } from '@/lib/utils';
 
 interface TournamentMatchmakingProps {
   onClose: () => void;
@@ -27,19 +30,45 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
   const [gameType, setGameType] = useState<'trump' | 'cardplus'>('trump');
   const [customMatchCount, setCustomMatchCount] = useState<number>(4);
   const [matches, setMatches] = useState<Match[]>([]);
-  const [draggedPlayer, setDraggedPlayer] = useState<any>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [openPlayerSelects, setOpenPlayerSelects] = useState<Record<string, boolean>>({});
 
-  // Filter active tournament participants (mock data for now)
-  const tournamentParticipants = players.filter(p => p.tournament_active).slice(0, 8);
+  // Filter active tournament participants
+  const tournamentParticipants = players.filter(p => p.tournament_active).slice(0, 20);
+
+  // Calculate match count for each player
+  const playerMatchCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    tournamentParticipants.forEach(player => {
+      counts[player.id] = 0;
+    });
+
+    matches.forEach(match => {
+      if (match.player1?.id) {
+        counts[match.player1.id] = (counts[match.player1.id] || 0) + 1;
+      }
+      if (match.player2?.id) {
+        counts[match.player2.id] = (counts[match.player2.id] || 0) + 1;
+      }
+    });
+
+    return counts;
+  }, [matches, tournamentParticipants]);
+
+  // Calculate average matches per player
+  const averageMatchCount = useMemo(() => {
+    if (tournamentParticipants.length === 0 || matches.length === 0) return 0;
+    const totalSlots = matches.length * 2;
+    return totalSlots / tournamentParticipants.length;
+  }, [matches.length, tournamentParticipants.length]);
 
   const generateRandomMatches = useCallback(() => {
     const newMatches: Match[] = [];
     const participants = [...tournamentParticipants];
-    
+
     // Generate balanced random matches with fair distribution
     const balancedRandomMatches = generateBalancedRandomMatches(participants, customMatchCount);
-    
+
     balancedRandomMatches.forEach((pairing, index) => {
       newMatches.push({
         id: `match_${index + 1}`,
@@ -48,57 +77,48 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
         gameType
       });
     });
-    
+
     setMatches(newMatches);
   }, [tournamentParticipants, gameType, customMatchCount]);
 
   // Function to generate balanced random matches with fair player distribution
   const generateBalancedRandomMatches = (participants: any[], matchCount: number) => {
     if (participants.length < 2) return [];
-    
+
     const matches = [];
     const playerMatchCount = new Map();
     const playerLastMatch = new Map();
-    
+
     // Initialize player match counts
     participants.forEach(player => {
       playerMatchCount.set(player.id, 0);
-      playerLastMatch.set(player.id, -999); // 十分な間隔を確保
+      playerLastMatch.set(player.id, -999);
     });
-    
+
     for (let matchIndex = 0; matchIndex < matchCount; matchIndex++) {
-      // Create weighted pool of possible pairings
       const candidatePairings = [];
-      
+
       for (let i = 0; i < participants.length; i++) {
         for (let j = i + 1; j < participants.length; j++) {
           const player1 = participants[i];
           const player2 = participants[j];
-          
+
           const player1Count = playerMatchCount.get(player1.id);
           const player2Count = playerMatchCount.get(player2.id);
           const player1LastMatch = playerLastMatch.get(player1.id);
           const player2LastMatch = playerLastMatch.get(player2.id);
-          
-          // 連続出場の完全禁止（1試合以上の間隔を強制）
+
           const gap1 = matchIndex - player1LastMatch;
           const gap2 = matchIndex - player2LastMatch;
-          
-          // 連続出場（間隔が1）の場合はスキップ
+
           if (gap1 <= 1 || gap2 <= 1) {
-            continue; // このペアリングは選択肢から除外
+            continue;
           }
-          
-          // Calculate fairness score (lower match counts are better)
+
           const countScore = Math.max(0, 10 - (player1Count + player2Count));
-          
-          // Calculate gap score (higher gaps from last match are better)
           const gapScore = Math.min(gap1, gap2);
-          
-          // Calculate weight (higher weight = more likely to be selected)
-          // Good pairings get higher weights, but still allow variety
           const weight = Math.max(1, countScore + gapScore * 2);
-          
+
           candidatePairings.push({
             player1,
             player2,
@@ -106,13 +126,12 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
           });
         }
       }
-      
-      // Weighted random selection
+
       let selectedPairing = null;
       if (candidatePairings.length > 0) {
         const totalWeight = candidatePairings.reduce((sum, pairing) => sum + pairing.weight, 0);
         let randomValue = Math.random() * totalWeight;
-        
+
         for (const pairing of candidatePairings) {
           randomValue -= pairing.weight;
           if (randomValue <= 0) {
@@ -120,24 +139,20 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
             break;
           }
         }
-        
-        // Fallback to last pairing if none selected
+
         if (!selectedPairing) {
           selectedPairing = candidatePairings[candidatePairings.length - 1];
         }
       }
-      
-      // Final fallback if no pairing found (連続制約を緩和)
+
       if (!selectedPairing) {
-        // 連続制約が厳しすぎる場合、最小間隔で1つのペアを許可
         for (let i = 0; i < participants.length; i++) {
           for (let j = i + 1; j < participants.length; j++) {
             const player1 = participants[i];
             const player2 = participants[j];
             const gap1 = matchIndex - (playerLastMatch.get(player1.id) || -999);
             const gap2 = matchIndex - (playerLastMatch.get(player2.id) || -999);
-            
-            // 一方のみ連続の場合も許可（両方連続は避ける）
+
             if (gap1 > 1 || gap2 > 1) {
               selectedPairing = { player1, player2 };
               break;
@@ -145,112 +160,50 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
           }
           if (selectedPairing) break;
         }
-        
-        // それでも見つからない場合の最終手段
+
         if (!selectedPairing) {
-          const shuffled = [...participants].sort(() => Math.random() - 0.5);
-          selectedPairing = { player1: shuffled[0], player2: shuffled[1] };
+          selectedPairing = {
+            player1: participants[0],
+            player2: participants[1]
+          };
         }
       }
-      
-      matches.push({
-        player1: selectedPairing.player1,
-        player2: selectedPairing.player2
-      });
-      
-      // Update counts and last match indices
-      const player1Id = selectedPairing.player1.id;
-      const player2Id = selectedPairing.player2.id;
-      playerMatchCount.set(player1Id, playerMatchCount.get(player1Id) + 1);
-      playerMatchCount.set(player2Id, playerMatchCount.get(player2Id) + 1);
-      playerLastMatch.set(player1Id, matchIndex);
-      playerLastMatch.set(player2Id, matchIndex);
+
+      if (selectedPairing) {
+        matches.push(selectedPairing);
+        playerMatchCount.set(selectedPairing.player1.id, (playerMatchCount.get(selectedPairing.player1.id) || 0) + 1);
+        playerMatchCount.set(selectedPairing.player2.id, (playerMatchCount.get(selectedPairing.player2.id) || 0) + 1);
+        playerLastMatch.set(selectedPairing.player1.id, matchIndex);
+        playerLastMatch.set(selectedPairing.player2.id, matchIndex);
+      }
     }
-    
+
     return matches;
   };
 
   const generateRoundRobinMatches = useCallback(() => {
     const newMatches: Match[] = [];
-    let matchId = 1;
-    
-    // Generate all possible pairings
-    const allPairings = [];
-    for (let i = 0; i < tournamentParticipants.length; i++) {
-      for (let j = i + 1; j < tournamentParticipants.length; j++) {
-        allPairings.push({
-          player1: tournamentParticipants[i],
-          player2: tournamentParticipants[j]
+    const participants = [...tournamentParticipants];
+    let matchIndex = 0;
+
+    for (let i = 0; i < participants.length; i++) {
+      for (let j = i + 1; j < participants.length; j++) {
+        newMatches.push({
+          id: `match_${matchIndex + 1}`,
+          player1: participants[i],
+          player2: participants[j],
+          gameType
         });
+        matchIndex++;
       }
     }
-    
-    // Balance match distribution to avoid consecutive matches
-    const balancedMatches = balanceMatchDistribution(allPairings);
-    
-    balancedMatches.forEach(pairing => {
-      newMatches.push({
-        id: `match_${matchId}`,
-        player1: pairing.player1,
-        player2: pairing.player2,
-        gameType
-      });
-      matchId++;
-    });
-    
+
     setMatches(newMatches);
   }, [tournamentParticipants, gameType]);
 
-  // Function to balance match distribution and avoid consecutive matches
-  const balanceMatchDistribution = (pairings: any[]) => {
-    const balanced = [];
-    const remaining = [...pairings];
-    const playerLastMatch = new Map();
-    
-    while (remaining.length > 0) {
-      let bestMatch = null;
-      let bestScore = -1;
-      let bestIndex = -1;
-      
-      // Find the pairing that minimizes consecutive matches
-      for (let i = 0; i < remaining.length; i++) {
-        const pairing = remaining[i];
-        const player1LastMatch = playerLastMatch.get(pairing.player1.id) || -2;
-        const player2LastMatch = playerLastMatch.get(pairing.player2.id) || -2;
-        const currentMatch = balanced.length;
-        
-        // Calculate gap score (higher is better)
-        const gap1 = currentMatch - player1LastMatch;
-        const gap2 = currentMatch - player2LastMatch;
-        const score = Math.min(gap1, gap2);
-        
-        if (score > bestScore) {
-          bestScore = score;
-          bestMatch = pairing;
-          bestIndex = i;
-        }
-      }
-      
-      if (bestMatch) {
-        balanced.push(bestMatch);
-        playerLastMatch.set(bestMatch.player1.id, balanced.length - 1);
-        playerLastMatch.set(bestMatch.player2.id, balanced.length - 1);
-        remaining.splice(bestIndex, 1);
-      } else {
-        // Fallback: just take the first remaining match
-        const fallbackMatch = remaining.shift();
-        balanced.push(fallbackMatch);
-        playerLastMatch.set(fallbackMatch.player1.id, balanced.length - 1);
-        playerLastMatch.set(fallbackMatch.player2.id, balanced.length - 1);
-      }
-    }
-    
-    return balanced;
-  };
-
   const generateMatches = () => {
     setIsGenerating(true);
-    
+
     setTimeout(() => {
       if (matchType === 'random') {
         generateRandomMatches();
@@ -276,7 +229,7 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
 
   const confirmMatches = async () => {
     if (matches.length === 0) {
-      toast({ 
+      toast({
         title: "エラー",
         description: "組み合わせが生成されていません",
         variant: "destructive"
@@ -286,20 +239,18 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
 
     try {
       setIsGenerating(true);
-      
-      // Check if tournament already has matches (for appending)
+
       const existingMatchesResponse = await fetch(`/api/matches?tournamentId=${tournamentId}`);
       const existingMatches = existingMatchesResponse.ok ? await existingMatchesResponse.json() : [];
-      
+
       if (existingMatches.length > 0) {
-        // Append matches to existing tournament
         const appendPromises = matches.map(async (match) => {
           const matchData = {
             player1_id: match.player1?.id,
             player2_id: match.player2?.id,
             game_type: match.gameType || 'trump',
           };
-          
+
           return fetch('/api/matches', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -310,15 +261,14 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
             }),
           });
         });
-        
+
         await Promise.all(appendPromises);
-        
-        toast({ 
+
+        toast({
           title: "試合を追加しました",
           description: `${matches.length}試合を既存の組み合わせに追加しました。`
         });
       } else {
-        // Create new tournament matches (original behavior)
         const response = await fetch('/api/matches', {
           method: 'POST',
           headers: {
@@ -336,22 +286,20 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
         }
 
         const result = await response.json();
-        console.log('Tournament matches saved:', result);
 
-        toast({ 
+        toast({
           title: "組み合わせが確定しました",
           description: `${result.matchCount}試合の組み合わせを保存しました。参加者にプッシュ通知を送信しました。`
         });
       }
-      
-      // Close the matchmaking screen after successful save
+
       setTimeout(() => {
         onClose();
       }, 2000);
-      
+
     } catch (error) {
       console.error('Error confirming matches:', error);
-      toast({ 
+      toast({
         title: "エラー",
         description: "組み合わせの保存に失敗しました",
         variant: "destructive"
@@ -361,62 +309,158 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
     }
   };
 
-  const handleDragStart = (e: React.DragEvent, player: any) => {
-    setDraggedPlayer(player);
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-  };
-
-  const handleDrop = (e: React.DragEvent, matchId: string, position: 'player1' | 'player2') => {
-    e.preventDefault();
-    if (!draggedPlayer) return;
-
+  const updateMatchPlayer = (matchId: string, position: 'player1' | 'player2', player: any) => {
     setMatches(prev => prev.map(match => {
       if (match.id === matchId) {
         return {
           ...match,
-          [position]: draggedPlayer
+          [position]: player
         };
       }
       return match;
     }));
+  };
 
-    setDraggedPlayer(null);
+  const clearMatchPlayer = (matchId: string, position: 'player1' | 'player2') => {
+    setMatches(prev => prev.map(match => {
+      if (match.id === matchId) {
+        return {
+          ...match,
+          [position]: null
+        };
+      }
+      return match;
+    }));
   };
 
   const updateMatchGameType = (matchId: string, newGameType: 'trump' | 'cardplus') => {
-    setMatches(prev => prev.map(match => 
+    setMatches(prev => prev.map(match =>
       match.id === matchId ? { ...match, gameType: newGameType } : match
     ));
   };
 
   const getPlayerBadges = (player: any) => {
     const badges = [];
-    
-    // PlayersシートのI列（champion_badges）を基準にバッジを表示
     const championBadges = player.champion_badges || '';
-    
+
+    if (championBadges.includes('🥇')) {
+      badges.push(<Badge key="gold" variant="default" className="text-xs bg-yellow-500">🥇</Badge>);
+    }
+    if (championBadges.includes('🥈')) {
+      badges.push(<Badge key="silver" variant="default" className="text-xs bg-gray-400">🥈</Badge>);
+    }
+    if (championBadges.includes('🥉')) {
+      badges.push(<Badge key="bronze" variant="default" className="text-xs bg-orange-600">🥉</Badge>);
+    }
+
     if (championBadges.includes('♠️')) {
       badges.push(<Badge key="trump" variant="secondary" className="text-xs"><Spade className="h-3 w-3 mr-1" />トランプ</Badge>);
     }
     if (championBadges.includes('➕') || championBadges.includes('+')) {
       badges.push(<Badge key="cardplus" variant="secondary" className="text-xs"><Plus className="h-3 w-3 mr-1" />カード+</Badge>);
     }
-    
+
     return badges;
   };
 
-  // For manual and random modes, show all players as draggable (since they can be used multiple times)
-  const availablePlayers = (matchType === 'manual' || matchType === 'random') ? tournamentParticipants : tournamentParticipants.filter(player => 
-    !matches.some(match => 
-      match.player1?.id === player.id || match.player2?.id === player.id
-    )
-  );
+  const getMatchCountColor = (count: number) => {
+    if (count === 0) return 'text-muted-foreground';
+    if (count < averageMatchCount) return 'text-green-600';
+    if (count > averageMatchCount) return 'text-orange-600';
+    return 'text-blue-600';
+  };
+
+  const PlayerSelector = ({ matchId, position }: { matchId: string, position: 'player1' | 'player2' }) => {
+    const match = matches.find(m => m.id === matchId);
+    const selectedPlayer = match?.[position];
+    const selectKey = `${matchId}-${position}`;
+    const isOpen = openPlayerSelects[selectKey] || false;
+
+    return (
+      <Popover open={isOpen} onOpenChange={(open) => setOpenPlayerSelects(prev => ({ ...prev, [selectKey]: open }))}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={isOpen}
+            className={cn(
+              "w-full justify-between h-auto min-h-[80px] p-3",
+              !selectedPlayer && "text-muted-foreground border-dashed"
+            )}
+          >
+            {selectedPlayer ? (
+              <div className="flex flex-col items-start gap-1 w-full">
+                <p className="font-medium text-left">{selectedPlayer.nickname}</p>
+                <p className="text-xs text-muted-foreground">{selectedPlayer.current_rating}pt</p>
+                <div className="flex flex-wrap gap-1">
+                  {getPlayerBadges(selectedPlayer)}
+                </div>
+              </div>
+            ) : (
+              <span className="text-center w-full">{position === 'player1' ? 'プレイヤー1' : 'プレイヤー2'}</span>
+            )}
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[300px] p-0" align="start">
+          <Command>
+            <CommandInput placeholder="プレイヤーを検索..." className="h-9" />
+            <CommandEmpty>プレイヤーが見つかりません</CommandEmpty>
+            <CommandGroup className="max-h-[300px] overflow-auto">
+              {selectedPlayer && (
+                <CommandItem
+                  key="clear"
+                  onSelect={() => {
+                    clearMatchPlayer(matchId, position);
+                    setOpenPlayerSelects(prev => ({ ...prev, [selectKey]: false }));
+                  }}
+                  className="text-destructive"
+                >
+                  <X className="mr-2 h-4 w-4" />
+                  クリア
+                </CommandItem>
+              )}
+              <div className="px-2 py-1.5 text-xs text-muted-foreground border-b">
+                平均: {averageMatchCount.toFixed(1)}試合/人
+              </div>
+              {tournamentParticipants.map((player) => {
+                const matchCount = playerMatchCounts[player.id] || 0;
+                return (
+                  <CommandItem
+                    key={player.id}
+                    value={`${player.nickname} ${player.id}`}
+                    onSelect={() => {
+                      updateMatchPlayer(matchId, position, player);
+                      setOpenPlayerSelects(prev => ({ ...prev, [selectKey]: false }));
+                    }}
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        selectedPlayer?.id === player.id ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                    <div className="flex items-center justify-between w-full gap-2">
+                      <div className="flex flex-col">
+                        <span className="font-medium">{player.nickname}</span>
+                        <span className="text-xs text-muted-foreground">{player.current_rating}pt</span>
+                      </div>
+                      <Badge variant="outline" className={cn("text-xs", getMatchCountColor(matchCount))}>
+                        {matchCount}試合
+                      </Badge>
+                    </div>
+                  </CommandItem>
+                );
+              })}
+            </CommandGroup>
+          </Command>
+        </PopoverContent>
+      </Popover>
+    );
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-parchment">
+    <div className="min-h-screen bg-gradient-parchment pb-20">
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b border-fantasy-frame shadow-soft">
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center gap-4">
@@ -516,30 +560,23 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
           </CardContent>
         </Card>
 
-        {/* Participants */}
+        {/* Participants Info */}
         <Card className="border-fantasy-frame shadow-soft">
           <CardHeader>
             <CardTitle>参加者一覧 ({tournamentParticipants.length}名)</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-              {tournamentParticipants.map((player) => (
-                <div
-                  key={player.id}
-                  draggable={matchType === 'manual' || matchType === 'random'}
-                  onDragStart={(e) => handleDragStart(e, player)}
-                  className={`p-3 bg-muted rounded-lg border ${
-                    (matchType === 'manual' || matchType === 'random') ? 'cursor-move hover:bg-muted/80' : ''
-                  } border-muted`}
-                >
-                  <p className="font-medium text-sm">{player.nickname}</p>
-                  <p className="text-xs text-muted-foreground">{player.current_rating}pt</p>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {getPlayerBadges(player)}
-                  </div>
-                </div>
-              ))}
-            </div>
+            {tournamentParticipants.length === 0 ? (
+              <p className="text-muted-foreground text-center py-4">
+                エントリー済みの参加者がいません
+              </p>
+            ) : (
+              <div className="text-sm text-muted-foreground">
+                {matches.length > 0 && (
+                  <p>平均試合数: {averageMatchCount.toFixed(1)}試合/人</p>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -549,16 +586,14 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>
                 対戦組み合わせ ({matches.length}試合)
-                {matchType === 'random' && (
-                  <span className="text-sm font-normal text-muted-foreground ml-2">
-                    (ドラッグ&ドロップで手動調整可能)
-                  </span>
-                )}
+                <span className="text-sm font-normal text-muted-foreground ml-2">
+                  (タップして選択)
+                </span>
               </CardTitle>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button 
-                    variant="heroic" 
+                  <Button
+                    variant="heroic"
                     disabled={matches.some(m => !m.player1 || !m.player2) || isGenerating}
                   >
                     {isGenerating ? (
@@ -586,12 +621,12 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
               <div className="space-y-4">
                 {matches.map((match) => (
                   <div key={match.id} className="p-4 bg-muted/50 rounded-lg border">
-                    <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center justify-between mb-3">
                       <span className="font-medium">試合 {match.id.split('_')[1]}</span>
                       <div className="flex items-center gap-2">
                         <Settings className="h-3 w-3 text-muted-foreground" />
-                        <Select 
-                          value={match.gameType} 
+                        <Select
+                          value={match.gameType}
                           onValueChange={(value: 'trump' | 'cardplus') => updateMatchGameType(match.id, value)}
                         >
                           <SelectTrigger className="w-32 h-8">
@@ -614,80 +649,9 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
                         </Select>
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div
-                        className={`p-3 border-2 border-dashed rounded-lg ${
-                          (matchType === 'manual' || matchType === 'random') ? 'min-h-[80px]' : ''
-                        }`}
-                        onDragOver={handleDragOver}
-                        onDrop={(e) => handleDrop(e, match.id, 'player1')}
-                      >
-                        {match.player1 ? (
-                          <div>
-                            <p className="font-medium">{match.player1.nickname}</p>
-                            <p className="text-sm text-muted-foreground">{match.player1.current_rating}pt</p>
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              {getPlayerBadges(match.player1)}
-                            </div>
-                          </div>
-                        ) : (
-                          <p className="text-muted-foreground text-center">プレイヤー1</p>
-                        )}
-                      </div>
-                      <div
-                        className={`p-3 border-2 border-dashed rounded-lg ${
-                          (matchType === 'manual' || matchType === 'random') ? 'min-h-[80px]' : ''
-                        }`}
-                        onDragOver={handleDragOver}
-                        onDrop={(e) => handleDrop(e, match.id, 'player2')}
-                      >
-                        {match.player2 ? (
-                          <div>
-                            <p className="font-medium">{match.player2.nickname}</p>
-                            <p className="text-sm text-muted-foreground">{match.player2.current_rating}pt</p>
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              {getPlayerBadges(match.player2)}
-                            </div>
-                          </div>
-                        ) : (
-                          <p className="text-muted-foreground text-center">プレイヤー2</p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Available Players (for manual and random modes) */}
-        {(matchType === 'manual' || matchType === 'random') && (
-          <Card className="border-fantasy-frame shadow-soft border-info">
-            <CardHeader>
-              <CardTitle className="text-info">
-                プレイヤー選択エリア 
-                <span className="text-sm font-normal text-muted-foreground ml-2">
-                  {matchType === 'random' 
-                    ? '(ランダム生成後の手動調整用)' 
-                    : '(同じプレイヤーを複数試合に割り当て可能)'
-                  }
-                </span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                {availablePlayers.map((player) => (
-                  <div
-                    key={`manual-${player.id}`}
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, player)}
-                    className="p-3 bg-info/10 rounded-lg border border-info cursor-move hover:bg-info/20"
-                  >
-                    <p className="font-medium text-sm">{player.nickname}</p>
-                    <p className="text-xs text-muted-foreground">{player.current_rating}pt</p>
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {getPlayerBadges(player)}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <PlayerSelector matchId={match.id} position="player1" />
+                      <PlayerSelector matchId={match.id} position="player2" />
                     </div>
                   </div>
                 ))}
