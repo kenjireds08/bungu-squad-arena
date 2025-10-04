@@ -3626,6 +3626,13 @@ class SheetsService {
       const championsToUpdate = rankedPlayers.slice(0, 3); // 上位3名
       const { headers: playerHeaders, idx: playerIdx } = await this._getHeaders('Players!1:1');
 
+      // パフォーマンス最適化：Players!A:Zを一度だけ取得してループ内で使い回す
+      const playersResponse = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'Players!A:Z'
+      });
+      const playerRows = playersResponse.data.values || [];
+
       for (let i = 0; i < championsToUpdate.length; i++) {
         const player = championsToUpdate[i];
         const rank = i + 1;
@@ -3637,14 +3644,6 @@ class SheetsService {
 
         // 新しいバッジ形式: "年度:絵文字"
         const newBadge = `${year}:${badge}`;
-
-        // プレイヤーの現在のchampion_badgesを取得
-        const playersResponse = await this.sheets.spreadsheets.values.get({
-          spreadsheetId: this.spreadsheetId,
-          range: 'Players!A:Z'
-        });
-
-        const playerRows = playersResponse.data.values || [];
         let playerRowIndex = -1;
 
         // プレイヤーの行を探す

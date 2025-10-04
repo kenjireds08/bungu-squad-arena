@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Trophy, Star, Crown, Target, Award, Calendar, Loader2 } from 'lucide-react';
+import { ArrowLeft, Trophy, Star, Crown, Target, Award, Calendar, Loader2, TrendingUp, Zap, Flag, Sparkles } from 'lucide-react';
 import { useRankings } from '@/hooks/useApi';
 
 interface PlayerAchievementsProps {
@@ -60,9 +60,14 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
           let maxWinStreak = 0;
           let currentWinStreak = 0;
           let winStreakAchievedDate: string | null = null;
+          let fiveWinStreakAchievedDate: string | null = null;
           let tenGamesAchievedDate: string | null = null;
+          let thirtyGamesAchievedDate: string | null = null;
+          let fiftyGamesAchievedDate: string | null = null;
           let winRate50AchievedDate: string | null = null;
+          let rating1250AchievedDate: string | null = null;
           let rating1300AchievedDate: string | null = null;
+          let rating1350AchievedDate: string | null = null;
           
           // 年度別統計を格納する変数
           const yearlyStatsMap: { [year: number]: YearlyStats } = {};
@@ -127,6 +132,12 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
                     if (currentWinStreak === 3 && !winStreakAchievedDate) {
                       winStreakAchievedDate = match.timestamp || match.match_date || match.created_at;
                     }
+
+                    // 5連勝を初めて達成した時の日付を記録
+                    if (currentWinStreak === 5 && !fiveWinStreakAchievedDate) {
+                      fiveWinStreakAchievedDate = match.timestamp || match.match_date || match.created_at;
+                    }
+
                     maxWinStreak = Math.max(maxWinStreak, currentWinStreak);
                   } else if (match.result === 'lose') {
                     currentWinStreak = 0;
@@ -153,14 +164,34 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
                   tenGamesAchievedDate = match.timestamp || match.match_date || match.created_at;
                 }
 
+                // 30試合目の日付を記録
+                if (totalGamesPlayed === 30 && !thirtyGamesAchievedDate) {
+                  thirtyGamesAchievedDate = match.timestamp || match.match_date || match.created_at;
+                }
+
+                // 50試合目の日付を記録
+                if (totalGamesPlayed === 50 && !fiftyGamesAchievedDate) {
+                  fiftyGamesAchievedDate = match.timestamp || match.match_date || match.created_at;
+                }
+
                 // 10戦以上で勝率50%を達成した日付を記録
                 if (totalGamesPlayed >= 10 && totalWins / totalGamesPlayed >= 0.5 && !winRate50AchievedDate) {
                   winRate50AchievedDate = match.timestamp || match.match_date || match.created_at;
                 }
 
+                // レート1250を超えた日付を記録
+                if (currentRating >= 1250 && !rating1250AchievedDate) {
+                  rating1250AchievedDate = match.timestamp || match.match_date || match.created_at;
+                }
+
                 // レート1300を超えた日付を記録
                 if (currentRating >= 1300 && !rating1300AchievedDate) {
                   rating1300AchievedDate = match.timestamp || match.match_date || match.created_at;
+                }
+
+                // レート1350を超えた日付を記録
+                if (currentRating >= 1350 && !rating1350AchievedDate) {
+                  rating1350AchievedDate = match.timestamp || match.match_date || match.created_at;
                 }
               });
             }
@@ -182,6 +213,27 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
               completed: firstWinDate !== null
             },
             {
+              icon: Award,
+              title: "10戦達成",
+              description: "累計10試合に到達",
+              date: tenGamesAchievedDate,
+              completed: totalGames >= 10
+            },
+            {
+              icon: Crown,
+              title: "3連勝",
+              description: "3連勝を達成",
+              date: winStreakAchievedDate,
+              completed: maxWinStreak >= 3
+            },
+            {
+              icon: TrendingUp,
+              title: "レート1250突破",
+              description: "レーティング1250を達成",
+              date: rating1250AchievedDate,
+              completed: currentUser.current_rating >= 1250
+            },
+            {
               icon: Target,
               title: "勝率50%達成（10戦以上）",
               description: "10戦以上で勝率50%を突破",
@@ -196,18 +248,32 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
               completed: currentUser.current_rating >= 1300
             },
             {
-              icon: Award,
-              title: "10戦達成",
-              description: "累計10試合に到達",
-              date: tenGamesAchievedDate,
-              completed: totalGames >= 10
+              icon: Flag,
+              title: "30戦達成",
+              description: "累計30試合に到達",
+              date: thirtyGamesAchievedDate,
+              completed: totalGames >= 30
             },
             {
-              icon: Crown,
-              title: "連勝記録",
-              description: "3連勝を達成",
-              date: winStreakAchievedDate,
-              completed: maxWinStreak >= 3
+              icon: Zap,
+              title: "5連勝",
+              description: "5連勝を達成",
+              date: fiveWinStreakAchievedDate,
+              completed: maxWinStreak >= 5
+            },
+            {
+              icon: Sparkles,
+              title: "レート1350突破",
+              description: "レーティング1350を達成",
+              date: rating1350AchievedDate,
+              completed: currentUser.current_rating >= 1350
+            },
+            {
+              icon: Flag,
+              title: "50戦達成",
+              description: "累計50試合に到達",
+              date: fiftyGamesAchievedDate,
+              completed: totalGames >= 50
             }
           ];
 

@@ -121,7 +121,13 @@
       "Read(//Users/kikuchikenji/Library/Application Support/CleanShot/media/media_004FSz7njk/**)",
       "Read(//var/folders/qx/6_t416w11yv492lx56z4lzr00000gn/T/TemporaryItems/NSIRD_screencaptureui_9XHWTE/**)",
       "Read(//var/folders/qx/6_t416w11yv492lx56z4lzr00000gn/T/TemporaryItems/NSIRD_screencaptureui_0xzjec/**)",
-      "Read(//var/folders/qx/6_t416w11yv492lx56z4lzr00000gn/T/TemporaryItems/NSIRD_screencaptureui_I4EzcQ/**)"
+      "Read(//var/folders/qx/6_t416w11yv492lx56z4lzr00000gn/T/TemporaryItems/NSIRD_screencaptureui_I4EzcQ/**)",
+      "WebFetch(domain:ranking.bungu-squad.jp)",
+      "Bash(git branch:*)",
+      "Bash(npm run lint)",
+      "Read(//Users/kikuchikenji/Obsidian/Projects/bungu-squad-arena/daily/**)",
+      "Bash(python3:*)",
+      "Bash(npm run typecheck:*)"
     ],
     "deny": []
   }

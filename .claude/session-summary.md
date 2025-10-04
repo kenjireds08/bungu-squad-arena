@@ -1343,3 +1343,438 @@
 - 最終コミット: 3dfdfe7 試合キャッシュ無効化機能を追加し、各試合操作後にキャッシュをクリアする処理を実装
 
 ---
+
+## セッション: 2025-10-03 22:36:52
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 3258958 大会管理ビューにおいて、試合データの取得時にローディング状態を管理するためのフラグを追加し、最新の状態に更新中であることを表示する機能を実装しました。また、セッション情報を更新しました。
+
+---
+
+## セッション: 2025-10-03 22:38:49
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 3258958 大会管理ビューにおいて、試合データの取得時にローディング状態を管理するためのフラグを追加し、最新の状態に更新中であることを表示する機能を実装しました。また、セッション情報を更新しました。
+
+---
+
+## セッション: 2025-10-03 22:39:49
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 3258958 大会管理ビューにおいて、試合データの取得時にローディング状態を管理するためのフラグを追加し、最新の状態に更新中であることを表示する機能を実装しました。また、セッション情報を更新しました。
+
+---
+
+## セッション: 2025-10-03 22:41:38
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 3258958 大会管理ビューにおいて、試合データの取得時にローディング状態を管理するためのフラグを追加し、最新の状態に更新中であることを表示する機能を実装しました。また、セッション情報を更新しました。
+
+---
+
+## セッション: 2025-10-03 22:44:25
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 3258958 大会管理ビューにおいて、試合データの取得時にローディング状態を管理するためのフラグを追加し、最新の状態に更新中であることを表示する機能を実装しました。また、セッション情報を更新しました。
+
+---
+
+## セッション: 2025-10-04 06:33:48
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 3258958 大会管理ビューにおいて、試合データの取得時にローディング状態を管理するためのフラグを追加し、最新の状態に更新中であることを表示する機能を実装しました。また、セッション情報を更新しました。
+
+---
+
+## セッション: 2025-10-04 06:45:06
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: c85439d feat: 管理者による試合結果の追加・編集・削除機能を実装
+
+---
+
+## セッション: 2025-10-04 06:55:39
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 9535194 fix: 試合編集・削除機能の重大なバグを修正
+
+---
+
+## セッション: 2025-10-04 07:04:43
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: e055807 fix: 大会詳細モーダルと参加者数表示の不具合を修正
+
+---
+
+## セッション: 2025-10-04 07:11:38
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 2810918 fix: 参加者数集計とPromise rejectionの重大なバグを修正
+
+---
+
+## セッション: 2025-10-04 07:28:10
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 0466a33 fix: 参加者数算出ロジックを試合データベースに変更
+
+---
+
+## セッション: 2025-10-04 07:44:59
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 56afb11 fix: 大会管理画面の参加者数表示を修正
+
+---
+
+## セッション: 2025-10-04 07:50:50
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 56afb11 fix: 大会管理画面の参加者数表示を修正
+
+---
+
+## セッション: 2025-10-04 08:00:18
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: c6d2167 fix: 統計ページの四半期別成績を修正
+
+---
+
+## セッション: 2025-10-04 08:03:18
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: fd87480 fix: rating_changeの文字列連結問題を修正
+
+---
+
+## セッション: 2025-10-04 08:08:53
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: af721ae fix: 四半期別成績に年度フィルタリングを追加
+
+---
+
+## セッション: 2025-10-04 08:11:54
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: af721ae fix: 四半期別成績に年度フィルタリングを追加
+
+---
+
+## セッション: 2025-10-04 13:10:00
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: af721ae fix: 四半期別成績に年度フィルタリングを追加
+
+---
+
+## セッション: 2025-10-04 13:13:32
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: fc55848 feat: 実績ページの年間成績を履歴方式に変更
+
+---
+
+## セッション: 2025-10-04 13:20:44
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 3b1338e fix: 年間成績から未完了試合を除外
+
+---
+
+## セッション: 2025-10-04 13:22:41
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 3b1338e fix: 年間成績から未完了試合を除外
+
+---
+
+## セッション: 2025-10-04 13:28:18
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: d6ce93a feat: チャンピオンバッジを年度別に累積表示
+
+---
+
+## セッション: 2025-10-04 13:38:09
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: f3ecc78 feat: 年度別ランキング自動アーカイブ機能を実装（WIP）
+
+---
+
+## セッション: 2025-10-04 13:44:58
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: be15300 feat: 年度別チャンピオンバッジ自動付与を完全実装
+
+---
+
+## セッション: 2025-10-04 13:56:55
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 60d0000 fix: champion_badges列更新の列番号バグを修正
+
+---
+
+## セッション: 2025-10-04 14:06:51
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 60d0000 fix: champion_badges列更新の列番号バグを修正
+
+---
+
+## セッション: 2025-10-04 14:14:37
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 60d0000 fix: champion_badges列更新の列番号バグを修正
+
+---
+
+## セッション: 2025-10-04 14:20:13
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 60d0000 fix: champion_badges列更新の列番号バグを修正
+
+---
+
+## セッション: 2025-10-04 14:23:07
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 60d0000 fix: champion_badges列更新の列番号バグを修正
+
+---
