@@ -49,6 +49,28 @@ interface AdminData {
   }>;
 }
 
+// 相対時間のフォーマット関数
+const formatRelativeTime = (date: Date): string => {
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return 'たった今';
+  if (diffMins < 60) return `${diffMins}分前`;
+  if (diffHours < 24) return `${diffHours}時間前`;
+  if (diffDays === 0) return '今日';
+  if (diffDays === 1) return '昨日';
+  if (diffDays < 7) return `${diffDays}日前`;
+
+  // 7日以上前は日付表示
+  return date.toLocaleDateString('ja-JP', {
+    month: 'short',
+    day: 'numeric'
+  });
+};
+
 export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
   const [currentAdminPage, setCurrentAdminPage] = useState('dashboard');
   const [selectedTournamentId, setSelectedTournamentId] = useState<string | null>(null);
@@ -66,11 +88,11 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
     if (!rankings || !tournaments) {
       return null;
     }
-    
+
     try {
       // Calculate active players (tournament_active = true)
       const activePlayers = rankings.filter(player => player.tournament_active === true).length;
-      
+
       // Calculate players registered this month
       const thisMonth = new Date().getMonth();
       const thisYear = new Date().getFullYear();
@@ -83,18 +105,127 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
       // Calculate tournament stats using date-based logic
       const now = new Date();
       const today = now.toISOString().split('T')[0];
-      
+
       const activeTournaments = tournaments.filter(t => {
         const tournamentDate = new Date(t.date).toISOString().split('T')[0];
         // 今日の大会、またはstatusが'active'の大会を開催中とする
         return tournamentDate === today || t.status === 'active';
       }).length;
-      
+
       const upcomingTournaments = tournaments.filter(t => {
         const tournamentDate = new Date(t.date).toISOString().split('T')[0];
         // 未来の大会を予定とする
         return tournamentDate > today && t.status !== 'completed' && t.status !== 'ended';
       }).length;
+
+      // Generate recent activity (最新5件)
+      const activities: Array<{ type: string; description: string; time: string; timestamp: Date }> = [];
+
+      // 大会作成アクティビティ（created_atまたはdateを使用）
+      tournaments.forEach(tournament => {
+        const tournamentName = tournament.tournament_name || tournament.name || '無名の大会';
+
+        if (tournament.created_at) {
+          // created_atが存在する場合はそれを使用
+          const createdDate = new Date(tournament.created_at);
+          if (!isNaN(createdDate.getTime())) {
+            activities.push({
+              type: 'tournament',
+              description: `『${tournamentName}』を作成しました`,
+              time: formatRelativeTime(createdDate),
+              timestamp: createdDate
+            });
+          }
+        } else if (tournament.date) {
+          // created_atがない場合は、大会日の前日を作成日と仮定
+          const createdDate = new Date(tournament.date);
+          createdDate.setDate(createdDate.getDate() - 1);
+          createdDate.setHours(12, 0, 0, 0);
+
+          if (!isNaN(createdDate.getTime())) {
+            activities.push({
+              type: 'tournament',
+              description: `『${tournamentName}』を作成しました`,
+              time: formatRelativeTime(createdDate),
+              timestamp: createdDate
+            });
+          }
+        }
+      });
+
+      // 大会開始アクティビティ（rawStatusで判定）
+      tournaments.forEach(tournament => {
+        const tournamentName = tournament.tournament_name || tournament.name || '無名の大会';
+        const startTime = tournament.start_time || tournament.time;
+
+        // rawStatusが存在する場合はそれを使用、なければstatusで判定
+        const tournamentStatus = (tournament as any).rawStatus || tournament.status;
+
+        if (tournamentStatus === 'active' || tournamentStatus === 'ended' || tournamentStatus === 'completed') {
+          const tournamentDate = new Date(tournament.date);
+
+          // 開始時刻をstart_timeから取得、なければ10:00と仮定
+          if (startTime && startTime.includes(':')) {
+            const [hours, minutes] = startTime.split(':').map(Number);
+            tournamentDate.setHours(hours, minutes, 0, 0);
+          } else {
+            tournamentDate.setHours(10, 0, 0, 0);
+          }
+
+          if (!isNaN(tournamentDate.getTime())) {
+            activities.push({
+              type: 'tournament',
+              description: `『${tournamentName}』が開始されました`,
+              time: formatRelativeTime(tournamentDate),
+              timestamp: tournamentDate
+            });
+          }
+        }
+      });
+
+      // 大会終了アクティビティ（rawStatusで判定）
+      tournaments.forEach(tournament => {
+        const tournamentName = tournament.tournament_name || tournament.name || '無名の大会';
+
+        // rawStatusが存在する場合はそれを使用、なければstatusで判定
+        const tournamentStatus = (tournament as any).rawStatus || tournament.status;
+
+        if (tournamentStatus === 'ended' || tournamentStatus === 'completed') {
+          // 大会日の終了時刻を仮定（17:00）
+          const tournamentEndDate = new Date(tournament.date);
+          tournamentEndDate.setHours(17, 0, 0, 0);
+
+          if (!isNaN(tournamentEndDate.getTime())) {
+            activities.push({
+              type: 'tournament',
+              description: `『${tournamentName}』が終了しました`,
+              time: formatRelativeTime(tournamentEndDate),
+              timestamp: tournamentEndDate
+            });
+          }
+        }
+      });
+
+      // 新規プレイヤー登録アクティビティ
+      rankings.forEach(player => {
+        if (player.created_at) {
+          const createdDate = new Date(player.created_at);
+          if (!isNaN(createdDate.getTime())) {
+            activities.push({
+              type: 'player',
+              description: `新規プレイヤー『${player.nickname}』が登録されました`,
+              time: formatRelativeTime(createdDate),
+              timestamp: createdDate
+            });
+          }
+        }
+      });
+
+      // タイムスタンプでソート（新しい順）して最新5件を取得
+      const recentActivity = activities
+        .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+        .slice(0, 5)
+        .map(({ type, description, time }) => ({ type, description, time }));
 
       const data: AdminData = {
         tournaments: {
@@ -108,9 +239,9 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
           newThisMonth: newThisMonth
         },
         pendingApprovals: 0, // TODO: Get from match results API
-        recentActivity: [
+        recentActivity: recentActivity.length > 0 ? recentActivity : [
           { type: 'system', description: 'システムが稼働中です', time: '現在' }
-        ] // TODO: Get from activity log API
+        ]
       };
 
       return data;
