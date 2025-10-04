@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -21,7 +22,6 @@ import {
 } from 'lucide-react';
 import { AdminTournaments } from './AdminTournaments';
 import { AdminApprovals } from './AdminApprovals';
-import { AdminPlayers } from './AdminPlayers';
 import { TournamentProgress } from './TournamentProgress';
 import { DataExport } from './DataExport';
 import { useRankings, useTournaments, useVersionPolling } from '@/hooks/useApi';
@@ -72,6 +72,7 @@ const formatRelativeTime = (date: Date): string => {
 };
 
 export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
+  const navigate = useNavigate();
   const [currentAdminPage, setCurrentAdminPage] = useState('dashboard');
   const [selectedTournamentId, setSelectedTournamentId] = useState<string | null>(null);
   const { data: rankings, isLoading: rankingsLoading } = useRankings();
@@ -297,10 +298,6 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
     return <AdminTournaments onBack={() => setCurrentAdminPage('dashboard')} initialView="create" />;
   }
 
-  if (currentAdminPage === 'players') {
-    return <AdminPlayers onBack={() => setCurrentAdminPage('dashboard')} />;
-  }
-
 
   if (currentAdminPage === 'data-export') {
     return <DataExport onClose={() => setCurrentAdminPage('dashboard')} />;
@@ -345,7 +342,7 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
           <Card 
             className="border-fantasy-frame shadow-soft animate-fade-in cursor-pointer hover:shadow-glow transition-all duration-300" 
             style={{ animationDelay: '100ms' }}
-            onClick={() => setCurrentAdminPage('players')}
+            onClick={() => navigate('/admin/players')}
           >
             <CardContent className="p-4 text-center">
               <div className="text-2xl font-bold text-success">{adminData.players.active}</div>
