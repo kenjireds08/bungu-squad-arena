@@ -3543,6 +3543,163 @@ class SheetsService {
       throw new Error(`Failed to add Card Plus badge: ${error.message}`);
     }
   }
+
+  /**
+   * Archive yearly rankings to YearlyArchive sheet
+   * 年度終了時に全プレイヤーのランキングを保存し、上位3名にバッジを付与
+   */
+  async archiveYearlyRankings(year) {
+    await this.authenticate();
+
+    try {
+      console.log(`[YearlyArchive] Archiving rankings for year ${year}...`);
+
+      // 指定年度のアーカイブが既に存在するかチェック
+      const existingArchive = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'YearlyArchive!A2:Z1000'
+      });
+
+      const archiveRows = existingArchive.data.values || [];
+      const yearColumn = 1; // B列（year）
+      const alreadyArchived = archiveRows.some(row => parseInt(row[yearColumn], 10) === year);
+
+      if (alreadyArchived) {
+        console.log(`[YearlyArchive] Year ${year} already archived, skipping`);
+        return { success: true, message: `Year ${year} already archived`, skipped: true };
+      }
+
+      // 全プレイヤーのランキングを取得（年間統計ベース）
+      const players = await this.getPlayers();
+
+      // 年間勝利数でソート（annual_wins降順、同点ならcurrent_rating降順）
+      const rankedPlayers = players
+        .filter(p => (p.annual_wins || 0) + (p.annual_losses || 0) > 0) // 試合した人のみ
+        .sort((a, b) => {
+          const winsA = a.annual_wins || 0;
+          const winsB = b.annual_wins || 0;
+          if (winsB !== winsA) return winsB - winsA;
+          return (b.current_rating || 0) - (a.current_rating || 0);
+        });
+
+      if (rankedPlayers.length === 0) {
+        console.log(`[YearlyArchive] No players found for year ${year}`);
+        return { success: true, message: 'No players to archive', skipped: true };
+      }
+
+      // YearlyArchiveに保存するデータを作成
+      const archiveData = rankedPlayers.map((player, index) => {
+        const rank = index + 1;
+        let championBadge = '';
+
+        if (rank === 1) championBadge = '🥇';
+        else if (rank === 2) championBadge = '🥈';
+        else if (rank === 3) championBadge = '🥉';
+
+        return [
+          `archive_${year}_${player.id}`, // archive_id
+          year, // year
+          player.id, // player_id
+          player.current_rating || 1200, // final_rating
+          rank, // annual_rank
+          championBadge, // champion_badge
+          player.annual_wins || 0, // annual_wins
+          player.annual_losses || 0, // annual_losses
+          new Date().toISOString() // archived_at
+        ];
+      });
+
+      // YearlyArchiveシートに追加
+      await this.sheets.spreadsheets.values.append({
+        spreadsheetId: this.spreadsheetId,
+        range: 'YearlyArchive!A:I',
+        valueInputOption: 'RAW',
+        requestBody: {
+          values: archiveData
+        }
+      });
+
+      console.log(`[YearlyArchive] Archived ${archiveData.length} players for year ${year}`);
+      console.log(`[YearlyArchive] Champions: 1st=${rankedPlayers[0]?.nickname}, 2nd=${rankedPlayers[1]?.nickname}, 3rd=${rankedPlayers[2]?.nickname}`);
+
+      return {
+        success: true,
+        year,
+        playersArchived: archiveData.length,
+        champions: {
+          first: rankedPlayers[0]?.nickname || null,
+          second: rankedPlayers[1]?.nickname || null,
+          third: rankedPlayers[2]?.nickname || null
+        }
+      };
+    } catch (error) {
+      console.error('[YearlyArchive] Error archiving yearly rankings:', error);
+      throw new Error(`Failed to archive yearly rankings: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get yearly archive for a player
+   * プレイヤーの年度別アーカイブを取得
+   */
+  async getYearlyArchive(playerId = null) {
+    await this.authenticate();
+
+    try {
+      const response = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'YearlyArchive!A2:Z1000'
+      });
+
+      const rows = response.data.values || [];
+      const headers = ['archive_id', 'year', 'player_id', 'final_rating', 'annual_rank', 'champion_badge', 'annual_wins', 'annual_losses', 'archived_at'];
+
+      const archives = rows.map(row => {
+        const archive = {};
+        headers.forEach((header, index) => {
+          archive[header] = row[index] || null;
+        });
+        return archive;
+      });
+
+      // プレイヤーIDでフィルタ（指定された場合）
+      if (playerId) {
+        return archives.filter(a => a.player_id === playerId);
+      }
+
+      return archives;
+    } catch (error) {
+      console.error('[YearlyArchive] Error getting yearly archive:', error);
+      throw new Error(`Failed to get yearly archive: ${error.message}`);
+    }
+  }
+
+  /**
+   * Check if yearly archiving is needed and execute if necessary
+   * 年度チェックして必要ならアーカイブを実行
+   */
+  async checkAndArchiveIfNeeded() {
+    const currentYear = new Date().getFullYear();
+    const previousYear = currentYear - 1;
+
+    try {
+      // 前年度のアーカイブが存在するかチェック
+      const archives = await this.getYearlyArchive();
+      const previousYearArchived = archives.some(a => parseInt(a.year, 10) === previousYear);
+
+      if (!previousYearArchived) {
+        console.log(`[YearlyArchive] Previous year (${previousYear}) not archived, archiving now...`);
+        const result = await this.archiveYearlyRankings(previousYear);
+        return { archived: true, year: previousYear, result };
+      } else {
+        console.log(`[YearlyArchive] Previous year (${previousYear}) already archived`);
+        return { archived: false, year: previousYear, message: 'Already archived' };
+      }
+    } catch (error) {
+      console.error('[YearlyArchive] Error checking and archiving:', error);
+      throw new Error(`Failed to check and archive: ${error.message}`);
+    }
+  }
 }
 
 module.exports = SheetsService;
