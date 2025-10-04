@@ -1852,6 +1852,19 @@ class SheetsService {
       
       const playerHistory = [];
       const processedMatchIds = new Set(); // Track processed matches to avoid duplicates
+      const processedMatchKeys = new Set(); // Track logical matches (tournamentId+players+timestamp)
+
+      const normalizeTimestamp = (value) => {
+        if (!value) return '';
+        const date = new Date(value);
+        return Number.isNaN(date.getTime()) ? value : date.toISOString();
+      };
+
+      const makeMatchKey = (tournamentId, playerA, playerB, timestamp) => {
+        if (!tournamentId || !playerA || !playerB) return null;
+        const [p1, p2] = [playerA, playerB].sort();
+        return `${tournamentId}:${p1}:${p2}:${normalizeTimestamp(timestamp)}`;
+      };
       
       // Get players data once for name lookup
       const players = await this.getPlayers();
@@ -1878,6 +1891,18 @@ class SheetsService {
             }
           }
           
+          const initialMatchKey = makeMatchKey(
+            result.tournament_id,
+            playerId,
+            opponentId,
+            result.match_end_time || result.reported_at || ''
+          );
+
+          if (initialMatchKey && processedMatchKeys.has(initialMatchKey)) {
+            console.log('DEBUG: Skipping duplicate match result via key', initialMatchKey);
+            continue;
+          }
+
           // Calculate rating change for this player
           let ratingChange = 0;
           console.log(`DEBUG: MatchResults data for ${playerId}:`, {
@@ -1886,6 +1911,8 @@ class SheetsService {
             isReporter
           });
           
+          let matchedTournamentMatch = null;
+
           if (result.player1_rating_change && result.player2_rating_change) {
             // If both rating changes are available, use the appropriate one
             if (isReporter) {
@@ -1896,24 +1923,49 @@ class SheetsService {
             console.log(`DEBUG: Using MatchResults rating change:`, ratingChange);
           } else {
             // Try to get from TournamentMatches sheet if available
-            const tournamentMatch = tournamentMatches.find(tm => tm.match_id === result.match_id);
-            if (tournamentMatch) {
-              const isPlayer1InTournament = tournamentMatch.player1_id === playerId;
+            matchedTournamentMatch = tournamentMatches.find(tm => tm.match_id === result.match_id);
+
+            if (!matchedTournamentMatch && result.tournament_id) {
+              matchedTournamentMatch = tournamentMatches.find(tm => {
+                if (tm.tournament_id !== result.tournament_id) return false;
+                const players = [tm.player1_id, tm.player2_id];
+                return players.includes(playerId) && players.includes(opponentId);
+              });
+            }
+
+            if (matchedTournamentMatch) {
+              const isPlayer1InTournament = matchedTournamentMatch.player1_id === playerId;
               if (isPlayer1InTournament) {
-                ratingChange = parseInt(tournamentMatch.player1_rating_change) || 0;
-                console.log(`DEBUG: Using TournamentMatches player1 rating change:`, tournamentMatch.player1_rating_change, '→', ratingChange);
+                ratingChange = parseInt(matchedTournamentMatch.player1_rating_change) || 0;
+                console.log(`DEBUG: Using TournamentMatches player1 rating change:`, matchedTournamentMatch.player1_rating_change, '→', ratingChange);
               } else {
-                ratingChange = parseInt(tournamentMatch.player2_rating_change) || 0;
-                console.log(`DEBUG: Using TournamentMatches player2 rating change:`, tournamentMatch.player2_rating_change, '→', ratingChange);
+                ratingChange = parseInt(matchedTournamentMatch.player2_rating_change) || 0;
+                console.log(`DEBUG: Using TournamentMatches player2 rating change:`, matchedTournamentMatch.player2_rating_change, '→', ratingChange);
               }
             } else {
               console.log(`DEBUG: No tournament match found for match_id:`, result.match_id);
             }
           }
-          
+
           const matchId = result.match_id || `result_${result.id}`;
           processedMatchIds.add(matchId);
-          
+          if (matchedTournamentMatch) {
+            processedMatchIds.add(matchedTournamentMatch.match_id);
+          }
+
+          if (initialMatchKey) {
+            processedMatchKeys.add(initialMatchKey);
+          }
+          if (matchedTournamentMatch) {
+            const tmKey = makeMatchKey(
+              matchedTournamentMatch.tournament_id,
+              matchedTournamentMatch.player1_id,
+              matchedTournamentMatch.player2_id,
+              matchedTournamentMatch.match_end_time || matchedTournamentMatch.created_at || ''
+            );
+            if (tmKey) processedMatchKeys.add(tmKey);
+          }
+
           playerHistory.push({
             match_id: matchId,
             tournament_id: result.tournament_id || null,
@@ -1930,9 +1982,18 @@ class SheetsService {
       // Priority 2: Add tournament matches not yet in MatchResults (scheduled/pending matches)
       console.log(`DEBUG: Processing ${tournamentMatches.length} tournament matches for player ${playerId}`);
       for (const match of tournamentMatches) {
-        if ((match.player1_id === playerId || match.player2_id === playerId) && 
-            !processedMatchIds.has(match.match_id)) {
-          
+        if (match.player1_id === playerId || match.player2_id === playerId) {
+          const tournamentMatchKey = makeMatchKey(
+            match.tournament_id,
+            match.player1_id,
+            match.player2_id,
+            match.match_end_time || match.created_at || ''
+          );
+
+          if (processedMatchIds.has(match.match_id) || (tournamentMatchKey && processedMatchKeys.has(tournamentMatchKey))) {
+            continue;
+          }
+
           console.log(`DEBUG: Processing tournament match:`, {
             match_id: match.match_id,
             player1_id: match.player1_id,
@@ -1978,6 +2039,11 @@ class SheetsService {
             timestamp: match.match_end_time || match.created_at || '',
             match_type: 'tournament'
           });
+
+          processedMatchIds.add(match.match_id);
+          if (tournamentMatchKey) {
+            processedMatchKeys.add(tournamentMatchKey);
+          }
         }
       }
       
