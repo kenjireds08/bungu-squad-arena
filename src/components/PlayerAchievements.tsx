@@ -47,6 +47,9 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
   const [isLoading, setIsLoading] = useState(true);
   const { data: rankings } = useRankings();
 
+  // スワイプジェスチャーの状態管理
+  const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
+
   useEffect(() => {
     const loadAchievements = async () => {
       try {
@@ -470,8 +473,43 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
     });
   };
 
+  // スワイプジェスチャーハンドラー
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    const screenWidth = window.innerWidth;
+
+    // 左端10%以内からのタッチのみ記録
+    if (touch.clientX < screenWidth * 0.1) {
+      setTouchStart({ x: touch.clientX, y: touch.clientY });
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!touchStart) return;
+
+    const touch = e.changedTouches[0];
+    const deltaX = touch.clientX - touchStart.x;
+    const deltaY = touch.clientY - touchStart.y;
+
+    // 右方向に50px以上スワイプ、かつ縦方向の移動が横方向の移動より小さい場合
+    if (deltaX > 50 && Math.abs(deltaY) < Math.abs(deltaX)) {
+      onClose();
+    }
+
+    setTouchStart(null);
+  };
+
+  const handleTouchMove = () => {
+    // touchMoveが発生したら、スクロールとの競合を防ぐため何もしない
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-parchment relative overflow-hidden">
+    <div
+      className="min-h-screen bg-gradient-parchment relative overflow-hidden"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      onTouchMove={handleTouchMove}
+    >
       {/* Character Background - Glue */}
       <div 
         className="fixed inset-0 pointer-events-none z-0 md:bg-[length:60%] bg-[length:85%]"
