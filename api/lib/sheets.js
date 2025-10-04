@@ -3672,7 +3672,7 @@ class SheetsService {
             }
 
             // Playersシートを更新
-            const badgeColumnLetter = this._columnToLetter(playerIdx('champion_badges') + 1);
+            const badgeColumnLetter = this._columnToLetter(playerIdx('champion_badges'));
             await this.sheets.spreadsheets.values.update({
               spreadsheetId: this.spreadsheetId,
               range: `Players!${badgeColumnLetter}${playerRowIndex + 1}`,
