@@ -1,20 +1,13 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { QrCode, Trophy, TrendingUp, Calendar, Camera, Star, Users, Loader2, RefreshCw, History, MapPin, Info } from 'lucide-react';
 import { useRankings, useTournaments } from '@/hooks/useApi';
 import { useNotifications } from '@/hooks/useNotifications';
-import { PlayerRanking } from './PlayerRanking';
 import { QRScanner } from './QRScanner';
 import { PlayerMenu } from './PlayerMenu';
-import { PlayerStats } from './PlayerStats';
-import { PlayerHistory } from './PlayerHistory';
-import { PlayerProfile } from './PlayerProfile';
-import { PlayerAchievements } from './PlayerAchievements';
-import { PlayerSettings } from './PlayerSettings';
-import { PlayerHelp } from './PlayerHelp';
-import { AdminDashboard } from './AdminDashboard';
 import { CameraDiag } from './CameraDiag';
 import { MatchWaiting } from './MatchWaiting';
 import { MatchInProgress } from './MatchInProgress';
@@ -27,7 +20,6 @@ import { TournamentParticipants } from './TournamentParticipants';
 import { MatchMatching } from './MatchMatching';
 import { MatchCountdown } from './MatchCountdown';
 import { NotificationBanner } from './NotificationBanner';
-import { NotificationHistory } from './NotificationHistory';
 import { PWAInstallPrompt } from './PWAInstallPrompt';
 import { PullToRefresh } from './PullToRefresh';
 import { getTournamentForMainDashboard, getCategorizedTournaments } from '@/utils/tournamentData';
@@ -40,14 +32,16 @@ interface MainDashboardProps {
 }
 
 export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboardProps) => {
+  const navigate = useNavigate();
+
   // Fallback to default if no user ID provided
   const CURRENT_USER_ID = currentUserId || "player_001";
-  
+
   // Check for URL parameters to determine initial page
   const urlParams = new URLSearchParams(window.location.search);
   const initialPage = urlParams.get('page') || 'dashboard';
   const isFromQR = urlParams.has('from_qr');
-  
+
   const [currentPage, setCurrentPage] = useState<string>(initialPage);
   
   // Check for diagnostic page
@@ -184,6 +178,55 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
   }
 
   const handleNavigate = (page: string) => {
+    // URL-based routing for admin screens
+    if (page === 'admin') {
+      navigate('/admin');
+      return;
+    }
+    if (page === 'admin-tournaments') {
+      navigate('/admin/tournaments');
+      return;
+    }
+    if (page === 'admin-players') {
+      navigate('/admin/players');
+      return;
+    }
+
+    // URL-based routing for player screens
+    if (page === 'ranking') {
+      navigate('/ranking');
+      return;
+    }
+    if (page === 'stats') {
+      navigate('/stats');
+      return;
+    }
+    if (page === 'history') {
+      navigate('/history');
+      return;
+    }
+    if (page === 'profile') {
+      navigate('/profile');
+      return;
+    }
+    if (page === 'achievements') {
+      navigate('/achievements');
+      return;
+    }
+    if (page === 'settings') {
+      navigate('/settings');
+      return;
+    }
+    if (page === 'help') {
+      navigate('/help');
+      return;
+    }
+    if (page === 'notification-history') {
+      navigate('/notifications');
+      return;
+    }
+
+    // State-based routing for other screens (tournament flows, etc.)
     setPreviousPage(currentPage);
     setCurrentPage(page);
   };
@@ -253,47 +296,17 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
 
   // Handle different pages
   if (currentPage === 'qrscanner') {
-    return <QRScanner 
-      onClose={() => setCurrentPage('dashboard')} 
+    return <QRScanner
+      onClose={() => setCurrentPage('dashboard')}
       onEntryComplete={() => setCurrentPage('tournament-entry-complete')}
       currentUserId={CURRENT_USER_ID}
       isAdmin={isAdmin}
     />;
   }
 
-  if (currentPage === 'ranking') {
-    return <PlayerRanking onClose={() => setCurrentPage(previousPage)} />;
-  }
+  // Player routes are now handled by App.tsx router (/ranking, /stats, /history, /profile, /achievements, /settings, /help)
+  // Admin routes are now handled by App.tsx router (/admin, /admin/tournaments, /admin/players)
 
-  if (currentPage === 'stats') {
-    return <PlayerStats onClose={() => setCurrentPage('dashboard')} currentUserId={CURRENT_USER_ID} />;
-  }
-
-  if (currentPage === 'history') {
-    console.log('=== MainDashboard rendering PlayerHistory, CURRENT_USER_ID:', CURRENT_USER_ID);
-    return <PlayerHistory onClose={() => setCurrentPage('dashboard')} currentUserId={CURRENT_USER_ID} />;
-  }
-
-  if (currentPage === 'profile') {
-    return <PlayerProfile onClose={() => setCurrentPage('dashboard')} currentUserId={CURRENT_USER_ID} />;
-  }
-
-  if (currentPage === 'achievements') {
-    return <PlayerAchievements onClose={() => setCurrentPage('dashboard')} currentUserId={CURRENT_USER_ID} />;
-  }
-
-  if (currentPage === 'settings') {
-    return <PlayerSettings onClose={() => setCurrentPage('dashboard')} />;
-  }
-
-  if (currentPage === 'help') {
-    return <PlayerHelp onClose={() => setCurrentPage('dashboard')} />;
-  }
-
-  if (currentPage === 'admin') {
-    return <AdminDashboard onClose={() => setCurrentPage('dashboard')} />;
-  }
-  
   if (currentPage === 'camera-diag') {
     return <CameraDiag onClose={() => setCurrentPage('dashboard')} />;
   }
@@ -361,9 +374,7 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
     return <MatchCountdown onClose={() => setCurrentPage('match-matching')} onStartMatch={() => setCurrentPage('match-in-progress')} />;
   }
 
-  if (currentPage === 'notification-history') {
-    return <NotificationHistory onClose={() => setCurrentPage('dashboard')} />;
-  }
+  // Notification history is now handled by App.tsx router (/notifications)
 
   if (currentPage === 'logout') {
     // Clear localStorage and trigger logout
