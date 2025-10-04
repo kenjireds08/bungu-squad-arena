@@ -237,6 +237,20 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
       return;
     }
 
+    // Validate that no match has the same player in both slots
+    const invalidMatches = matches.filter(match =>
+      match.player1 && match.player2 && match.player1.id === match.player2.id
+    );
+
+    if (invalidMatches.length > 0) {
+      toast({
+        title: "エラー",
+        description: "同じプレイヤーが両方のスロットに選択されている試合があります",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       setIsGenerating(true);
 
@@ -373,6 +387,8 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
   const PlayerSelector = ({ matchId, position }: { matchId: string, position: 'player1' | 'player2' }) => {
     const match = matches.find(m => m.id === matchId);
     const selectedPlayer = match?.[position];
+    const oppositePosition = position === 'player1' ? 'player2' : 'player1';
+    const oppositePlayer = match?.[oppositePosition];
     const selectKey = `${matchId}-${position}`;
     const isOpen = openPlayerSelects[selectKey] || false;
 
@@ -425,14 +441,18 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
               </div>
               {tournamentParticipants.map((player) => {
                 const matchCount = playerMatchCounts[player.id] || 0;
+                const isOpponentPlayer = oppositePlayer?.id === player.id;
                 return (
                   <CommandItem
                     key={player.id}
                     value={`${player.nickname} ${player.id}`}
+                    disabled={isOpponentPlayer}
                     onSelect={() => {
+                      if (isOpponentPlayer) return;
                       updateMatchPlayer(matchId, position, player);
                       setOpenPlayerSelects(prev => ({ ...prev, [selectKey]: false }));
                     }}
+                    className={cn(isOpponentPlayer && "opacity-50 cursor-not-allowed")}
                   >
                     <Check
                       className={cn(
@@ -447,6 +467,7 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
                       </div>
                       <Badge variant="outline" className={cn("text-xs", getMatchCountColor(matchCount))}>
                         {matchCount}試合
+                        {isOpponentPlayer && " (対戦相手)"}
                       </Badge>
                     </div>
                   </CommandItem>
