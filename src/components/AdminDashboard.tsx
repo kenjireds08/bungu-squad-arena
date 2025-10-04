@@ -5,12 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { 
-  ArrowLeft, 
-  Shield, 
-  Users, 
-  Plus, 
-  Settings as SettingsIcon, 
+import {
+  ArrowLeft,
+  Shield,
+  Users,
+  Plus,
+  Settings as SettingsIcon,
   Trophy,
   Calendar,
   BarChart3,
@@ -18,7 +18,9 @@ import {
   LogOut,
   Loader2,
   Database,
-  TrendingUp
+  TrendingUp,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { AdminApprovals } from './AdminApprovals';
 import { TournamentProgress } from './TournamentProgress';
@@ -74,6 +76,7 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
   const navigate = useNavigate();
   const [currentAdminPage, setCurrentAdminPage] = useState('dashboard');
   const [selectedTournamentId, setSelectedTournamentId] = useState<string | null>(null);
+  const [showAllActivities, setShowAllActivities] = useState(false);
   const { data: rankings, isLoading: rankingsLoading } = useRankings();
   const { data: tournaments, isLoading: tournamentsLoading } = useTournaments();
   
@@ -221,10 +224,9 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
         }
       });
 
-      // タイムスタンプでソート（新しい順）して最新5件を取得
+      // タイムスタンプでソート（新しい順）してすべて保持
       const recentActivity = activities
         .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
-        .slice(0, 5)
         .map(({ type, description, time }) => ({ type, description, time }));
 
       const data: AdminData = {
@@ -414,7 +416,7 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {adminData.recentActivity.map((activity, index) => (
+            {adminData.recentActivity.slice(0, showAllActivities ? adminData.recentActivity.length : 5).map((activity, index) => (
               <div
                 key={index}
                 className="flex items-center gap-3 p-3 bg-muted/20 rounded-lg border border-fantasy-frame/10"
@@ -434,25 +436,39 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
                 </div>
               </div>
             ))}
+
+            {/* Show more/less button */}
+            {adminData.recentActivity.length > 5 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full mt-2 text-muted-foreground hover:text-foreground"
+                onClick={() => setShowAllActivities(!showAllActivities)}
+              >
+                {showAllActivities ? (
+                  <>
+                    <ChevronUp className="h-4 w-4 mr-1" />
+                    閉じる
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="h-4 w-4 mr-1" />
+                    もっと見る ({adminData.recentActivity.length - 5}件)
+                  </>
+                )}
+              </Button>
+            )}
           </CardContent>
         </Card>
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Button variant="fantasy" size="lg" className="h-16" onClick={() => setCurrentAdminPage('create-tournament')}>
+          <Button variant="fantasy" size="lg" className="h-16" onClick={() => navigate('/admin/tournaments')}>
             <Plus className="h-5 w-5 mr-2" />
             新しい大会を作成
           </Button>
-          
-          <Button variant="tournament" size="lg" className="h-16" onClick={() => {
-            // 今日の大会を取得
-            const today = new Date().toLocaleDateString('sv-SE');
-            const todaysTournament = tournaments?.find(t => t.date === today);
-            if (todaysTournament) {
-              setSelectedTournamentId(todaysTournament.id);
-            }
-            setCurrentAdminPage('tournaments');
-          }}>
+
+          <Button variant="tournament" size="lg" className="h-16" onClick={() => navigate('/admin/tournaments')}>
             <TrendingUp className="h-5 w-5 mr-2" />
             試合経過を確認
           </Button>
