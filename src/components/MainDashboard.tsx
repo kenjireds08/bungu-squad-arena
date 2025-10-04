@@ -630,23 +630,19 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
 
         {/* Quick Actions */}
         <div className="grid grid-cols-2 gap-3">
-          <Button 
-            variant="outline" 
-            size="lg" 
-            onClick={() => { setPreviousPage('dashboard'); setCurrentPage('ranking'); }}
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={() => handleNavigate('ranking')}
             className="h-16 flex-col border-primary/40 bg-background/90 hover:bg-background/95 text-primary hover:text-primary shadow-sm opacity-70 hover:opacity-100 transition-opacity"
           >
             <Trophy className="h-5 w-5 mb-1" />
             ランキング
           </Button>
-          <Button 
-            variant="outline" 
-            size="lg" 
-            onClick={() => { 
-              console.log('=== History button clicked');
-              setPreviousPage('dashboard'); 
-              setCurrentPage('history'); 
-            }}
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={() => handleNavigate('history')}
             className="h-16 flex-col border-accent/40 bg-background/90 hover:bg-background/95 text-accent hover:text-accent shadow-sm opacity-70 hover:opacity-100 transition-opacity"
           >
             <History className="h-5 w-5 mb-1" />
