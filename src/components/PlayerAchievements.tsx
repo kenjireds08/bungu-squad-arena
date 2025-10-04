@@ -110,39 +110,41 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
                   };
                 }
 
-                // 年度別の試合数・勝敗を集計
-                yearlyStatsMap[year].games++;
+                // 年度別の試合数・勝敗を集計（完了した試合のみ）
+                if (match.result === 'win' || match.result === 'lose') {
+                  yearlyStatsMap[year].games++;
 
-                if (match.result === 'win') {
-                  currentWinStreak++;
-                  totalWins++;
-                  yearlyStatsMap[year].wins++;
+                  if (match.result === 'win') {
+                    currentWinStreak++;
+                    totalWins++;
+                    yearlyStatsMap[year].wins++;
 
-                  // レート変動を加算（実際のrating_changeがあればそれを使用）
-                  const ratingChange = Number(match.rating_change) || 15;
-                  currentRating += ratingChange;
+                    // レート変動を加算（実際のrating_changeがあればそれを使用）
+                    const ratingChange = Number(match.rating_change) || 15;
+                    currentRating += ratingChange;
 
-                  // 3連勝を初めて達成した時の日付を記録
-                  if (currentWinStreak === 3 && !winStreakAchievedDate) {
-                    winStreakAchievedDate = match.timestamp || match.match_date || match.created_at;
+                    // 3連勝を初めて達成した時の日付を記録
+                    if (currentWinStreak === 3 && !winStreakAchievedDate) {
+                      winStreakAchievedDate = match.timestamp || match.match_date || match.created_at;
+                    }
+                    maxWinStreak = Math.max(maxWinStreak, currentWinStreak);
+                  } else if (match.result === 'lose') {
+                    currentWinStreak = 0;
+                    totalLosses++;
+                    yearlyStatsMap[year].losses++;
+
+                    // レート変動を減算
+                    const ratingChange = Number(match.rating_change) || -15;
+                    currentRating += ratingChange;
                   }
-                  maxWinStreak = Math.max(maxWinStreak, currentWinStreak);
-                } else if (match.result === 'lose') {
-                  currentWinStreak = 0;
-                  totalLosses++;
-                  yearlyStatsMap[year].losses++;
 
-                  // レート変動を減算
-                  const ratingChange = Number(match.rating_change) || -15;
-                  currentRating += ratingChange;
+                  // 年度の最終レートと最高レートを更新（完了した試合のみ）
+                  yearlyStatsMap[year].rating = currentRating;
+                  yearlyStatsMap[year].highestRating = Math.max(
+                    yearlyStatsMap[year].highestRating,
+                    currentRating
+                  );
                 }
-
-                // 年度の最終レートと最高レートを更新
-                yearlyStatsMap[year].rating = currentRating;
-                yearlyStatsMap[year].highestRating = Math.max(
-                  yearlyStatsMap[year].highestRating,
-                  currentRating
-                );
 
                 const totalGamesPlayed = totalWins + totalLosses;
 
