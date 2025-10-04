@@ -20,7 +20,6 @@ import {
   Database,
   TrendingUp
 } from 'lucide-react';
-import { AdminTournaments } from './AdminTournaments';
 import { AdminApprovals } from './AdminApprovals';
 import { TournamentProgress } from './TournamentProgress';
 import { DataExport } from './DataExport';
@@ -286,19 +285,8 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
     }
   ];
 
-  if (currentAdminPage === 'tournaments') {
-    return <AdminTournaments onBack={() => setCurrentAdminPage('dashboard')} selectedTournamentId={selectedTournamentId} />;
-  }
-
-  if (currentAdminPage === 'tournament-progress') {
-    return <AdminTournaments onBack={() => setCurrentAdminPage('dashboard')} selectedTournamentId={selectedTournamentId} initialView="management-progress" />;
-  }
-
-  if (currentAdminPage === 'create-tournament') {
-    return <AdminTournaments onBack={() => setCurrentAdminPage('dashboard')} initialView="create" />;
-  }
-
-
+  // Tournament routes are now handled by App.tsx router (/admin/tournaments)
+  // Data export still uses state-based routing
   if (currentAdminPage === 'data-export') {
     return <DataExport onClose={() => setCurrentAdminPage('dashboard')} />;
   }
@@ -329,9 +317,9 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
       <main className="container mx-auto px-4 py-6 space-y-6">
         {/* Quick Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card 
+          <Card
             className="border-fantasy-frame shadow-soft animate-fade-in cursor-pointer hover:shadow-glow transition-all duration-300"
-            onClick={() => setCurrentAdminPage('tournaments')}
+            onClick={() => navigate('/admin/tournaments')}
           >
             <CardContent className="p-4 text-center">
               <div className="text-2xl font-bold text-primary">{adminData.tournaments.active}</div>
@@ -350,18 +338,10 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
             </CardContent>
           </Card>
 
-          <Card 
-            className="border-fantasy-frame shadow-soft animate-fade-in cursor-pointer hover:shadow-glow transition-all duration-300" 
+          <Card
+            className="border-fantasy-frame shadow-soft animate-fade-in cursor-pointer hover:shadow-glow transition-all duration-300"
             style={{ animationDelay: '200ms' }}
-            onClick={() => {
-              // 今日の大会を取得して直接進行状況タブへ
-              const today = new Date().toLocaleDateString('sv-SE');
-              const todaysTournament = tournaments?.find(t => t.date === today);
-              if (todaysTournament) {
-                setSelectedTournamentId(todaysTournament.id);
-              }
-              setCurrentAdminPage('tournament-progress');
-            }}
+            onClick={() => navigate('/admin/tournaments')}
           >
             <CardContent className="p-4 text-center">
               <div className="text-2xl font-bold text-primary">⚡</div>
@@ -369,10 +349,10 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
             </CardContent>
           </Card>
 
-          <Card 
-            className="border-fantasy-frame shadow-soft animate-fade-in cursor-pointer hover:shadow-glow transition-all duration-300" 
+          <Card
+            className="border-fantasy-frame shadow-soft animate-fade-in cursor-pointer hover:shadow-glow transition-all duration-300"
             style={{ animationDelay: '300ms' }}
-            onClick={() => setCurrentAdminPage('tournaments')}
+            onClick={() => navigate('/admin/tournaments')}
           >
             <CardContent className="p-4 text-center">
               <div className="text-2xl font-bold text-info">{adminData.tournaments.total}</div>
@@ -396,7 +376,15 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
                 variant="ghost"
                 className="w-full h-auto p-4 justify-start hover:bg-accent/50 animate-slide-in-right"
                 style={{ animationDelay: `${index * 100}ms` }}
-                onClick={() => setCurrentAdminPage(item.page)}
+                onClick={() => {
+                  if (item.page === 'tournaments') {
+                    navigate('/admin/tournaments');
+                  } else if (item.page === 'players') {
+                    navigate('/admin/players');
+                  } else {
+                    setCurrentAdminPage(item.page);
+                  }
+                }}
               >
                 <div className="flex items-center justify-between w-full">
                   <div className="flex items-center gap-3">
