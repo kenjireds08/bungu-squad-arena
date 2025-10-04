@@ -1808,3 +1808,228 @@
 - 最終コミット: fac3746 feat: 試合結果の重複を防ぐためのキー生成機能を追加
 
 ---
+
+## セッション: 2025-10-04 14:49:47
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: cc1b01c feat: PlayerAchievementsコンポーネントにスワイプジェスチャー機能を追加
+
+---
+
+## セッション: 2025-10-04 14:54:45
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: cc1b01c feat: PlayerAchievementsコンポーネントにスワイプジェスチャー機能を追加
+
+---
+
+## セッション: 2025-10-04 15:04:49
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: cc1b01c feat: PlayerAchievementsコンポーネントにスワイプジェスチャー機能を追加
+
+---
+
+## セッション: 2025-10-04 15:07:07
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: cc1b01c feat: PlayerAchievementsコンポーネントにスワイプジェスチャー機能を追加
+
+---
+
+## セッション: 2025-10-04 20:36:23
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: cc1b01c feat: PlayerAchievementsコンポーネントにスワイプジェスチャー機能を追加
+
+---
+
+## セッション: 2025-10-04 20:43:03
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 8bd5623 feat: 管理者ダッシュボードに最近のアクティビティ表示機能を実装
+
+---
+
+## セッション: 2025-10-04 20:48:37
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 8bd5623 feat: 管理者ダッシュボードに最近のアクティビティ表示機能を実装
+
+---
+
+## セッション: 2025-10-04 20:54:27
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 8bd5623 feat: 管理者ダッシュボードに最近のアクティビティ表示機能を実装
+
+---
+
+## セッション: 2025-10-04 20:59:15
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 8bd5623 feat: 管理者ダッシュボードに最近のアクティビティ表示機能を実装
+
+---
+
+## セッション: 2025-10-04 21:02:15
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: d4ea31f feat: URL-based routing実装完了
+
+---
+
+## セッション: 2025-10-04 21:09:25
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 28064ac fix: メイン画面のランキングと大会参加履歴ボタンをURL遷移に修正
+
+---
+
+## セッション: 2025-10-04 21:11:38
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 28064ac fix: メイン画面のランキングと大会参加履歴ボタンをURL遷移に修正
+
+---
+
+## セッション: 2025-10-04 21:19:24
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: e69b282 fix: AdminDashboard内のプレイヤー管理ボタンをURL遷移に修正
+
+---
+
+## セッション: 2025-10-04 21:27:59
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: e69b282 fix: AdminDashboard内のプレイヤー管理ボタンをURL遷移に修正
+
+---
+
+## セッション: 2025-10-04 21:31:48
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 771e78f fix: AdminDashboard内の全大会管理ボタンをURL遷移に統一
+
+---
