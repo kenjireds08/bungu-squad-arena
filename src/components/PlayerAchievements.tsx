@@ -167,38 +167,6 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
           } catch (error) {
             console.warn('Failed to fetch match history for achievements:', error);
           }
-          // Parse champion badges from current user data
-          const championBadges: Achievement[] = [];
-          if (currentUser.champion_badges) {
-            const badges = currentUser.champion_badges.split(',').filter(b => b.trim());
-            badges.forEach(badge => {
-              const badgeTrim = badge.trim();
-              // バッジは過去の実績なので、前年度として表示
-              const badgeYear = new Date().getFullYear() - 1;
-              if (badgeTrim === '🥇') {
-                championBadges.push({
-                  badge: '🥇',
-                  title: `${badgeYear}年度 チャンピオン`,
-                  description: '年間ランキング1位を獲得',
-                  date: `${badgeYear}-12-31`
-                });
-              } else if (badgeTrim === '🥈') {
-                championBadges.push({
-                  badge: '🥈',
-                  title: `${badgeYear}年度 準優勝`,
-                  description: '年間ランキング2位を獲得',
-                  date: `${badgeYear}-12-31`
-                });
-              } else if (badgeTrim === '🥉') {
-                championBadges.push({
-                  badge: '🥉',
-                  title: `${badgeYear}年度 3位`,
-                  description: '年間ランキング3位を獲得',
-                  date: `${badgeYear}-12-31`
-                });
-              }
-            });
-          }
 
           // Calculate total games and win rate
           const totalGames = (currentUser.annual_wins || 0) + (currentUser.annual_losses || 0);
@@ -274,6 +242,78 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
                 : '進行中'
             });
           }
+
+          // チャンピオンバッジを年度別統計とchampion_badgesから生成
+          const championBadges: Achievement[] = [];
+
+          // champion_badgesフィールドから過去のバッジを取得（年度付き形式に対応）
+          if (currentUser.champion_badges) {
+            const badges = currentUser.champion_badges.split(',').filter(b => b.trim());
+            badges.forEach(badge => {
+              const badgeTrim = badge.trim();
+
+              // 年度付き形式: "2024:🥇"
+              if (badgeTrim.includes(':')) {
+                const [yearStr, badgeIcon] = badgeTrim.split(':');
+                const year = parseInt(yearStr, 10);
+
+                if (badgeIcon === '🥇') {
+                  championBadges.push({
+                    badge: '🥇',
+                    title: `${year}年度 チャンピオン`,
+                    description: '年間ランキング1位を獲得',
+                    date: `${year}-12-31`
+                  });
+                } else if (badgeIcon === '🥈') {
+                  championBadges.push({
+                    badge: '🥈',
+                    title: `${year}年度 準優勝`,
+                    description: '年間ランキング2位を獲得',
+                    date: `${year}-12-31`
+                  });
+                } else if (badgeIcon === '🥉') {
+                  championBadges.push({
+                    badge: '🥉',
+                    title: `${year}年度 3位`,
+                    description: '年間ランキング3位を獲得',
+                    date: `${year}-12-31`
+                  });
+                }
+              } else {
+                // 後方互換: 年度なし形式（前年度として扱う）
+                const badgeYear = currentYear - 1;
+                if (badgeTrim === '🥇') {
+                  championBadges.push({
+                    badge: '🥇',
+                    title: `${badgeYear}年度 チャンピオン`,
+                    description: '年間ランキング1位を獲得',
+                    date: `${badgeYear}-12-31`
+                  });
+                } else if (badgeTrim === '🥈') {
+                  championBadges.push({
+                    badge: '🥈',
+                    title: `${badgeYear}年度 準優勝`,
+                    description: '年間ランキング2位を獲得',
+                    date: `${badgeYear}-12-31`
+                  });
+                } else if (badgeTrim === '🥉') {
+                  championBadges.push({
+                    badge: '🥉',
+                    title: `${badgeYear}年度 3位`,
+                    description: '年間ランキング3位を獲得',
+                    date: `${badgeYear}-12-31`
+                  });
+                }
+              }
+            });
+          }
+
+          // バッジを年度降順でソート
+          championBadges.sort((a, b) => {
+            const yearA = parseInt(a.date.split('-')[0], 10);
+            const yearB = parseInt(b.date.split('-')[0], 10);
+            return yearB - yearA;
+          });
 
           setAchievementsData({
             championBadges,
