@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import {
   ArrowLeft,
   Shield,
@@ -20,7 +21,8 @@ import {
   Database,
   TrendingUp,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  QrCode
 } from 'lucide-react';
 import { AdminApprovals } from './AdminApprovals';
 import { TournamentProgress } from './TournamentProgress';
@@ -77,6 +79,7 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
   const [currentAdminPage, setCurrentAdminPage] = useState('dashboard');
   const [selectedTournamentId, setSelectedTournamentId] = useState<string | null>(null);
   const [showAllActivities, setShowAllActivities] = useState(false);
+  const [showTournamentSelectModal, setShowTournamentSelectModal] = useState(false);
   const { data: rankings, isLoading: rankingsLoading } = useRankings();
   const { data: tournaments, isLoading: tournamentsLoading } = useTournaments();
   
@@ -229,6 +232,12 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
         .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
         .map(({ type, description, time }) => ({ type, description, time }));
 
+      // 今日の大会をフィルタリング
+      const todayTournaments = tournaments.filter(t => {
+        const tournamentDate = new Date(t.date).toISOString().split('T')[0];
+        return tournamentDate === today;
+      });
+
       const data: AdminData = {
         tournaments: {
           active: activeTournaments,
@@ -252,6 +261,30 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
       return null;
     }
   }, [rankings, tournaments]);
+
+  // 今日の大会を取得
+  const todayTournaments = useMemo(() => {
+    if (!tournaments) return [];
+    const today = new Date().toISOString().split('T')[0];
+    return tournaments.filter(t => {
+      const tournamentDate = new Date(t.date).toISOString().split('T')[0];
+      return tournamentDate === today;
+    });
+  }, [tournaments]);
+
+  // 参加者カードクリック時の処理
+  const handleParticipantsCardClick = () => {
+    if (todayTournaments.length === 0) {
+      // 大会がない場合は何もしない
+      return;
+    } else if (todayTournaments.length === 1) {
+      // 大会が1つの場合は直接QRコード画面へ
+      navigate(`/admin/qr/${todayTournaments[0].id}`);
+    } else {
+      // 大会が複数の場合はセレクトモーダルを表示
+      setShowTournamentSelectModal(true);
+    }
+  };
 
   if (isLoading || !adminData) {
     return (
@@ -319,6 +352,7 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
       <main className="container mx-auto px-4 py-6 space-y-6">
         {/* Quick Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {/* 1. 開催中の大会 */}
           <Card
             className="border-fantasy-frame shadow-soft animate-fade-in cursor-pointer hover:shadow-glow transition-all duration-300"
             onClick={() => navigate('/admin/tournaments')}
@@ -328,33 +362,44 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
               <div className="text-sm text-muted-foreground">開催中の大会</div>
             </CardContent>
           </Card>
-          
-          <Card 
-            className="border-fantasy-frame shadow-soft animate-fade-in cursor-pointer hover:shadow-glow transition-all duration-300" 
+
+          {/* 2. 参加者 → QRコード表示 */}
+          <Card
+            className={`border-fantasy-frame shadow-soft animate-fade-in transition-all duration-300 ${
+              todayTournaments.length > 0
+                ? 'cursor-pointer hover:shadow-glow'
+                : 'opacity-50 cursor-not-allowed'
+            }`}
             style={{ animationDelay: '100ms' }}
-            onClick={() => navigate('/admin/players')}
+            onClick={handleParticipantsCardClick}
           >
             <CardContent className="p-4 text-center">
               <div className="text-2xl font-bold text-success">{adminData.players.active}</div>
-              <div className="text-sm text-muted-foreground">アクティブプレイヤー</div>
+              <div className="text-sm text-muted-foreground">参加者</div>
+              {todayTournaments.length === 0 && (
+                <div className="text-xs text-muted-foreground mt-1">
+                  (本日の大会なし)
+                </div>
+              )}
             </CardContent>
           </Card>
 
+          {/* 3. 完了試合 → 試合経過 */}
           <Card
             className="border-fantasy-frame shadow-soft animate-fade-in cursor-pointer hover:shadow-glow transition-all duration-300"
             style={{ animationDelay: '200ms' }}
             onClick={() => navigate('/admin/tournaments')}
           >
             <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-primary">⚡</div>
-              <div className="text-sm text-muted-foreground">試合開始</div>
+              <div className="text-2xl font-bold text-primary">-/-</div>
+              <div className="text-sm text-muted-foreground">完了試合</div>
             </CardContent>
           </Card>
 
+          {/* 4. 総大会数 → クリック不可 */}
           <Card
-            className="border-fantasy-frame shadow-soft animate-fade-in cursor-pointer hover:shadow-glow transition-all duration-300"
+            className="border-fantasy-frame shadow-soft animate-fade-in opacity-70"
             style={{ animationDelay: '300ms' }}
-            onClick={() => navigate('/admin/tournaments')}
           >
             <CardContent className="p-4 text-center">
               <div className="text-2xl font-bold text-info">{adminData.tournaments.total}</div>
@@ -474,6 +519,41 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
           </Button>
         </div>
       </main>
+
+      {/* 複数大会選択モーダル */}
+      <Dialog open={showTournamentSelectModal} onOpenChange={setShowTournamentSelectModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>大会を選択してください</DialogTitle>
+            <DialogDescription>
+              QRコードを表示する大会を選択してください
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-4">
+            {todayTournaments.map((tournament) => (
+              <Button
+                key={tournament.id}
+                variant="outline"
+                className="w-full justify-start h-auto p-4"
+                onClick={() => {
+                  navigate(`/admin/qr/${tournament.id}`);
+                  setShowTournamentSelectModal(false);
+                }}
+              >
+                <div className="flex items-center gap-3 w-full">
+                  <QrCode className="h-5 w-5 text-primary" />
+                  <div className="text-left flex-1">
+                    <div className="font-medium">{tournament.tournament_name || tournament.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {tournament.start_time || tournament.time}〜
+                    </div>
+                  </div>
+                </div>
+              </Button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
