@@ -61,6 +61,11 @@ export const TournamentEntry = () => {
   const [isEmailSending, setIsEmailSending] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [verificationLink, setVerificationLink] = useState(''); // For development only
+
+  // Login states
+  const [showLoginForm, setShowLoginForm] = useState(false);
+  const [loginEmail, setLoginEmail] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
   
   const updateTournamentActive = useUpdatePlayerTournamentActive();
   
@@ -593,7 +598,7 @@ export const TournamentEntry = () => {
 
     try {
       setIsEmailSending(true);
-      
+
       const response = await fetch('/api/auth', {
         method: 'POST',
         headers: {
@@ -619,7 +624,7 @@ export const TournamentEntry = () => {
       } else {
         throw new Error(result.error || 'Failed to send verification email');
       }
-      
+
     } catch (error) {
       console.error('Error sending verification email:', error);
       toast({
@@ -629,6 +634,79 @@ export const TournamentEntry = () => {
       });
     } finally {
       setIsEmailSending(false);
+    }
+  };
+
+  // Login with email
+  const handleLogin = async () => {
+    if (!loginEmail || !tournament) {
+      toast({
+        title: "入力エラー",
+        description: "メールアドレスを入力してください",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Simple email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(loginEmail)) {
+      toast({
+        title: "メールアドレスエラー",
+        description: "正しいメールアドレスを入力してください",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      setIsLoggingIn(true);
+
+      // Fetch all players and find by email
+      const playersResponse = await fetch('/api/players');
+      if (!playersResponse.ok) {
+        throw new Error('プレイヤー情報の取得に失敗しました');
+      }
+
+      const players = await playersResponse.json();
+      const foundUser = players.find((p: any) => p.email === loginEmail);
+
+      if (!foundUser) {
+        toast({
+          title: "ユーザーが見つかりません",
+          description: "このメールアドレスは登録されていません。新規登録してください。",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Set user info to localStorage
+      localStorage.setItem('userId', foundUser.id);
+      localStorage.setItem('userNickname', foundUser.nickname || '');
+      localStorage.setItem('userEmail', foundUser.email || '');
+
+      toast({
+        title: "ログイン成功",
+        description: `${foundUser.nickname}としてログインしました`,
+      });
+
+      // Close login form and automatically trigger entry
+      setShowLoginForm(false);
+
+      // Wait a bit for state to update, then trigger entry
+      setTimeout(() => {
+        handleEntry();
+      }, 500);
+
+    } catch (error) {
+      console.error('Login error:', error);
+      toast({
+        title: "ログインエラー",
+        description: error instanceof Error ? error.message : "ログインに失敗しました",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
@@ -894,8 +972,8 @@ export const TournamentEntry = () => {
                           </p>
                         </div>
                       </div>
-                      
-                      <Button 
+
+                      <Button
                         onClick={handleEntry}
                         disabled={isEntering}
                         className="w-full"
@@ -915,58 +993,137 @@ export const TournamentEntry = () => {
                       </Button>
                     </>
                   ) : (
-                    /* 新規ユーザーの場合 */
+                    /* 新規ユーザー・ログインフォーム */
                     <>
-                      <div className="text-center">
-                        <p className="text-sm text-muted-foreground mb-3">
-                          QRコードからのエントリーです。<br />
-                          初めての方は、ニックネームとメールアドレスで登録してください。
-                        </p>
-                      </div>
-                      
-                      <div className="space-y-3">
-                        <div>
-                          <Label htmlFor="nickname">ニックネーム *</Label>
-                          <Input
-                            id="nickname"
-                            type="text"
-                            placeholder="表示名を入力"
-                            value={nickname}
-                            onChange={(e) => setNickname(e.target.value)}
-                            required
-                          />
-                        </div>
-                        
-                        <div>
-                          <Label htmlFor="email">メールアドレス *</Label>
-                          <Input
-                            id="email"
-                            type="email"
-                            placeholder="your-email@example.com"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            required
-                          />
-                        </div>
-                      </div>
-                      
-                      <Button 
-                        onClick={handleEntry}
-                        disabled={isEntering || !nickname || !email}
-                        className="w-full"
-                      >
-                        {isEntering ? (
-                          <>
-                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                            エントリー中...
-                          </>
-                        ) : (
-                          <>
-                            <Trophy className="h-4 w-4 mr-2" />
-                            登録して大会にエントリー
-                          </>
-                        )}
-                      </Button>
+                      {!showLoginForm ? (
+                        /* 新規登録フォーム */
+                        <>
+                          <div className="text-center">
+                            <p className="text-sm text-muted-foreground mb-3">
+                              QRコードからのエントリーです。<br />
+                              初めての方は、ニックネームとメールアドレスで登録してください。
+                            </p>
+                          </div>
+
+                          <div className="space-y-3">
+                            <div>
+                              <Label htmlFor="nickname">ニックネーム *</Label>
+                              <Input
+                                id="nickname"
+                                type="text"
+                                placeholder="表示名を入力"
+                                value={nickname}
+                                onChange={(e) => setNickname(e.target.value)}
+                                required
+                              />
+                            </div>
+
+                            <div>
+                              <Label htmlFor="email">メールアドレス *</Label>
+                              <Input
+                                id="email"
+                                type="email"
+                                placeholder="your-email@example.com"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                required
+                              />
+                            </div>
+                          </div>
+
+                          <Button
+                            onClick={handleEntry}
+                            disabled={isEntering || !nickname || !email}
+                            className="w-full"
+                          >
+                            {isEntering ? (
+                              <>
+                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                エントリー中...
+                              </>
+                            ) : (
+                              <>
+                                <Trophy className="h-4 w-4 mr-2" />
+                                登録して大会にエントリー
+                              </>
+                            )}
+                          </Button>
+
+                          {/* 既にアカウントをお持ちの方はこちら */}
+                          <div className="relative">
+                            <div className="absolute inset-0 flex items-center">
+                              <span className="w-full border-t" />
+                            </div>
+                            <div className="relative flex justify-center text-xs uppercase">
+                              <span className="bg-background px-2 text-muted-foreground">
+                                または
+                              </span>
+                            </div>
+                          </div>
+
+                          <Button
+                            variant="outline"
+                            onClick={() => setShowLoginForm(true)}
+                            className="w-full"
+                          >
+                            <Mail className="h-4 w-4 mr-2" />
+                            既にアカウントをお持ちの方はこちら
+                          </Button>
+                        </>
+                      ) : (
+                        /* ログインフォーム */
+                        <>
+                          <div className="text-center">
+                            <p className="text-sm text-muted-foreground mb-3">
+                              メールアドレスでログインしてエントリーします。
+                            </p>
+                          </div>
+
+                          <div className="space-y-3">
+                            <div>
+                              <Label htmlFor="login-email">メールアドレス *</Label>
+                              <Input
+                                id="login-email"
+                                type="email"
+                                placeholder="your-email@example.com"
+                                value={loginEmail}
+                                onChange={(e) => setLoginEmail(e.target.value)}
+                                required
+                              />
+                            </div>
+                          </div>
+
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              onClick={() => {
+                                setShowLoginForm(false);
+                                setLoginEmail('');
+                              }}
+                              className="flex-1"
+                            >
+                              戻る
+                            </Button>
+                            <Button
+                              onClick={handleLogin}
+                              disabled={isLoggingIn || !loginEmail}
+                              className="flex-1"
+                            >
+                              {isLoggingIn ? (
+                                <>
+                                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                  ログイン中...
+                                </>
+                              ) : (
+                                <>
+                                  <Mail className="h-4 w-4 mr-2" />
+                                  ログイン
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        </>
+                      )}
                     </>
                   )}
                 </div>
