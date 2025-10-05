@@ -121,18 +121,18 @@ export const AdminPlayers = ({ onBack }: AdminPlayersProps) => {
 
       const matches = await response.json();
 
-      // 完了した試合のみをカウント
+      // 完了した試合のみをカウント（resultが'win'または'lose'の試合）
       const completedMatches = matches.filter((m: any) =>
-        m.status === 'completed' || m.status === 'approved'
+        m.result === 'win' || m.result === 'lose'
       );
 
       let wins = 0;
       let losses = 0;
 
       completedMatches.forEach((match: any) => {
-        if (match.winner_id === playerId) {
+        if (match.result === 'win') {
           wins++;
-        } else if (match.winner_id && (match.player1_id === playerId || match.player2_id === playerId)) {
+        } else if (match.result === 'lose') {
           losses++;
         }
       });
