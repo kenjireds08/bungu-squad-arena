@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { ArrowLeft, Users, UserPlus, Search, Mail, Trophy, Calendar, Eye, Loader2 } from 'lucide-react';
 import { useRankings } from '@/hooks/useApi';
 
@@ -21,6 +22,8 @@ export const AdminPlayers = ({ onBack }: AdminPlayersProps) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [playerStats, setPlayerStats] = useState<{ wins: number; losses: number } | null>(null);
   const [isLoadingStats, setIsLoadingStats] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isTogglingActive, setIsTogglingActive] = useState(false);
 
   const filteredPlayers = players?.filter(player => {
     const matchesSearch = player.nickname.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -79,14 +82,14 @@ export const AdminPlayers = ({ onBack }: AdminPlayersProps) => {
     return ((wins / total) * 100).toFixed(1);
   };
 
-  const handleDeletePlayer = async (playerId: string, playerName: string) => {
-    if (!confirm(`${playerName}を削除しますか？この操作は取り消せません。`)) {
-      return;
-    }
+  const handleDeletePlayer = async () => {
+    if (!selectedPlayer) return;
 
     setIsDeleting(true);
+    setShowDeleteConfirm(false);
+
     try {
-      const response = await fetch(`/api/players?id=${playerId}`, {
+      const response = await fetch(`/api/players?id=${selectedPlayer.id}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' }
       });
@@ -99,14 +102,49 @@ export const AdminPlayers = ({ onBack }: AdminPlayersProps) => {
       // Success - refresh data and close dialog
       await refetch();
       setSelectedPlayer(null);
-      
-      // Show success message (optional)
-      console.log(`Player ${playerName} deleted successfully`);
+
+      console.log(`Player ${selectedPlayer.nickname} deleted successfully`);
     } catch (error) {
       console.error('Failed to delete player:', error);
       alert(`プレイヤーの削除に失敗しました: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  // アクティブ状態切り替え
+  const handleToggleActive = async () => {
+    if (!selectedPlayer) return;
+
+    setIsTogglingActive(true);
+    try {
+      const response = await fetch(`/api/players?id=${selectedPlayer.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tournament_active: !selectedPlayer.tournament_active
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to toggle active status');
+      }
+
+      // Success - refresh data
+      await refetch();
+      // Update selected player state
+      setSelectedPlayer({
+        ...selectedPlayer,
+        tournament_active: !selectedPlayer.tournament_active
+      });
+
+      console.log(`Player ${selectedPlayer.nickname} active status toggled`);
+    } catch (error) {
+      console.error('Failed to toggle active status:', error);
+      alert(`ステータス変更に失敗しました: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsTogglingActive(false);
     }
   };
 
@@ -324,7 +362,7 @@ export const AdminPlayers = ({ onBack }: AdminPlayersProps) => {
                     <TableHead>プレイヤー名</TableHead>
                     <TableHead className="text-center">レーティング</TableHead>
                     <TableHead className="text-center hidden sm:table-cell">ステータス</TableHead>
-                    <TableHead className="text-center">操作</TableHead>
+                    <TableHead className="text-center">詳細</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -454,14 +492,31 @@ export const AdminPlayers = ({ onBack }: AdminPlayersProps) => {
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="flex justify-center pt-4">
-                    <Button 
-                      variant="outline" 
+                  <div className="flex justify-center gap-3 pt-4">
+                    <Button
+                      variant="outline"
+                      onClick={handleToggleActive}
+                      disabled={isTogglingActive}
+                      className="w-40"
+                    >
+                      {isTogglingActive ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          変更中...
+                        </>
+                      ) : selectedPlayer.tournament_active ? (
+                        '非アクティブにする'
+                      ) : (
+                        'アクティブにする'
+                      )}
+                    </Button>
+                    <Button
+                      variant="outline"
                       className="w-32 text-destructive hover:text-destructive hover:bg-destructive/10"
-                      onClick={() => handleDeletePlayer(selectedPlayer.id, selectedPlayer.nickname)}
+                      onClick={() => setShowDeleteConfirm(true)}
                       disabled={isDeleting}
                     >
-                      {isDeleting ? '削除中...' : '削除'}
+                      削除
                     </Button>
                   </div>
                 </div>
@@ -469,6 +524,40 @@ export const AdminPlayers = ({ onBack }: AdminPlayersProps) => {
             )}
           </DialogContent>
         </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>プレイヤーを削除しますか？</AlertDialogTitle>
+              <AlertDialogDescription>
+                {selectedPlayer && (
+                  <>
+                    <span className="font-semibold">{selectedPlayer.nickname}</span> を削除しようとしています。
+                    <br />
+                    この操作は取り消せません。本当に削除しますか？
+                  </>
+                )}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>キャンセル</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeletePlayer}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    削除中...
+                  </>
+                ) : (
+                  '削除する'
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </main>
     </div>
   );
