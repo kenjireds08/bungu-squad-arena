@@ -77,7 +77,6 @@ const formatRelativeTime = (date: Date): string => {
 export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
   const navigate = useNavigate();
   const [currentAdminPage, setCurrentAdminPage] = useState('dashboard');
-  const [selectedTournamentId, setSelectedTournamentId] = useState<string | null>(null);
   const [showAllActivities, setShowAllActivities] = useState(false);
   const [showTournamentSelectModal, setShowTournamentSelectModal] = useState(false);
   const { data: rankings, isLoading: rankingsLoading } = useRankings();
