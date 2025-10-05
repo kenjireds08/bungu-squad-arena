@@ -273,16 +273,8 @@ export const AdminDashboard = ({ onClose }: AdminDashboardProps) => {
 
   // 参加者カードクリック時の処理
   const handleParticipantsCardClick = () => {
-    if (todayTournaments.length === 0) {
-      // 大会がない場合は何もしない
-      return;
-    } else if (todayTournaments.length === 1) {
-      // 大会が1つの場合は直接QRコード画面へ
-      navigate(`/admin/qr/${todayTournaments[0].id}`);
-    } else {
-      // 大会が複数の場合はセレクトモーダルを表示
-      setShowTournamentSelectModal(true);
-    }
+    // プレイヤー管理画面へ遷移
+    navigate('/admin/players');
   };
 
   if (isLoading || !adminData) {

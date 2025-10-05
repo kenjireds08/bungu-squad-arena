@@ -2033,3 +2033,528 @@
 - 最終コミット: 771e78f fix: AdminDashboard内の全大会管理ボタンをURL遷移に統一
 
 ---
+
+## セッション: 2025-10-04 21:38:20
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: f19b12f セッション情報を追加し、最新のドキュメントとGit状態を更新
+
+---
+
+## セッション: 2025-10-05 06:29:33
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: f19b12f セッション情報を追加し、最新のドキュメントとGit状態を更新
+
+---
+
+## セッション: 2025-10-05 06:49:22
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: f19b12f セッション情報を追加し、最新のドキュメントとGit状態を更新
+
+---
+
+## セッション: 2025-10-05 06:52:42
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: f19b12f セッション情報を追加し、最新のドキュメントとGit状態を更新
+
+---
+
+## セッション: 2025-10-05 06:56:09
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: f19b12f セッション情報を追加し、最新のドキュメントとGit状態を更新
+
+---
+
+## セッション: 2025-10-05 06:57:55
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 44adbab feat: AdminDashboardのUI改善（アクティビティ表示拡張とボタン修正）
+
+---
+
+## セッション: 2025-10-05 07:31:09
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 44adbab feat: AdminDashboardのUI改善（アクティビティ表示拡張とボタン修正）
+
+---
+
+## セッション: 2025-10-05 07:37:44
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 44adbab feat: AdminDashboardのUI改善（アクティビティ表示拡張とボタン修正）
+
+---
+
+## セッション: 2025-10-05 07:46:43
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- MATCHMAKING_UI_REFACTOR.md
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 44adbab feat: AdminDashboardのUI改善（アクティビティ表示拡張とボタン修正）
+
+---
+
+## セッション: 2025-10-05 07:47:06
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- MATCHMAKING_UI_REFACTOR.md
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 44adbab feat: AdminDashboardのUI改善（アクティビティ表示拡張とボタン修正）
+
+---
+
+## セッション: 2025-10-05 07:48:59
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- MATCHMAKING_UI_REFACTOR.md
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 966e11b feat: 大会組み合わせUIをドラッグ&ドロップからセレクトボックス方式に刷新
+
+---
+
+## セッション: 2025-10-05 07:56:26
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- MATCHMAKING_UI_REFACTOR.md
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 9a8c639 fix: 同一プレイヤーの両スロット選択を防止
+
+---
+
+## セッション: 2025-10-05 07:57:55
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- MATCHMAKING_UI_REFACTOR.md
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 9a8c639 fix: 同一プレイヤーの両スロット選択を防止
+
+---
+
+## セッション: 2025-10-05 07:59:27
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- MATCHMAKING_UI_REFACTOR.md
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 9a8c639 fix: 同一プレイヤーの両スロット選択を防止
+
+---
+
+## セッション: 2025-10-05 08:58:47
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- MATCHMAKING_UI_REFACTOR.md
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 2cf4c23 improve: スマホUI最適化（参加者一覧・レイアウト・コンパクト化）
+
+---
+
+## セッション: 2025-10-05 09:14:37
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- MATCHMAKING_UI_REFACTOR.md
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 2cf4c23 improve: スマホUI最適化（参加者一覧・レイアウト・コンパクト化）
+
+---
+
+## セッション: 2025-10-05 09:18:59
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- MATCHMAKING_UI_REFACTOR.md
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 7d2151c feat: TournamentMatchmaking UX改善 - レスポンシブPopover、バッジ条件表示、フォーカス制御
+
+---
+
+## セッション: 2025-10-05 09:22:56
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- MATCHMAKING_UI_REFACTOR.md
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 7d2151c feat: TournamentMatchmaking UX改善 - レスポンシブPopover、バッジ条件表示、フォーカス制御
+
+---
+
+## セッション: 2025-10-05 09:23:43
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- MATCHMAKING_UI_REFACTOR.md
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 7d2151c feat: TournamentMatchmaking UX改善 - レスポンシブPopover、バッジ条件表示、フォーカス制御
+
+---
+
+## セッション: 2025-10-05 12:10:35
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- MATCHMAKING_UI_REFACTOR.md
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 8c551f7 feat: QRエントリー画面に既存ユーザーログイン機能を追加
+
+---
+
+## セッション: 2025-10-05 12:23:19
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- MATCHMAKING_UI_REFACTOR.md
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 8c551f7 feat: QRエントリー画面に既存ユーザーログイン機能を追加
+
+---
+
+## セッション: 2025-10-05 12:27:14
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- MATCHMAKING_UI_REFACTOR.md
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 8c551f7 feat: QRエントリー画面に既存ユーザーログイン機能を追加
+
+---
+
+## セッション: 2025-10-05 12:35:46
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- MATCHMAKING_UI_REFACTOR.md
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 8c551f7 feat: QRエントリー画面に既存ユーザーログイン機能を追加
+
+---
+
+## セッション: 2025-10-05 12:40:36
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- MATCHMAKING_UI_REFACTOR.md
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: d85d698 feat: AdminDashboard 4カードの改善 - 参加者カードにQR表示機能追加
+
+---
+
+## セッション: 2025-10-05 12:43:59
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- MATCHMAKING_UI_REFACTOR.md
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: db5a02e refactor: AdminDashboard未使用stateを削除
+
+---
+
+## セッション: 2025-10-05 12:51:40
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- MATCHMAKING_UI_REFACTOR.md
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 1617d24 fix: AdminPlayers詳細画面で総対戦数を動的に計算
+
+---
+
+## セッション: 2025-10-05 12:55:06
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- MATCHMAKING_UI_REFACTOR.md
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 42b33e9 fix: AdminPlayersのAPIレスポンスフィールド名を修正
+
+---
+
+## セッション: 2025-10-05 12:56:39
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- MATCHMAKING_UI_REFACTOR.md
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 42b33e9 fix: AdminPlayersのAPIレスポンスフィールド名を修正
+
+---
+
+## セッション: 2025-10-05 13:02:36
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- MATCHMAKING_UI_REFACTOR.md
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 4574cb2 feat: AdminPlayers詳細画面のUI/UX改善
+
+---
+
+## セッション: 2025-10-05 13:04:55
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- ADMIN_PLAYERS_IMPROVEMENTS.md
+- MATCHMAKING_UI_REFACTOR.md
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 4574cb2 feat: AdminPlayers詳細画面のUI/UX改善
+
+---
+
+## セッション: 2025-10-05 13:09:49
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- ADMIN_PLAYERS_IMPROVEMENTS.md
+- MATCHMAKING_UI_REFACTOR.md
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: a3a5590 docs: AdminPlayers改善ドキュメントに注記追加
+
+---
+
+## セッション: 2025-10-05 13:10:58
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- ADMIN_PLAYERS_IMPROVEMENTS.md
+- MATCHMAKING_UI_REFACTOR.md
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: a3a5590 docs: AdminPlayers改善ドキュメントに注記追加
+
+---
+
+## セッション: 2025-10-05 13:12:24
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- ADMIN_PLAYERS_IMPROVEMENTS.md
+- MATCHMAKING_UI_REFACTOR.md
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: a3a5590 docs: AdminPlayers改善ドキュメントに注記追加
+
+---
+
+## セッション: 2025-10-05 13:16:51
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- ADMIN_PLAYERS_IMPROVEMENTS.md
+- MATCHMAKING_UI_REFACTOR.md
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 9367893 feat: AdminPlayers「アクティブにする」を大会選択式エントリーに変更
+
+---
+
+## セッション: 2025-10-05 13:21:23
+
+### プロジェクト状態
+
+### 最新のドキュメント
+- PWA_KEYBOARD_ISSUE_GUIDE.md
+- 000_PROJECT_STATUS.md
+- 092_multiple_upcoming_matches_display.md
+
+### Git状態
+- ブランチ: main
+- 最終コミット: 9367893 feat: AdminPlayers「アクティブにする」を大会選択式エントリーに変更
+
+---
