@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -391,10 +391,11 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
     const oppositePlayer = match?.[oppositePosition];
     const selectKey = `${matchId}-${position}`;
     const isOpen = openPlayerSelects[selectKey] || false;
+    const triggerRef = useRef<HTMLButtonElement>(null);
 
     return (
       <Popover open={isOpen} onOpenChange={(open) => setOpenPlayerSelects(prev => ({ ...prev, [selectKey]: open }))}>
-        <PopoverTrigger asChild>
+        <PopoverTrigger asChild ref={triggerRef}>
           <Button
             variant="outline"
             role="combobox"
@@ -415,7 +416,7 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
             <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-[300px] p-0" align="start">
+        <PopoverContent className="w-[300px] max-w-[90vw] p-0" align="start">
           <Command>
             <CommandInput placeholder="プレイヤーを検索..." className="h-9" />
             <CommandEmpty>プレイヤーが見つかりません</CommandEmpty>
@@ -426,6 +427,7 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
                   onSelect={() => {
                     clearMatchPlayer(matchId, position);
                     setOpenPlayerSelects(prev => ({ ...prev, [selectKey]: false }));
+                    setTimeout(() => triggerRef.current?.focus(), 0);
                   }}
                   className="text-destructive"
                 >
@@ -433,9 +435,11 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
                   クリア
                 </CommandItem>
               )}
-              <div className="px-2 py-1.5 text-xs text-muted-foreground border-b">
-                平均: {averageMatchCount.toFixed(1)}試合/人
-              </div>
+              {averageMatchCount > 0 && (
+                <div className="px-2 py-1.5 text-xs text-muted-foreground border-b">
+                  平均: {averageMatchCount.toFixed(1)}試合/人
+                </div>
+              )}
               {tournamentParticipants.map((player) => {
                 const matchCount = playerMatchCounts[player.id] || 0;
                 const isOpponentPlayer = oppositePlayer?.id === player.id;
@@ -462,10 +466,12 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
                         <span className="font-medium">{player.nickname}</span>
                         <span className="text-xs text-muted-foreground">{player.current_rating}pt</span>
                       </div>
-                      <Badge variant="outline" className={cn("text-xs", getMatchCountColor(matchCount))}>
-                        {matchCount}試合
-                        {isOpponentPlayer && " (対戦相手)"}
-                      </Badge>
+                      {averageMatchCount > 0 && (
+                        <Badge variant="outline" className={cn("text-xs", getMatchCountColor(matchCount))}>
+                          {matchCount}試合
+                          {isOpponentPlayer && " (対戦相手)"}
+                        </Badge>
+                      )}
                     </div>
                   </CommandItem>
                 );
