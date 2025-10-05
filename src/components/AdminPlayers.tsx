@@ -1,5 +1,4 @@
-import React from 'react';
-import { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -7,8 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { ArrowLeft, Users, UserPlus, Search, Mail, Trophy, Calendar, Eye, Loader2 } from 'lucide-react';
-import { useRankings } from '@/hooks/useApi';
+import { ArrowLeft, Users, UserPlus, Search, Mail, Trophy, Calendar, Eye, Loader2, QrCode } from 'lucide-react';
+import { useRankings, useTournaments } from '@/hooks/useApi';
 
 interface AdminPlayersProps {
   onBack: () => void;
@@ -16,6 +15,7 @@ interface AdminPlayersProps {
 
 export const AdminPlayers = ({ onBack }: AdminPlayersProps) => {
   const { data: players, isLoading, error, refetch } = useRankings();
+  const { data: tournaments } = useTournaments();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'active'>('all');
   const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
@@ -23,7 +23,8 @@ export const AdminPlayers = ({ onBack }: AdminPlayersProps) => {
   const [playerStats, setPlayerStats] = useState<{ wins: number; losses: number } | null>(null);
   const [isLoadingStats, setIsLoadingStats] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [isTogglingActive, setIsTogglingActive] = useState(false);
+  const [isEntering, setIsEntering] = useState(false);
+  const [showTournamentSelectModal, setShowTournamentSelectModal] = useState(false);
 
   const filteredPlayers = players?.filter(player => {
     const matchesSearch = player.nickname.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -34,6 +35,16 @@ export const AdminPlayers = ({ onBack }: AdminPlayersProps) => {
 
   const activePlayersCount = players?.filter(p => p.tournament_active).length || 0;
   const totalPlayersCount = players?.length || 0;
+
+  // 今日の大会を取得
+  const todayTournaments = useMemo(() => {
+    if (!tournaments) return [];
+    const today = new Date().toISOString().split('T')[0];
+    return tournaments.filter(t => {
+      const tournamentDate = new Date(t.date).toISOString().split('T')[0];
+      return tournamentDate === today;
+    });
+  }, [tournaments]);
 
   const isRecentTournamentParticipant = (player: any) => {
     if (!player.tournament_active) return false;
@@ -112,23 +123,40 @@ export const AdminPlayers = ({ onBack }: AdminPlayersProps) => {
     }
   };
 
-  // アクティブ状態切り替え
-  const handleToggleActive = async () => {
+  // 大会エントリー処理
+  const handleEntryClick = () => {
+    if (todayTournaments.length === 0) {
+      alert('本日の大会がありません');
+      return;
+    } else if (todayTournaments.length === 1) {
+      // 大会が1つの場合は直接エントリー
+      handleEntryTournament(todayTournaments[0].id);
+    } else {
+      // 大会が複数の場合はモーダル表示
+      setShowTournamentSelectModal(true);
+    }
+  };
+
+  const handleEntryTournament = async (tournamentId: string) => {
     if (!selectedPlayer) return;
 
-    setIsTogglingActive(true);
+    setIsEntering(true);
+    setShowTournamentSelectModal(false);
+
     try {
-      const response = await fetch(`/api/players?id=${selectedPlayer.id}`, {
-        method: 'PATCH',
+      const response = await fetch(`/api/tournaments/${tournamentId}/entry`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          tournament_active: !selectedPlayer.tournament_active
+          playerId: selectedPlayer.id,
+          nickname: selectedPlayer.nickname,
+          email: selectedPlayer.email
         })
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to toggle active status');
+        throw new Error(errorData.error || 'Failed to entry tournament');
       }
 
       // Success - refresh data
@@ -136,15 +164,16 @@ export const AdminPlayers = ({ onBack }: AdminPlayersProps) => {
       // Update selected player state
       setSelectedPlayer({
         ...selectedPlayer,
-        tournament_active: !selectedPlayer.tournament_active
+        tournament_active: true
       });
 
-      console.log(`Player ${selectedPlayer.nickname} active status toggled`);
+      console.log(`Player ${selectedPlayer.nickname} entered tournament ${tournamentId}`);
+      alert('大会にエントリーしました');
     } catch (error) {
-      console.error('Failed to toggle active status:', error);
-      alert(`ステータス変更に失敗しました: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('Failed to entry tournament:', error);
+      alert(`エントリーに失敗しました: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
-      setIsTogglingActive(false);
+      setIsEntering(false);
     }
   };
 
@@ -493,23 +522,26 @@ export const AdminPlayers = ({ onBack }: AdminPlayersProps) => {
 
                   {/* Action Buttons */}
                   <div className="flex justify-center gap-3 pt-4">
-                    <Button
-                      variant="outline"
-                      onClick={handleToggleActive}
-                      disabled={isTogglingActive}
-                      className="w-40"
-                    >
-                      {isTogglingActive ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                          変更中...
-                        </>
-                      ) : selectedPlayer.tournament_active ? (
-                        '非アクティブにする'
-                      ) : (
-                        'アクティブにする'
-                      )}
-                    </Button>
+                    {!selectedPlayer.tournament_active && (
+                      <Button
+                        variant="outline"
+                        onClick={handleEntryClick}
+                        disabled={isEntering || todayTournaments.length === 0}
+                        className="w-40"
+                      >
+                        {isEntering ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            エントリー中...
+                          </>
+                        ) : (
+                          <>
+                            <Trophy className="h-4 w-4 mr-2" />
+                            大会にエントリー
+                          </>
+                        )}
+                      </Button>
+                    )}
                     <Button
                       variant="outline"
                       className="w-32 text-destructive hover:text-destructive hover:bg-destructive/10"
@@ -558,6 +590,35 @@ export const AdminPlayers = ({ onBack }: AdminPlayersProps) => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* 複数大会選択モーダル */}
+        <Dialog open={showTournamentSelectModal} onOpenChange={setShowTournamentSelectModal}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>大会を選択してください</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-2 py-4">
+              {todayTournaments.map((tournament) => (
+                <Button
+                  key={tournament.id}
+                  variant="outline"
+                  className="w-full justify-start h-auto p-4"
+                  onClick={() => handleEntryTournament(tournament.id)}
+                >
+                  <div className="flex items-center gap-3 w-full">
+                    <QrCode className="h-5 w-5 text-primary" />
+                    <div className="text-left flex-1">
+                      <div className="font-medium">{tournament.tournament_name || tournament.name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {tournament.start_time || tournament.time}〜
+                      </div>
+                    </div>
+                  </div>
+                </Button>
+              ))}
+            </div>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );
