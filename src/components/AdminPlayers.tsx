@@ -19,6 +19,8 @@ export const AdminPlayers = ({ onBack }: AdminPlayersProps) => {
   const [filterStatus, setFilterStatus] = useState<'all' | 'active'>('all');
   const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [playerStats, setPlayerStats] = useState<{ wins: number; losses: number } | null>(null);
+  const [isLoadingStats, setIsLoadingStats] = useState(false);
 
   const filteredPlayers = players?.filter(player => {
     const matchesSearch = player.nickname.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -105,6 +107,42 @@ export const AdminPlayers = ({ onBack }: AdminPlayersProps) => {
       alert(`プレイヤーの削除に失敗しました: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  // プレイヤーの試合履歴から勝敗数を計算
+  const fetchPlayerStats = async (playerId: string) => {
+    setIsLoadingStats(true);
+    try {
+      const response = await fetch(`/api/matches?playerId=${playerId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch player matches');
+      }
+
+      const matches = await response.json();
+
+      // 完了した試合のみをカウント
+      const completedMatches = matches.filter((m: any) =>
+        m.status === 'completed' || m.status === 'approved'
+      );
+
+      let wins = 0;
+      let losses = 0;
+
+      completedMatches.forEach((match: any) => {
+        if (match.winner_id === playerId) {
+          wins++;
+        } else if (match.winner_id && (match.player1_id === playerId || match.player2_id === playerId)) {
+          losses++;
+        }
+      });
+
+      setPlayerStats({ wins, losses });
+    } catch (error) {
+      console.error('Error fetching player stats:', error);
+      setPlayerStats({ wins: 0, losses: 0 });
+    } finally {
+      setIsLoadingStats(false);
     }
   };
 
@@ -301,7 +339,10 @@ export const AdminPlayers = ({ onBack }: AdminPlayersProps) => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => setSelectedPlayer(player)}
+                          onClick={() => {
+                            setSelectedPlayer(player);
+                            fetchPlayerStats(player.id);
+                          }}
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -315,7 +356,10 @@ export const AdminPlayers = ({ onBack }: AdminPlayersProps) => {
         </Card>
 
         {/* Player Detail Dialog */}
-        <Dialog open={!!selectedPlayer} onOpenChange={() => setSelectedPlayer(null)}>
+        <Dialog open={!!selectedPlayer} onOpenChange={() => {
+          setSelectedPlayer(null);
+          setPlayerStats(null);
+        }}>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-xl">プレイヤー詳細</DialogTitle>
@@ -343,13 +387,29 @@ export const AdminPlayers = ({ onBack }: AdminPlayersProps) => {
                     </div>
                     <div className="space-y-1">
                       <p className="text-sm text-muted-foreground">総対戦数</p>
-                      <p className="text-2xl font-bold">{selectedPlayer.total_wins + selectedPlayer.total_losses}</p>
+                      {isLoadingStats ? (
+                        <div className="flex items-center gap-2">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <span className="text-sm">計算中...</span>
+                        </div>
+                      ) : (
+                        <p className="text-2xl font-bold">
+                          {playerStats ? playerStats.wins + playerStats.losses : 0}
+                        </p>
+                      )}
                     </div>
                     <div className="space-y-1">
                       <p className="text-sm text-muted-foreground">勝率</p>
-                      <p className="text-2xl font-bold text-success">
-                        {calculateWinRate(selectedPlayer.total_wins, selectedPlayer.total_losses)}%
-                      </p>
+                      {isLoadingStats ? (
+                        <div className="flex items-center gap-2">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <span className="text-sm">計算中...</span>
+                        </div>
+                      ) : (
+                        <p className="text-2xl font-bold text-success">
+                          {playerStats ? calculateWinRate(playerStats.wins, playerStats.losses) : 0}%
+                        </p>
+                      )}
                     </div>
                     <div className="space-y-1">
                       <p className="text-sm text-muted-foreground">登録日</p>
