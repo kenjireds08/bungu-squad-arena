@@ -3832,6 +3832,100 @@ class SheetsService {
       throw new Error(`Failed to check and archive: ${error.message}`);
     }
   }
+
+  /**
+   * Reset yearly ratings for all players
+   * 全プレイヤーのレーティングを1200にリセットし、年間勝敗もリセット
+   * 年明け（1/1）に実行
+   */
+  async resetYearlyRatings() {
+    await this.authenticate();
+
+    try {
+      console.log('[YearlyReset] Starting yearly rating reset...');
+
+      // 全プレイヤーを取得
+      const players = await this.getPlayers();
+
+      if (players.length === 0) {
+        console.log('[YearlyReset] No players found');
+        return { success: true, message: 'No players to reset', resetCount: 0 };
+      }
+
+      // Players シートのヘッダー情報を取得
+      const { headers: playerHeaders, idx: playerIdx } = await this._getHeaders('Players!1:1');
+
+      // Players!A:Z を一度取得
+      const playersResponse = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: 'Players!A:Z'
+      });
+      const playerRows = playersResponse.data.values || [];
+
+      let resetCount = 0;
+      const updates = [];
+
+      for (const player of players) {
+        // プレイヤーの行を探す
+        let playerRowIndex = -1;
+        for (let j = 1; j < playerRows.length; j++) {
+          if (playerRows[j][playerIdx('id')] === player.id) {
+            playerRowIndex = j;
+            break;
+          }
+        }
+
+        if (playerRowIndex > 0) {
+          // current_rating を 1200 にリセット
+          const ratingColumnLetter = this._columnToLetter(playerIdx('current_rating'));
+          updates.push({
+            range: `Players!${ratingColumnLetter}${playerRowIndex + 1}`,
+            values: [[1200]]
+          });
+
+          // annual_wins を 0 にリセット
+          const winsColumnLetter = this._columnToLetter(playerIdx('annual_wins'));
+          updates.push({
+            range: `Players!${winsColumnLetter}${playerRowIndex + 1}`,
+            values: [[0]]
+          });
+
+          // annual_losses を 0 にリセット
+          const lossesColumnLetter = this._columnToLetter(playerIdx('annual_losses'));
+          updates.push({
+            range: `Players!${lossesColumnLetter}${playerRowIndex + 1}`,
+            values: [[0]]
+          });
+
+          resetCount++;
+          console.log(`[YearlyReset] Queued reset for ${player.nickname}: rating=1200, annual_wins=0, annual_losses=0`);
+        }
+      }
+
+      // バッチ更新を実行
+      if (updates.length > 0) {
+        await this.sheets.spreadsheets.values.batchUpdate({
+          spreadsheetId: this.spreadsheetId,
+          requestBody: {
+            valueInputOption: 'RAW',
+            data: updates
+          }
+        });
+      }
+
+      console.log(`[YearlyReset] Successfully reset ${resetCount} players`);
+
+      return {
+        success: true,
+        message: `Reset ${resetCount} players to rating 1200`,
+        resetCount,
+        resetYear: new Date().getFullYear()
+      };
+    } catch (error) {
+      console.error('[YearlyReset] Error resetting yearly ratings:', error);
+      throw new Error(`Failed to reset yearly ratings: ${error.message}`);
+    }
+  }
 }
 
 module.exports = SheetsService;

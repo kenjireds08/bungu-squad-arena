@@ -280,37 +280,8 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
             }
           ];
 
-          // Generate yearly stats（年度別統計を配列に変換、降順ソート）
+          // 現在年度を取得
           const currentYear = new Date().getFullYear();
-          const yearlyStats: YearlyStats[] = Object.values(yearlyStatsMap).sort((a, b) => b.year - a.year);
-
-          // 現在年度のランキング順位とバッジを設定
-          yearlyStats.forEach(stat => {
-            if (stat.year === currentYear) {
-              stat.rank = currentUser.rank || 0;
-              stat.rating = currentUser.current_rating || stat.rating;
-              stat.highestRating = currentUser.highest_rating || stat.highestRating;
-              stat.badge = currentUser.rank <= 3
-                ? (currentUser.rank === 1 ? '🥇' : currentUser.rank === 2 ? '🥈' : '🥉')
-                : '進行中';
-            }
-          });
-
-          // 試合履歴がない場合は現在年度のデータを追加
-          if (yearlyStats.length === 0) {
-            yearlyStats.push({
-              year: currentYear,
-              rank: currentUser.rank || 0,
-              rating: currentUser.current_rating || 1200,
-              highestRating: currentUser.highest_rating || currentUser.current_rating || 1200,
-              games: totalGames,
-              wins: currentUser.annual_wins || 0,
-              losses: currentUser.annual_losses || 0,
-              badge: currentUser.rank <= 3
-                ? (currentUser.rank === 1 ? '🥇' : currentUser.rank === 2 ? '🥈' : '🥉')
-                : '進行中'
-            });
-          }
 
           // チャンピオンバッジをYearlyArchiveから取得
           const championBadges: Achievement[] = [];
@@ -320,12 +291,30 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
             if (archiveResponse.ok) {
               const archives = await archiveResponse.json();
 
-              // 年度別アーカイブからバッジを生成
+              // 年度別アーカイブからバッジを生成（上位3名のみ）
+              // また、過去年度の統計データをyearlyStatsMapにマージ
               archives.forEach((archive: any) => {
                 const year = parseInt(archive.year, 10);
                 const rank = parseInt(archive.annual_rank, 10);
                 const badge = archive.champion_badge;
+                const finalRating = parseInt(archive.final_rating, 10) || 1200;
+                const wins = parseInt(archive.annual_wins, 10) || 0;
+                const losses = parseInt(archive.annual_losses, 10) || 0;
 
+                // 過去年度の統計データをyearlyStatsMapにマージ
+                // アーカイブされた年度は確定データなので上書き
+                yearlyStatsMap[year] = {
+                  year,
+                  rank,
+                  rating: finalRating,
+                  highestRating: finalRating, // アーカイブには最高レートがないため最終レートを使用
+                  games: wins + losses,
+                  wins,
+                  losses,
+                  badge: rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `${rank}位`
+                };
+
+                // 上位3名のみチャンピオンバッジを追加
                 if (badge && rank <= 3) {
                   let title = '';
                   let description = '';
@@ -359,7 +348,7 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
                 return yearB - yearA;
               });
 
-              console.log(`[PlayerAchievements] Loaded ${championBadges.length} champion badges from YearlyArchive`);
+              console.log(`[PlayerAchievements] Loaded ${championBadges.length} champion badges and ${archives.length} yearly stats from YearlyArchive`);
             }
           } catch (error) {
             console.warn('Failed to fetch yearly archive, falling back to champion_badges field:', error);
@@ -432,6 +421,40 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
               const yearA = parseInt(a.date.split('-')[0], 10);
               const yearB = parseInt(b.date.split('-')[0], 10);
               return yearB - yearA;
+            });
+          }
+
+          // YearlyArchive取得後にyearlyStatsを構築（アーカイブデータを含む）
+          // Object.entriesでキー（年度）を基準に明示的にソートしてから配列化
+          const entries = Object.entries(yearlyStatsMap).sort((a, b) => Number(b[0]) - Number(a[0]));
+          const yearlyStats: YearlyStats[] = entries.map(([, stat]) => stat);
+
+          // 現在年度のランキング順位とバッジを設定（アーカイブされていない場合）
+          yearlyStats.forEach(stat => {
+            if (stat.year === currentYear && stat.badge === '進行中') {
+              stat.rank = currentUser.rank || 0;
+              stat.rating = currentUser.current_rating || stat.rating;
+              stat.highestRating = currentUser.highest_rating || stat.highestRating;
+              stat.badge = currentUser.rank <= 3
+                ? (currentUser.rank === 1 ? '🥇' : currentUser.rank === 2 ? '🥈' : '🥉')
+                : '進行中';
+            }
+          });
+
+          // 現在年度の行がまだ無い場合は追加（過去アーカイブのみ存在する場合も対応）
+          const hasCurrentYear = yearlyStats.some(stat => stat.year === currentYear);
+          if (!hasCurrentYear) {
+            yearlyStats.unshift({
+              year: currentYear,
+              rank: currentUser.rank || 0,
+              rating: currentUser.current_rating || 1200,
+              highestRating: currentUser.highest_rating || currentUser.current_rating || 1200,
+              games: totalGames,
+              wins: currentUser.annual_wins || 0,
+              losses: currentUser.annual_losses || 0,
+              badge: currentUser.rank <= 3
+                ? (currentUser.rank === 1 ? '🥇' : currentUser.rank === 2 ? '🥈' : '🥉')
+                : '進行中'
             });
           }
 
@@ -629,13 +652,17 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
               <div key={year.year} className="p-4 bg-muted/30 rounded-lg border border-fantasy-frame/20">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-semibold text-lg">{year.year}年度</h3>
-                  {year.badge !== "進行中" ? (
-                    <Badge variant="secondary" className="bg-gradient-gold text-sm">
-                      {year.rank <= 3 ? year.badge : ""} {year.rank}位
-                    </Badge>
-                  ) : (
+                  {year.badge === "進行中" ? (
                     <Badge variant="outline" className="text-sm">
                       {year.badge}
+                    </Badge>
+                  ) : year.rank <= 3 ? (
+                    <Badge variant="secondary" className="bg-gradient-gold text-sm">
+                      {year.badge} {year.rank}位
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary" className="text-sm">
+                      {year.rank}位
                     </Badge>
                   )}
                 </div>

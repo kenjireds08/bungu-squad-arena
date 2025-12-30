@@ -354,23 +354,67 @@ export const TournamentMatchmaking = ({ onClose, tournamentId }: TournamentMatch
   };
 
   const getPlayerBadges = (player: any) => {
-    const badges = [];
+    const badges: JSX.Element[] = [];
     const championBadges = player.champion_badges || '';
 
-    if (championBadges.includes('🥇')) {
-      badges.push(<Badge key="gold" variant="default" className="text-xs bg-yellow-500">🥇</Badge>);
-    }
-    if (championBadges.includes('🥈')) {
-      badges.push(<Badge key="silver" variant="default" className="text-xs bg-gray-400">🥈</Badge>);
-    }
-    if (championBadges.includes('🥉')) {
-      badges.push(<Badge key="bronze" variant="default" className="text-xs bg-orange-600">🥉</Badge>);
-    }
+    if (!championBadges) return badges;
 
-    if (championBadges.includes('♠️')) {
+    // バッジ文字列を分割して処理（形式: "2025:🥇,2026:🥈" または "🥇,🥈"）
+    const badgeList = championBadges.split(',').filter((b: string) => b.trim());
+
+    // メダルとルールバッジを分離
+    const medals: { year?: string; emoji: string }[] = [];
+    let hasTrump = false;
+    let hasCardPlus = false;
+
+    badgeList.forEach((badge: string) => {
+      const trimmed = badge.trim();
+      if (trimmed.includes(':')) {
+        const [prefix, emoji] = trimmed.split(':');
+        if (emoji && emoji.match(/[🥇🥈🥉]/)) {
+          medals.push({ year: prefix, emoji });
+        } else if (prefix === 'trump' || emoji === '♠️') {
+          hasTrump = true;
+        } else if (prefix === 'cardplus' || emoji === '➕' || emoji === '+') {
+          hasCardPlus = true;
+        }
+      } else {
+        // 旧形式
+        if (trimmed.match(/[🥇🥈🥉]/)) {
+          medals.push({ emoji: trimmed });
+        } else if (trimmed === '♠️') {
+          hasTrump = true;
+        } else if (trimmed === '➕' || trimmed === '+') {
+          hasCardPlus = true;
+        }
+      }
+    });
+
+    // メダルバッジを追加（年度付きツールチップ）
+    medals.forEach((medal, index) => {
+      const bgClass = medal.emoji === '🥇' ? 'bg-yellow-500' :
+                      medal.emoji === '🥈' ? 'bg-gray-400' : 'bg-orange-600';
+      const titleText = medal.year
+        ? `${medal.year}年 年間${medal.emoji === '🥇' ? 'チャンピオン' : medal.emoji === '🥈' ? '準優勝' : '3位'}`
+        : '年間チャンピオンバッジ';
+
+      badges.push(
+        <Badge
+          key={`medal-${index}`}
+          variant="default"
+          className={`text-xs ${bgClass}`}
+          title={titleText}
+        >
+          {medal.emoji}
+        </Badge>
+      );
+    });
+
+    // ルールバッジを追加
+    if (hasTrump) {
       badges.push(<Badge key="trump" variant="secondary" className="text-xs"><Spade className="h-3 w-3 mr-1" />トランプ</Badge>);
     }
-    if (championBadges.includes('➕') || championBadges.includes('+')) {
+    if (hasCardPlus) {
       badges.push(<Badge key="cardplus" variant="secondary" className="text-xs"><Plus className="h-3 w-3 mr-1" />カード+</Badge>);
     }
 

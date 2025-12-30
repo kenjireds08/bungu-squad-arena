@@ -190,16 +190,20 @@ export const MatchMatching = ({ onClose, onStartCountdown }: MatchMatchingProps)
                       </Avatar>
                       <div>
                         <p className="font-medium">{match.player1.name}</p>
-                        <div className="flex gap-1">
-                          {match.player1.badges.map((badge, badgeIndex) => (
-                            <span 
-                              key={badgeIndex} 
-                              className="text-sm leading-none"
-                              title={badge.trim().match(/[🥇🥈🥉]/) ? "チャンピオンバッジ" : "ルール習得バッジ"}
-                            >
-                              {badge.trim()}
-                            </span>
-                          ))}
+                        <div className="flex gap-0.5">
+                          {match.player1.badges.map((badge, badgeIndex) => {
+                            const trimmed = badge.trim();
+                            if (trimmed.includes(':')) {
+                              const [year, emoji] = trimmed.split(':');
+                              if (emoji && emoji.match(/[🥇🥈🥉]/)) {
+                                return (
+                                  <span key={badgeIndex} className="text-sm leading-none cursor-help" title={`${year}年 年間${emoji === '🥇' ? 'チャンピオン' : emoji === '🥈' ? '準優勝' : '3位'}`}>{emoji}</span>
+                                );
+                              }
+                              return <span key={badgeIndex} className="text-xs leading-none" title={`${year === 'trump' ? 'トランプ' : year === 'cardplus' ? 'カードプラス' : year}ルール習得`}>{emoji}</span>;
+                            }
+                            return <span key={badgeIndex} className="text-sm leading-none" title={trimmed.match(/[🥇🥈🥉]/) ? "年間チャンピオンバッジ" : "ルール習得バッジ"}>{trimmed}</span>;
+                          })}
                         </div>
                       </div>
                     </div>
@@ -225,16 +229,20 @@ export const MatchMatching = ({ onClose, onStartCountdown }: MatchMatchingProps)
                       </Avatar>
                       <div>
                         <p className="font-medium">{match.player2.name}</p>
-                        <div className="flex gap-1">
-                          {match.player2.badges.map((badge, badgeIndex) => (
-                            <span 
-                              key={badgeIndex} 
-                              className="text-sm leading-none"
-                              title={badge.trim().match(/[🥇🥈🥉]/) ? "チャンピオンバッジ" : "ルール習得バッジ"}
-                            >
-                              {badge.trim()}
-                            </span>
-                          ))}
+                        <div className="flex gap-0.5">
+                          {match.player2.badges.map((badge, badgeIndex) => {
+                            const trimmed = badge.trim();
+                            if (trimmed.includes(':')) {
+                              const [year, emoji] = trimmed.split(':');
+                              if (emoji && emoji.match(/[🥇🥈🥉]/)) {
+                                return (
+                                  <span key={badgeIndex} className="text-sm leading-none cursor-help" title={`${year}年 年間${emoji === '🥇' ? 'チャンピオン' : emoji === '🥈' ? '準優勝' : '3位'}`}>{emoji}</span>
+                                );
+                              }
+                              return <span key={badgeIndex} className="text-xs leading-none" title={`${year === 'trump' ? 'トランプ' : year === 'cardplus' ? 'カードプラス' : year}ルール習得`}>{emoji}</span>;
+                            }
+                            return <span key={badgeIndex} className="text-sm leading-none" title={trimmed.match(/[🥇🥈🥉]/) ? "年間チャンピオンバッジ" : "ルール習得バッジ"}>{trimmed}</span>;
+                          })}
                         </div>
                       </div>
                     </div>

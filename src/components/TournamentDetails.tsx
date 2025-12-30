@@ -193,16 +193,42 @@ export const TournamentDetails = ({ onClose, onViewParticipants }: TournamentDet
                       </Avatar>
                       <div>
                         <p className="font-medium text-sm">{player.nickname}</p>
-                        <div className="flex items-center gap-1">
-                          {player.champion_badges?.split(',').filter(Boolean).map((badge, badgeIndex) => (
-                            <span 
-                              key={badgeIndex} 
-                              className="text-sm leading-none"
-                              title={badge.trim().match(/[🥇🥈🥉]/) ? "チャンピオンバッジ" : "ルール習得バッジ"}
-                            >
-                              {badge.trim()}
-                            </span>
-                          ))}
+                        <div className="flex items-center gap-0.5">
+                          {player.champion_badges?.split(',').filter(Boolean).map((badge, badgeIndex) => {
+                            const trimmed = badge.trim();
+                            if (trimmed.includes(':')) {
+                              const [year, emoji] = trimmed.split(':');
+                              if (emoji && emoji.match(/[🥇🥈🥉]/)) {
+                                return (
+                                  <span
+                                    key={badgeIndex}
+                                    className="text-sm leading-none cursor-help"
+                                    title={`${year}年 年間${emoji === '🥇' ? 'チャンピオン' : emoji === '🥈' ? '準優勝' : '3位'}`}
+                                  >
+                                    {emoji}
+                                  </span>
+                                );
+                              }
+                              return (
+                                <span
+                                  key={badgeIndex}
+                                  className="text-xs leading-none"
+                                  title={`${year === 'trump' ? 'トランプ' : year === 'cardplus' ? 'カードプラス' : year}ルール習得`}
+                                >
+                                  {emoji}
+                                </span>
+                              );
+                            }
+                            return (
+                              <span
+                                key={badgeIndex}
+                                className="text-sm leading-none"
+                                title={trimmed.match(/[🥇🥈🥉]/) ? "年間チャンピオンバッジ" : "ルール習得バッジ"}
+                              >
+                                {trimmed}
+                              </span>
+                            );
+                          })}
                         </div>
                       </div>
                     </div>

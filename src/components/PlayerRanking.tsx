@@ -148,17 +148,46 @@ export const PlayerRanking = ({ onClose }: PlayerRankingProps) => {
                         <span className={`font-semibold ${player.nickname === 'あなた' ? 'text-primary' : 'text-foreground'}`}>
                           {player.nickname}
                         </span>
-                        <div className="flex gap-1 items-center">
-                           {/* Badges display */}
-                          {player.champion_badges?.split(',').filter(Boolean).map((badge, badgeIndex) => (
-                            <span 
-                              key={badgeIndex} 
-                              className="text-base leading-none"
-                              title={badge.trim().match(/[🥇🥈🥉]/) ? "チャンピオンバッジ" : "ルール習得バッジ"}
-                            >
-                              {badge.trim()}
-                            </span>
-                          ))}
+                        <div className="flex gap-0.5 items-center">
+                           {/* Champion Badges display - メダルのみ表示、年度はツールチップで */}
+                          {player.champion_badges?.split(',').filter(Boolean).map((badge, badgeIndex) => {
+                            const trimmed = badge.trim();
+                            // 形式: "2025:🥇" または "🥇"
+                            if (trimmed.includes(':')) {
+                              const [year, emoji] = trimmed.split(':');
+                              if (emoji && emoji.match(/[🥇🥈🥉]/)) {
+                                return (
+                                  <span
+                                    key={badgeIndex}
+                                    className="text-base leading-none cursor-help"
+                                    title={`${year}年 年間${emoji === '🥇' ? 'チャンピオン' : emoji === '🥈' ? '準優勝' : '3位'}`}
+                                  >
+                                    {emoji}
+                                  </span>
+                                );
+                              }
+                              // ルール習得バッジ（例: "trump:♠️"）
+                              return (
+                                <span
+                                  key={badgeIndex}
+                                  className="text-sm leading-none"
+                                  title={`${year === 'trump' ? 'トランプ' : year === 'cardplus' ? 'カードプラス' : year}ルール習得`}
+                                >
+                                  {emoji}
+                                </span>
+                              );
+                            }
+                            // 旧形式（絵文字のみ）
+                            return (
+                              <span
+                                key={badgeIndex}
+                                className="text-base leading-none"
+                                title={trimmed.match(/[🥇🥈🥉]/) ? "年間チャンピオンバッジ" : "ルール習得バッジ"}
+                              >
+                                {trimmed}
+                              </span>
+                            );
+                          })}
                         </div>
                       </div>
                       <div className="flex items-center gap-2">

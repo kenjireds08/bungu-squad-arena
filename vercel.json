@@ -37,6 +37,14 @@
     {
       "path": "/api/admin?action=reset-tournament-active",
       "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/admin?action=archive-yearly-rankings",
+      "schedule": "55 14 31 12 *"
+    },
+    {
+      "path": "/api/admin?action=reset-yearly-ratings",
+      "schedule": "5 15 31 12 *"
     }
   ]
 }

@@ -1,5 +1,58 @@
 const SheetsService = require('./lib/sheets');
 
+/**
+ * Verify Cron authentication
+ *
+ * Vercel Proプランでは、CRON_SECRETを設定すると
+ * VercelがAuthorizationヘッダーを自動的に付与する。
+ * https://vercel.com/docs/cron-jobs#securing-cron-jobs
+ *
+ * 認証フロー:
+ * 1. 開発環境 → 許可
+ * 2. Authorization: Bearer CRON_SECRET が正しい → 許可（必須）
+ * 3. ?secret=CRON_SECRET クエリパラメータ → 許可（手動実行用）
+ * 4. それ以外 → 拒否
+ *
+ * @param {object} req - リクエストオブジェクト
+ */
+function verifyCronAuth(req) {
+  const cronSecret = process.env.CRON_SECRET;
+  const isDevelopment = process.env.NODE_ENV === 'development';
+
+  // 1. 開発環境ではスキップ可能
+  if (isDevelopment) {
+    console.log('[CronAuth] Development mode, allowing request');
+    return { valid: true, warning: 'Development mode' };
+  }
+
+  // CRON_SECRETが未設定の場合は拒否（本番環境では必須）
+  if (!cronSecret) {
+    console.error('[CronAuth] CRON_SECRET not configured in production');
+    return { valid: false, error: 'CRON_SECRET not configured' };
+  }
+
+  // 2. Authorization: Bearer CRON_SECRET（Vercel Proで自動付与、または手動curl）
+  const authHeader = req.headers['authorization'];
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.substring(7);
+    if (token === cronSecret) {
+      console.log('[CronAuth] Valid Authorization header');
+      return { valid: true };
+    }
+  }
+
+  // 3. ?secret=CRON_SECRET クエリパラメータ（手動実行用）
+  const querySecret = req.query?.secret;
+  if (querySecret === cronSecret) {
+    console.log('[CronAuth] Valid query secret');
+    return { valid: true };
+  }
+
+  // 4. それ以外は拒否
+  console.warn('[CronAuth] Unauthorized request: no valid Authorization header or secret');
+  return { valid: false, error: 'Unauthorized: missing or invalid CRON_SECRET' };
+}
+
 // Import Vercel KV with fallback
 let kv;
 try {
@@ -390,6 +443,10 @@ module.exports = async function handler(req, res) {
         return await handleRenumberMatches(req, res);
       case 'end-tournament':
         return await handleEndTournament(req, res);
+      case 'archive-yearly-rankings':
+        return await handleArchiveYearlyRankings(req, res);
+      case 'reset-yearly-ratings':
+        return await handleResetYearlyRatings(req, res);
       default:
         return res.status(400).json({ error: 'Invalid action parameter' });
     }
@@ -806,9 +863,143 @@ async function handleFixBadges(req, res) {
     
   } catch (error) {
     console.error('バッジ修正エラー:', error);
-    return res.status(500).json({ 
+    return res.status(500).json({
       success: false,
-      error: error.message 
+      error: error.message
+    });
+  }
+}
+
+/**
+ * Handle archive-yearly-rankings action
+ * 年間ランキングをアーカイブし、上位3名にチャンピオンバッジを付与
+ * Vercel Cronで12/31 23:59に実行
+ *
+ * 認証: CRON_SECRET環境変数が設定されている場合、Authorization headerを検証
+ */
+async function handleArchiveYearlyRankings(req, res) {
+  // GET（Cron）とPOST（手動）の両方をサポート
+  if (req.method !== 'GET' && req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  // Cron認証チェック
+  const authResult = verifyCronAuth(req);
+  if (!authResult.valid) {
+    console.error('[Cron/Admin] Archive yearly rankings auth failed:', authResult.error);
+    return res.status(401).json({ error: authResult.error });
+  }
+
+  try {
+    const sheetsService = new SheetsService();
+
+    // リクエストボディまたはクエリから年度を取得（指定がなければ現在年度）
+    const year = req.body?.year || req.query?.year || new Date().getFullYear();
+
+    console.log(`[Cron/Admin] Archiving yearly rankings for year ${year}...`);
+
+    const result = await sheetsService.archiveYearlyRankings(parseInt(year, 10));
+
+    console.log(`[Cron/Admin] Yearly ranking archive result:`, result);
+
+    return res.status(200).json({
+      success: true,
+      message: `年間ランキングをアーカイブしました（${year}年）`,
+      result
+    });
+
+  } catch (error) {
+    console.error('[Cron/Admin] Archive yearly rankings error:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+}
+
+/**
+ * Handle reset-yearly-ratings action
+ * 全プレイヤーのレーティングを1200にリセット
+ * Vercel Cronで1/1 00:00に実行
+ *
+ * フェイルセーフ: 前年度のアーカイブが存在することを確認してから実行
+ * 認証: CRON_SECRET環境変数が設定されている場合、Authorization headerを検証
+ */
+async function handleResetYearlyRatings(req, res) {
+  // GET（Cron）とPOST（手動）の両方をサポート
+  if (req.method !== 'GET' && req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  // Cron認証チェック
+  const authResult = verifyCronAuth(req);
+  if (!authResult.valid) {
+    console.error('[Cron/Admin] Reset yearly ratings auth failed:', authResult.error);
+    return res.status(401).json({ error: authResult.error });
+  }
+
+  try {
+    const sheetsService = new SheetsService();
+    // force判定を厳密に評価（"false", "0", undefined等はfalse）
+    const force = String(req.body?.force ?? req.query?.force ?? '').toLowerCase() === 'true';
+
+    // JSTで年度を計算（CronはUTC 12/31 15:05 = JST 1/1 00:05 に実行）
+    // JSTで1/1なので、リセット対象は前年度（例: JST 2026/1/1 → 2025年度をリセット）
+    const jstNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Tokyo' }));
+    const targetYear = jstNow.getFullYear() - 1;
+
+    console.log(`[Cron/Admin] JST date: ${jstNow.toISOString()}, target year: ${targetYear}`);
+    console.log(`[Cron/Admin] Checking if year ${targetYear} is archived before reset...`);
+
+    // 対象年度のアーカイブが存在するか確認
+    const archives = await sheetsService.getYearlyArchive();
+    const targetYearArchived = archives.some(a => parseInt(a.year, 10) === targetYear);
+
+    if (!targetYearArchived && !force) {
+      console.warn(`[Cron/Admin] Year ${targetYear} not archived yet. Attempting to archive first...`);
+
+      // 自動的にアーカイブを試行
+      try {
+        const archiveResult = await sheetsService.archiveYearlyRankings(targetYear);
+        console.log(`[Cron/Admin] Auto-archived year ${targetYear}:`, archiveResult);
+
+        if (archiveResult.skipped) {
+          // アーカイブがスキップされた（対象者なしなど）の場合は続行可能
+          console.log(`[Cron/Admin] Archive skipped (no players), proceeding with reset`);
+        }
+      } catch (archiveError) {
+        console.error(`[Cron/Admin] Failed to auto-archive year ${targetYear}:`, archiveError);
+        return res.status(400).json({
+          success: false,
+          error: `対象年度（${targetYear}年）のアーカイブに失敗しました。手動でアーカイブしてから再試行してください。`,
+          details: archiveError.message
+        });
+      }
+    } else if (targetYearArchived) {
+      console.log(`[Cron/Admin] Year ${targetYear} already archived, proceeding with reset`);
+    } else if (force) {
+      console.warn(`[Cron/Admin] Force flag set, skipping archive check`);
+    }
+
+    console.log('[Cron/Admin] Resetting yearly ratings...');
+
+    const result = await sheetsService.resetYearlyRatings();
+
+    console.log(`[Cron/Admin] Yearly rating reset result:`, result);
+
+    return res.status(200).json({
+      success: true,
+      message: `全プレイヤーのレーティングをリセットしました（${targetYear}年度分）`,
+      result,
+      targetYear,
+      targetYearArchived: targetYearArchived || 'auto-archived'
+    });
+
+  } catch (error) {
+    console.error('[Cron/Admin] Reset yearly ratings error:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message
     });
   }
 }
