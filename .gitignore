@@ -36,3 +36,10 @@ docs/027-vercel-environment-variables.md
 bun.lockb
 .vercel
 .env*.local
+
+# Claude Code local files
+.claude/session-summary.md
+.claude/settings.local.json
+
+# Local env files
+.env.local.vercel
