@@ -9,7 +9,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { ArrowLeft, Trophy, Star, Crown, Target, Award, Calendar, Loader2, TrendingUp, Zap, Flag, Sparkles, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Trophy, Star, Crown, Target, Award, Calendar, Loader2, TrendingUp, Zap, Flag, Sparkles, ChevronRight, Users } from 'lucide-react';
 import { useRankings } from '@/hooks/useApi';
 
 interface PlayerAchievementsProps {
@@ -56,6 +56,14 @@ interface TournamentStats {
   }[];
 }
 
+interface OpponentStats {
+  opponent_name: string;
+  wins: number;
+  losses: number;
+  total: number;
+  winRate: number;
+}
+
 interface AchievementsData {
   championBadges: Achievement[];
   milestones: Milestone[];
@@ -71,6 +79,7 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const [yearlyDetailOpen, setYearlyDetailOpen] = useState(false);
   const [yearlyTournaments, setYearlyTournaments] = useState<TournamentStats[]>([]);
+  const [yearlyOpponents, setYearlyOpponents] = useState<OpponentStats[]>([]);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
 
   // AbortController for canceling in-flight requests
@@ -529,6 +538,7 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
 
     setIsLoadingDetail(true);
     setYearlyTournaments([]);
+    setYearlyOpponents([]);
 
     try {
       // 試合履歴と大会一覧を並列取得
@@ -613,9 +623,42 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
         return new Date(b.date).getTime() - new Date(a.date).getTime();
       });
 
+      // 対戦相手別成績を計算
+      const opponentStatsMap = new Map<string, OpponentStats>();
+
+      for (const match of yearMatches) {
+        const opponentName = match.opponent || match.opponent_name || '不明';
+        const isWin = match.result === 'win';
+
+        if (!opponentStatsMap.has(opponentName)) {
+          opponentStatsMap.set(opponentName, {
+            opponent_name: opponentName,
+            wins: 0,
+            losses: 0,
+            total: 0,
+            winRate: 0
+          });
+        }
+
+        const stats = opponentStatsMap.get(opponentName)!;
+        stats.total++;
+        if (isWin) {
+          stats.wins++;
+        } else {
+          stats.losses++;
+        }
+        stats.winRate = stats.wins / stats.total;
+      }
+
+      // 対戦回数降順でソート
+      const sortedOpponentStats = Array.from(opponentStatsMap.values()).sort((a, b) => {
+        return b.total - a.total;
+      });
+
       // このリクエストがまだアクティブかチェック
       if (abortControllerRef.current === controller) {
         setYearlyTournaments(sortedStats);
+        setYearlyOpponents(sortedOpponentStats);
       }
     } catch (error) {
       // AbortErrorは無視
@@ -970,6 +1013,38 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
                   </div>
                 ))}
               </div>
+
+              {/* 対戦相手別成績 */}
+              {yearlyOpponents.length > 0 && (
+                <div className="pt-4 border-t border-fantasy-frame/20">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Users className="h-4 w-4 text-primary" />
+                    <h4 className="font-medium text-sm">対戦相手別成績</h4>
+                  </div>
+                  <div className="space-y-2">
+                    {yearlyOpponents.map((opponent) => (
+                      <div
+                        key={opponent.opponent_name}
+                        className="flex items-center justify-between p-2 bg-muted/20 rounded-lg text-sm"
+                      >
+                        <span className="font-medium">{opponent.opponent_name}</span>
+                        <div className="flex items-center gap-3">
+                          <div>
+                            <span className="text-success">{opponent.wins}勝</span>
+                            <span className="text-muted-foreground mx-1">-</span>
+                            <span className="text-destructive">{opponent.losses}敗</span>
+                          </div>
+                          <span className={`text-xs px-2 py-0.5 rounded ${
+                            opponent.winRate >= 0.5 ? 'bg-success/20 text-success' : 'bg-destructive/20 text-destructive'
+                          }`}>
+                            {Math.round(opponent.winRate * 100)}%
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </DialogContent>
