@@ -611,8 +611,13 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
           stats.losses++;
         }
 
+        // 対戦相手名を取得（APIはopponentをオブジェクト{id, name}として返す）
+        const opponentNameForMatch = typeof match.opponent === 'object' && match.opponent !== null
+          ? (match.opponent.name || match.opponent.id || '不明')
+          : (match.opponent || match.opponent_name || '不明');
+
         stats.matches.push({
-          opponent_name: match.opponent || match.opponent_name || '不明',
+          opponent_name: opponentNameForMatch,
           result: isWin ? 'win' : 'lose',
           rating_change: parseInt(match.rating_change) || 0
         });
@@ -627,7 +632,10 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
       const opponentStatsMap = new Map<string, OpponentStats>();
 
       for (const match of yearMatches) {
-        const opponentName = match.opponent || match.opponent_name || '不明';
+        // 対戦相手名を取得（APIはopponentをオブジェクト{id, name}として返す）
+        const opponentName = typeof match.opponent === 'object' && match.opponent !== null
+          ? (match.opponent.name || match.opponent.id || '不明')
+          : (match.opponent || match.opponent_name || '不明');
         const isWin = match.result === 'win';
 
         if (!opponentStatsMap.has(opponentName)) {
