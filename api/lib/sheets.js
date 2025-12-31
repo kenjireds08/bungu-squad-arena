@@ -3852,15 +3852,19 @@ class SheetsService {
         return { success: true, message: 'No players to reset', resetCount: 0 };
       }
 
-      // Players シートのヘッダー情報を取得
-      const { headers: playerHeaders, idx: playerIdx } = await this._getHeaders('Players!1:1');
-
       // Players!A:Z を一度取得
       const playersResponse = await this.sheets.spreadsheets.values.get({
         spreadsheetId: this.spreadsheetId,
         range: 'Players!A:Z'
       });
       const playerRows = playersResponse.data.values || [];
+
+      // getPlayers() と同じインデックスを使用（スプレッドシートの列構造）
+      // id: 0 (A列), current_rating: 3 (D列), annual_wins: 4 (E列), annual_losses: 5 (F列)
+      const COL_ID = 0;
+      const COL_RATING = 3;
+      const COL_ANNUAL_WINS = 4;
+      const COL_ANNUAL_LOSSES = 5;
 
       let resetCount = 0;
       const updates = [];
@@ -3869,7 +3873,7 @@ class SheetsService {
         // プレイヤーの行を探す
         let playerRowIndex = -1;
         for (let j = 1; j < playerRows.length; j++) {
-          if (playerRows[j][playerIdx('id')] === player.id) {
+          if (playerRows[j][COL_ID] === player.id) {
             playerRowIndex = j;
             break;
           }
@@ -3877,21 +3881,21 @@ class SheetsService {
 
         if (playerRowIndex > 0) {
           // current_rating を 1200 にリセット
-          const ratingColumnLetter = this._columnToLetter(playerIdx('current_rating'));
+          const ratingColumnLetter = this._columnToLetter(COL_RATING);
           updates.push({
             range: `Players!${ratingColumnLetter}${playerRowIndex + 1}`,
             values: [[1200]]
           });
 
           // annual_wins を 0 にリセット
-          const winsColumnLetter = this._columnToLetter(playerIdx('annual_wins'));
+          const winsColumnLetter = this._columnToLetter(COL_ANNUAL_WINS);
           updates.push({
             range: `Players!${winsColumnLetter}${playerRowIndex + 1}`,
             values: [[0]]
           });
 
           // annual_losses を 0 にリセット
-          const lossesColumnLetter = this._columnToLetter(playerIdx('annual_losses'));
+          const lossesColumnLetter = this._columnToLetter(COL_ANNUAL_LOSSES);
           updates.push({
             range: `Players!${lossesColumnLetter}${playerRowIndex + 1}`,
             values: [[0]]
@@ -3899,6 +3903,8 @@ class SheetsService {
 
           resetCount++;
           console.log(`[YearlyReset] Queued reset for ${player.nickname}: rating=1200, annual_wins=0, annual_losses=0`);
+        } else {
+          console.warn(`[YearlyReset] Player not found in sheet: ${player.nickname} (${player.id})`);
         }
       }
 
