@@ -390,23 +390,24 @@ class SheetsService {
           // created_at (index 7) から年を取得し、現在の年のみカウント
           const createdAt = match[7];
 
-          // 日付フィールドがない場合はカウントに含める（フォールバック）
+          // 日付フィールドがない・不正な場合はスキップ（過去データ混入防止）
           if (!createdAt || createdAt.trim() === '') {
-            // 日付がない試合は現在年として扱う
-          } else {
-            // ISO8601形式をJSTに変換して年を判定
-            const matchDate = new Date(createdAt);
-            if (isNaN(matchDate.getTime())) {
-              // パース失敗時は現在年として扱う（データ欠損対策）
-              console.warn(`[getRankings] Invalid date format: ${createdAt}`);
-            } else {
-              // JSTに変換して年を取得
-              const matchDateJST = new Date(matchDate.getTime() + 9 * 60 * 60 * 1000);
-              const matchYear = matchDateJST.getUTCFullYear();
-              if (matchYear !== currentYear) {
-                return; // 現在の年以外はスキップ
-              }
-            }
+            console.warn(`[getRankings] Match ${index} has no created_at, skipping`);
+            return; // 日付がない試合はスキップ
+          }
+
+          // ISO8601形式をJSTに変換して年を判定
+          const matchDate = new Date(createdAt);
+          if (isNaN(matchDate.getTime())) {
+            console.warn(`[getRankings] Invalid date format: ${createdAt}, skipping`);
+            return; // パース失敗時はスキップ
+          }
+
+          // JSTに変換して年を取得
+          const matchDateJST = new Date(matchDate.getTime() + 9 * 60 * 60 * 1000);
+          const matchYear = matchDateJST.getUTCFullYear();
+          if (matchYear !== currentYear) {
+            return; // 現在の年以外はスキップ
           }
 
           const player1Id = match[2]; // player1_id (correct index based on actual structure)

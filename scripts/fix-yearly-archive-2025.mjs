@@ -45,30 +45,9 @@ const sheets = google.sheets({ version: 'v4', auth });
 // アーカイブ対象年度（JST基準）
 const ARCHIVE_YEAR = 2025;
 
-// MatchResults読み込み
+// MatchResults読み込み（試合データ集計用）
 const matchCsv = fs.readFileSync('/Users/kikuchikenji/Downloads/BUNGU SQUAD ランキングシステム - データベース - MatchResults (1).csv', 'utf-8');
 const matchLines = matchCsv.trim().split('\n');
-
-// Players読み込み
-const playerCsv = fs.readFileSync('/Users/kikuchikenji/Downloads/BUNGU SQUAD ランキングシステム - データベース - Players (1).csv', 'utf-8');
-const playerLines = playerCsv.trim().split('\n');
-
-// プレイヤー情報マップ（全員を対象とする）
-const playerInfo = {};
-for (let i = 1; i < playerLines.length; i++) {
-  const parts = playerLines[i].split(',');
-  const id = parts[0];
-  if (!id) continue;
-  const nickname = parts[1];
-  const rating = parts[3];
-  const championBadges = parts[8] || ''; // I列: champion_badges
-  playerInfo[id] = {
-    nickname,
-    rating: parseInt(rating) || 1200,
-    row: i + 1,
-    existingBadges: championBadges
-  };
-}
 
 // 勝敗集計（年度フィルタ付き - JST基準）
 const stats = {};
@@ -107,15 +86,6 @@ for (let i = 1; i < matchLines.length; i++) {
 
 console.log(`試合データ: ${totalMatches}件中 ${totalMatches - filteredCount}件が${ARCHIVE_YEAR}年度`);
 
-// 全プレイヤーをランキング対象に（試合がない人も含む）
-const allPlayerStats = Object.keys(playerInfo).map(id => {
-  const s = stats[id] || { wins: 0, losses: 0 };
-  return { id, ...s };
-});
-
-// ランキング作成（勝利数順、同勝利数なら敗北数少ない順）
-const ranked = allPlayerStats.sort((a, b) => b.wins - a.wins || a.losses - b.losses);
-
 async function main() {
   try {
     console.log(`\n=== ${ARCHIVE_YEAR}年度 年間アーカイブスクリプト ===\n`);
@@ -131,15 +101,50 @@ async function main() {
 
     const hasExistingYear = existingRows.some(row => row[1] && parseInt(row[1]) === ARCHIVE_YEAR);
     if (hasExistingYear) {
-      console.log(`   ⚠️ ${ARCHIVE_YEAR}年度のエントリが既に存在します。重複を避けるため、手動で確認してください。`);
-      console.log('   続行する場合は既存データを削除してから再実行してください。');
-      // 確認用に続行（実際の運用では process.exit(1) にすべき）
-    } else {
-      console.log(`   -> ${ARCHIVE_YEAR}年度のエントリはありません。新規作成します。`);
+      console.error(`\n❌ エラー: ${ARCHIVE_YEAR}年度のエントリが既に存在します。`);
+      console.error('   重複を避けるため、処理を中断します。');
+      console.error('   再実行する場合は、既存のYearlyArchiveデータを手動で削除してください。');
+      process.exit(1);
     }
+    console.log(`   -> ${ARCHIVE_YEAR}年度のエントリはありません。新規作成します。`);
 
-    // 1. YearlyArchiveに全員のデータを追加
-    console.log('\n1. YearlyArchiveに全員のデータを追加中...');
+    // 1. Playersシートから最新データを取得（バッジの追記に必要）
+    console.log('\n1. Playersシートから最新データを取得中...');
+    const playersResponse = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: 'Players!A:Z'
+    });
+    const playerRows = playersResponse.data.values || [];
+
+    // プレイヤー情報マップ（シートから最新データを取得）
+    const playerInfo = {};
+    for (let j = 1; j < playerRows.length; j++) {
+      const row = playerRows[j];
+      if (!row || !row[0]) continue;
+      const id = row[0];
+      const nickname = row[1];
+      const rating = row[3];
+      const championBadges = row[8] || ''; // I列: champion_badges（シートから最新を取得）
+      playerInfo[id] = {
+        nickname,
+        rating: parseInt(rating) || 1200,
+        row: j + 1,
+        existingBadges: championBadges
+      };
+    }
+    console.log(`   -> ${Object.keys(playerInfo).length}名のプレイヤー情報を取得`);
+
+    // 全プレイヤーをランキング対象に（試合がない人も含む）
+    const allPlayerStats = Object.keys(playerInfo).map(id => {
+      const s = stats[id] || { wins: 0, losses: 0 };
+      return { id, ...s };
+    });
+
+    // ランキング作成（勝利数順、同勝利数なら敗北数少ない順）
+    const ranked = allPlayerStats.sort((a, b) => b.wins - a.wins || a.losses - b.losses);
+
+    // 2. YearlyArchiveに全員のデータを追加
+    console.log('\n2. YearlyArchiveに全員のデータを追加中...');
 
     const archiveData = ranked.map(({ id, wins, losses }, i) => {
       const rank = i + 1;
@@ -151,7 +156,7 @@ async function main() {
       const info = playerInfo[id] || { nickname: 'Unknown', rating: 1200 };
       const archiveId = `archive_${ARCHIVE_YEAR}_${id}`;
 
-      // 重複チェック
+      // 重複チェック（念のため）
       if (existingIds.has(archiveId)) {
         console.log(`   ⚠️ スキップ: ${archiveId} は既に存在`);
         return null;
@@ -184,8 +189,8 @@ async function main() {
       console.log('   -> 追加するデータはありません');
     }
 
-    // 2. 上位3名のchampion_badgesを更新（追記方式）
-    console.log('\n2. 上位3名のchampion_badgesを更新中...');
+    // 3. 上位3名のchampion_badgesを更新（追記方式・シートから最新を読んで判定）
+    console.log('\n3. 上位3名のchampion_badgesを更新中...');
 
     const champions = ranked.slice(0, 3);
     for (let i = 0; i < champions.length; i++) {
@@ -198,14 +203,15 @@ async function main() {
       else if (i === 1) newBadge = `${ARCHIVE_YEAR}:🥈`;
       else if (i === 2) newBadge = `${ARCHIVE_YEAR}:🥉`;
 
+      // 重複チェック（シートから読んだ最新バッジで判定）
+      if (info.existingBadges && info.existingBadges.includes(`${ARCHIVE_YEAR}:`)) {
+        console.log(`   -> ${info.nickname}（${i + 1}位）: 既に${ARCHIVE_YEAR}年度のバッジあり、スキップ`);
+        continue;
+      }
+
       // 既存のバッジがあれば追記、なければ新規
       let updatedBadges = newBadge;
       if (info.existingBadges && info.existingBadges.trim() !== '') {
-        // 重複チェック（同じ年度のバッジがあれば更新しない）
-        if (info.existingBadges.includes(`${ARCHIVE_YEAR}:`)) {
-          console.log(`   -> ${info.nickname}（${i + 1}位）: 既に${ARCHIVE_YEAR}年度のバッジあり、スキップ`);
-          continue;
-        }
         updatedBadges = `${info.existingBadges},${newBadge}`;
       }
 
@@ -221,15 +227,8 @@ async function main() {
       console.log(`   -> ${info.nickname}（${i + 1}位）: ${updatedBadges}`);
     }
 
-    // 3. 全プレイヤーのcurrent_rating, annual_wins, annual_lossesをリセット
-    console.log('\n3. 全プレイヤーのレーティングと年間成績をリセット中...');
-
-    // Players全行取得
-    const playersResponse = await sheets.spreadsheets.values.get({
-      spreadsheetId,
-      range: 'Players!A:Z'
-    });
-    const playerRows = playersResponse.data.values || [];
+    // 4. 全プレイヤーのcurrent_rating, annual_wins, annual_lossesをリセット
+    console.log('\n4. 全プレイヤーのレーティングと年間成績をリセット中...');
 
     const updates = [];
     for (let j = 1; j < playerRows.length; j++) {
