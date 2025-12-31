@@ -381,16 +381,31 @@ class SheetsService {
         const annualWins = {};
         const annualLosses = {};
 
-        // 現在の年を取得（年度ベースのランキング用）
-        const currentYear = new Date().getFullYear();
+        // 現在の年を取得（JST基準で年度ベースのランキング用）
+        // JSTはUTC+9なので、UTCの現在時刻に9時間足してから年を取得
+        const nowJST = new Date(Date.now() + 9 * 60 * 60 * 1000);
+        const currentYear = nowJST.getUTCFullYear();
 
         allMatches.forEach((match, index) => {
           // created_at (index 7) から年を取得し、現在の年のみカウント
           const createdAt = match[7];
-          if (createdAt) {
-            const matchYear = new Date(createdAt).getFullYear();
-            if (matchYear !== currentYear) {
-              return; // 現在の年以外はスキップ
+
+          // 日付フィールドがない場合はカウントに含める（フォールバック）
+          if (!createdAt || createdAt.trim() === '') {
+            // 日付がない試合は現在年として扱う
+          } else {
+            // ISO8601形式をJSTに変換して年を判定
+            const matchDate = new Date(createdAt);
+            if (isNaN(matchDate.getTime())) {
+              // パース失敗時は現在年として扱う（データ欠損対策）
+              console.warn(`[getRankings] Invalid date format: ${createdAt}`);
+            } else {
+              // JSTに変換して年を取得
+              const matchDateJST = new Date(matchDate.getTime() + 9 * 60 * 60 * 1000);
+              const matchYear = matchDateJST.getUTCFullYear();
+              if (matchYear !== currentYear) {
+                return; // 現在の年以外はスキップ
+              }
             }
           }
 

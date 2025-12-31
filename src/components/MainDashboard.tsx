@@ -470,8 +470,27 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
                             </span>
                           );
                         }
+                        // ルール習得バッジ（例: "trump:♠️"）
+                        return (
+                          <span
+                            key={index}
+                            className="text-base leading-none"
+                            title={`${year === 'trump' ? 'トランプ' : year === 'cardplus' ? 'カードプラス' : year}ルール習得`}
+                          >
+                            {emoji}
+                          </span>
+                        );
                       }
-                      return null;
+                      // 旧形式（絵文字のみ）
+                      return (
+                        <span
+                          key={index}
+                          className="text-lg leading-none"
+                          title={trimmed.match(/[🥇🥈🥉]/) ? "年間チャンピオンバッジ" : "ルール習得バッジ"}
+                        >
+                          {trimmed}
+                        </span>
+                      );
                     })}
                   </div>
                 </div>
