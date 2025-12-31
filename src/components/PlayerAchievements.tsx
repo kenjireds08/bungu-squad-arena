@@ -1,8 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Trophy, Star, Crown, Target, Award, Calendar, Loader2, TrendingUp, Zap, Flag, Sparkles } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import { ArrowLeft, Trophy, Star, Crown, Target, Award, Calendar, Loader2, TrendingUp, Zap, Flag, Sparkles, ChevronRight } from 'lucide-react';
 import { useRankings } from '@/hooks/useApi';
 
 interface PlayerAchievementsProps {
@@ -36,6 +43,19 @@ interface YearlyStats {
   badge: string;
 }
 
+interface TournamentStats {
+  tournament_id: string;
+  tournament_name: string;
+  date: string;
+  wins: number;
+  losses: number;
+  matches: {
+    opponent_name: string;
+    result: 'win' | 'lose';
+    rating_change: number;
+  }[];
+}
+
 interface AchievementsData {
   championBadges: Achievement[];
   milestones: Milestone[];
@@ -46,6 +66,15 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
   const [achievementsData, setAchievementsData] = useState<AchievementsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { data: rankings } = useRankings();
+
+  // 年間成績詳細ダイアログの状態管理
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
+  const [yearlyDetailOpen, setYearlyDetailOpen] = useState(false);
+  const [yearlyTournaments, setYearlyTournaments] = useState<TournamentStats[]>([]);
+  const [isLoadingDetail, setIsLoadingDetail] = useState(false);
+
+  // AbortController for canceling in-flight requests
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // スワイプジェスチャーの状態管理
   const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
@@ -477,6 +506,133 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
     }
   }, [rankings, currentUserId]);
 
+  // コンポーネントアンマウント時にリクエストをキャンセル
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+    };
+  }, []);
+
+  // 年間成績詳細を取得する関数
+  const loadYearlyDetail = useCallback(async (year: number) => {
+    // 前のリクエストをキャンセル
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // 新しいAbortControllerを作成
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    setIsLoadingDetail(true);
+    setYearlyTournaments([]);
+
+    try {
+      // 試合履歴と大会一覧を並列取得
+      const [matchResponse, tournamentsResponse] = await Promise.all([
+        fetch(`/api/matches?playerId=${currentUserId}`, { signal: controller.signal }),
+        fetch('/api/tournaments', { signal: controller.signal })
+      ]);
+
+      // このリクエストがまだアクティブかチェック
+      if (abortControllerRef.current !== controller) {
+        return;
+      }
+
+      if (!matchResponse.ok || !tournamentsResponse.ok) {
+        throw new Error('データの取得に失敗しました');
+      }
+
+      const matchHistory = await matchResponse.json();
+      const tournaments = await tournamentsResponse.json();
+
+      // 大会ID→大会名のマップを作成
+      const tournamentMap = new Map<string, { name: string; date: string }>();
+      for (const t of tournaments) {
+        tournamentMap.set(t.tournament_id, {
+          name: t.tournament_name || t.name || '大会',
+          date: t.date || t.start_date || ''
+        });
+      }
+
+      // 指定年度の試合をフィルタリング
+      const yearMatches = matchHistory.filter((match: any) => {
+        const matchDate = new Date(match.timestamp || match.match_date || match.created_at);
+        return matchDate.getFullYear() === year && (match.result === 'win' || match.result === 'lose');
+      });
+
+      // 大会ごとに集計
+      const tournamentStatsMap = new Map<string, TournamentStats>();
+
+      for (const match of yearMatches) {
+        // 大会IDがない場合は試合日時から一意キーを生成
+        const matchTimestamp = match.timestamp || match.match_date || match.created_at || '';
+        const tournamentId = match.tournament_id || `unknown_${matchTimestamp}`;
+        const tournamentInfo = tournamentMap.get(match.tournament_id);
+
+        if (!tournamentStatsMap.has(tournamentId)) {
+          tournamentStatsMap.set(tournamentId, {
+            tournament_id: tournamentId,
+            tournament_name: tournamentInfo?.name || (match.tournament_id ? '大会' : '個別試合'),
+            date: tournamentInfo?.date || matchTimestamp,
+            wins: 0,
+            losses: 0,
+            matches: []
+          });
+        }
+
+        const stats = tournamentStatsMap.get(tournamentId)!;
+        const isWin = match.result === 'win';
+
+        if (isWin) {
+          stats.wins++;
+        } else {
+          stats.losses++;
+        }
+
+        stats.matches.push({
+          opponent_name: match.opponent || match.opponent_name || '不明',
+          result: isWin ? 'win' : 'lose',
+          rating_change: parseInt(match.rating_change) || 0
+        });
+      }
+
+      // 日付順にソート（新しい順）
+      const sortedStats = Array.from(tournamentStatsMap.values()).sort((a, b) => {
+        return new Date(b.date).getTime() - new Date(a.date).getTime();
+      });
+
+      // このリクエストがまだアクティブかチェック
+      if (abortControllerRef.current === controller) {
+        setYearlyTournaments(sortedStats);
+      }
+    } catch (error) {
+      // AbortErrorは無視
+      if (error instanceof Error && error.name === 'AbortError') {
+        return;
+      }
+      console.error('Failed to load yearly detail:', error);
+    } finally {
+      // このリクエストがアクティブな場合のみloadingを解除
+      if (abortControllerRef.current === controller) {
+        setIsLoadingDetail(false);
+      }
+    }
+  }, [currentUserId]);
+
+  // 年間成績をクリックした時のハンドラー
+  const handleYearlyStatsClick = (year: number, games: number) => {
+    // 試合数が0の場合は何もしない
+    if (games === 0) return;
+
+    setSelectedYear(year);
+    setYearlyDetailOpen(true);
+    loadYearlyDetail(year);
+  };
+
   if (isLoading || !achievementsData) {
     return (
       <div className="min-h-screen bg-gradient-parchment flex items-center justify-center">
@@ -650,7 +806,13 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
           </CardHeader>
           <CardContent className="space-y-4">
             {achievementsData.yearlyStats.map((year, index) => (
-              <div key={year.year} className="p-4 bg-muted/30 rounded-lg border border-fantasy-frame/20">
+              <div
+                key={year.year}
+                className={`p-4 bg-muted/30 rounded-lg border border-fantasy-frame/20 transition-all ${
+                  year.games > 0 ? 'cursor-pointer hover:bg-muted/50 hover:border-primary/30 active:scale-[0.99]' : ''
+                }`}
+                onClick={() => handleYearlyStatsClick(year.year, year.games)}
+              >
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-semibold text-lg">{year.year}年度</h3>
                   {/* 試合数0の場合は順位を表示しない */}
@@ -701,12 +863,109 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
                     <div className="text-xs text-muted-foreground">年間敗北</div>
                   </div>
                 </div>
+                {/* クリック可能な場合はインジケーターを表示 */}
+                {year.games > 0 && (
+                  <div className="flex items-center justify-center mt-3 text-muted-foreground text-sm">
+                    <span>詳細を見る</span>
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </div>
+                )}
               </div>
             ))}
           </CardContent>
         </Card>
       </main>
       </div>
+
+      {/* 年間成績詳細ダイアログ */}
+      <Dialog open={yearlyDetailOpen} onOpenChange={setYearlyDetailOpen}>
+        <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-primary" />
+              {selectedYear}年度 詳細成績
+            </DialogTitle>
+            <DialogDescription>
+              参加大会と各大会での成績
+            </DialogDescription>
+          </DialogHeader>
+
+          {isLoadingDetail ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin mr-2" />
+              <span className="text-muted-foreground">読み込み中...</span>
+            </div>
+          ) : yearlyTournaments.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Trophy className="h-12 w-12 mx-auto mb-3 opacity-50" />
+              <p>この年度の大会データがありません</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {/* サマリー */}
+              <div className="p-3 bg-muted/30 rounded-lg">
+                <div className="text-sm text-muted-foreground mb-1">参加大会数</div>
+                <div className="text-2xl font-bold">{yearlyTournaments.length}大会</div>
+              </div>
+
+              {/* 大会一覧 */}
+              <div className="space-y-3">
+                {yearlyTournaments.map((tournament) => (
+                  <div
+                    key={tournament.tournament_id}
+                    className="p-3 bg-muted/20 rounded-lg border border-fantasy-frame/10"
+                  >
+                    {/* 大会ヘッダー */}
+                    <div className="flex items-center justify-between mb-2">
+                      <div>
+                        <div className="font-medium text-sm">{tournament.tournament_name}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {tournament.date ? new Date(tournament.date).toLocaleDateString('ja-JP', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric'
+                          }) : '日付不明'}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-success font-bold">{tournament.wins}勝</span>
+                        <span className="text-muted-foreground mx-1">-</span>
+                        <span className="text-destructive font-bold">{tournament.losses}敗</span>
+                      </div>
+                    </div>
+
+                    {/* 対戦詳細 */}
+                    <div className="space-y-1">
+                      {tournament.matches.map((match, idx) => (
+                        <div
+                          key={idx}
+                          className={`flex items-center justify-between text-sm px-2 py-1 rounded ${
+                            match.result === 'win' ? 'bg-success/10' : 'bg-destructive/10'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className={match.result === 'win' ? 'text-success' : 'text-destructive'}>
+                              {match.result === 'win' ? '○' : '●'}
+                            </span>
+                            <span>vs {match.opponent_name}</span>
+                          </div>
+                          {match.rating_change !== 0 && (
+                            <span className={`text-xs ${
+                              match.rating_change > 0 ? 'text-success' : 'text-destructive'
+                            }`}>
+                              {match.rating_change > 0 ? '+' : ''}{match.rating_change}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
