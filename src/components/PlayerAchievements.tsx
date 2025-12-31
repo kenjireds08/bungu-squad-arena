@@ -335,7 +335,8 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
                       badge,
                       title,
                       description,
-                      date: archive.archived_at || `${year}-12-31`
+                      // バッジ獲得日は年度末（12月31日）に固定（archived_atはアーカイブ処理日のため使用しない）
+                      date: `${year}-12-31`
                     });
                   }
                 }
@@ -652,7 +653,12 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
               <div key={year.year} className="p-4 bg-muted/30 rounded-lg border border-fantasy-frame/20">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-semibold text-lg">{year.year}年度</h3>
-                  {year.badge === "進行中" ? (
+                  {/* 試合数0の場合は順位を表示しない */}
+                  {year.games === 0 ? (
+                    <Badge variant="outline" className="text-sm text-muted-foreground">
+                      大会未参加
+                    </Badge>
+                  ) : year.badge === "進行中" ? (
                     <Badge variant="outline" className="text-sm">
                       {year.badge}
                     </Badge>
@@ -669,7 +675,7 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
                 
                 <div className="grid grid-cols-3 gap-3 text-center">
                   <div className="space-y-1">
-                    <div className="text-xl font-bold text-primary">{year.rank}</div>
+                    <div className="text-xl font-bold text-primary">{year.games === 0 ? '-' : year.rank}</div>
                     <div className="text-xs text-muted-foreground">最終順位</div>
                   </div>
                   <div className="space-y-1">

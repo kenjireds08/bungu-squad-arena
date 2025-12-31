@@ -124,6 +124,19 @@ export const PlayerRanking = ({ onClose }: PlayerRankingProps) => {
       {/* Rankings List */}
       <main className="container mx-auto px-4 py-6">
         <div className="space-y-3">
+          {/* 大会未開催時のメッセージ */}
+          {rankings && rankings.filter(player => (player.matches || 0) > 0 || (player.annual_wins || 0) + (player.annual_losses || 0) > 0).length === 0 && (
+            <Card className="border-fantasy-frame bg-background/30 shadow-soft">
+              <CardContent className="p-8 text-center">
+                <p className="text-muted-foreground text-lg mb-2">
+                  {new Date().getFullYear()}年度の大会はまだ開催されていません
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  大会に参加すると、ここにランキングが表示されます
+                </p>
+              </CardContent>
+            </Card>
+          )}
           {rankings?.filter(player => (player.matches || 0) > 0 || (player.annual_wins || 0) + (player.annual_losses || 0) > 0).map((player, displayIndex) => {
             // Calculate display rank (consecutive numbering after filtering)
             const displayRank = displayIndex + 1;

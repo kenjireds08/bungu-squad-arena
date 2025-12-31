@@ -454,11 +454,12 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
                   <p className="text-sm text-muted-foreground mb-1">{new Date().getFullYear()}年度ランキング</p>
                   <div className="flex items-center justify-center gap-2 mb-2">
                     <p className="text-lg font-medium text-foreground">{currentUser?.nickname || 'プレイヤー'}</p>
-                    {/* Champion Badges */}
+                    {/* Champion Badges - メダルバッジのみ表示（ルール習得バッジは非表示） */}
                     {currentUser?.champion_badges?.split(',').filter(Boolean).map((badge, index) => {
                       const trimmed = badge.trim();
                       if (trimmed.includes(':')) {
                         const [year, emoji] = trimmed.split(':');
+                        // メダルバッジ（🥇🥈🥉）のみ表示
                         if (emoji && emoji.match(/[🥇🥈🥉]/)) {
                           return (
                             <span
@@ -470,27 +471,22 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
                             </span>
                           );
                         }
-                        // ルール習得バッジ（例: "trump:♠️"）
+                        // ルール習得バッジはトップページでは非表示
+                        return null;
+                      }
+                      // 旧形式（メダルのみ表示）
+                      if (trimmed.match(/[🥇🥈🥉]/)) {
                         return (
                           <span
                             key={index}
-                            className="text-base leading-none"
-                            title={`${year === 'trump' ? 'トランプ' : year === 'cardplus' ? 'カードプラス' : year}ルール習得`}
+                            className="text-lg leading-none"
+                            title="年間チャンピオンバッジ"
                           >
-                            {emoji}
+                            {trimmed}
                           </span>
                         );
                       }
-                      // 旧形式（絵文字のみ）
-                      return (
-                        <span
-                          key={index}
-                          className="text-lg leading-none"
-                          title={trimmed.match(/[🥇🥈🥉]/) ? "年間チャンピオンバッジ" : "ルール習得バッジ"}
-                        >
-                          {trimmed}
-                        </span>
-                      );
+                      return null;
                     })}
                   </div>
                 </div>
