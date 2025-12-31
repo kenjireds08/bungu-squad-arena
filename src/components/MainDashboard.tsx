@@ -452,7 +452,28 @@ export const MainDashboard = ({ currentUserId, isAdmin, onLogout }: MainDashboar
               <div className="space-y-2">
                 <div className="text-center">
                   <p className="text-sm text-muted-foreground mb-1">{new Date().getFullYear()}年度ランキング</p>
-                  <p className="text-lg font-medium text-foreground mb-2">{currentUser?.nickname || 'プレイヤー'}</p>
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <p className="text-lg font-medium text-foreground">{currentUser?.nickname || 'プレイヤー'}</p>
+                    {/* Champion Badges */}
+                    {currentUser?.champion_badges?.split(',').filter(Boolean).map((badge, index) => {
+                      const trimmed = badge.trim();
+                      if (trimmed.includes(':')) {
+                        const [year, emoji] = trimmed.split(':');
+                        if (emoji && emoji.match(/[🥇🥈🥉]/)) {
+                          return (
+                            <span
+                              key={index}
+                              className="text-lg leading-none cursor-help"
+                              title={`${year}年 年間${emoji === '🥇' ? 'チャンピオン' : emoji === '🥈' ? '準優勝' : '3位'}`}
+                            >
+                              {emoji}
+                            </span>
+                          );
+                        }
+                      }
+                      return null;
+                    })}
+                  </div>
                 </div>
                 <h2 className="text-2xl font-bold text-foreground">
                   {activeUserRank === '-' ? '大会未参加' : `現在 ${activeUserRank}位`}

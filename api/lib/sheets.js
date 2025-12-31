@@ -376,17 +376,29 @@ class SheetsService {
           console.warn('Could not fetch matches for counting:', error.message);
         }
         
-        // Count matches and wins/losses per player
+        // Count matches and wins/losses per player (current year only)
         const matchCounts = {};
         const annualWins = {};
         const annualLosses = {};
-        
+
+        // 現在の年を取得（年度ベースのランキング用）
+        const currentYear = new Date().getFullYear();
+
         allMatches.forEach((match, index) => {
+          // created_at (index 7) から年を取得し、現在の年のみカウント
+          const createdAt = match[7];
+          if (createdAt) {
+            const matchYear = new Date(createdAt).getFullYear();
+            if (matchYear !== currentYear) {
+              return; // 現在の年以外はスキップ
+            }
+          }
+
           const player1Id = match[2]; // player1_id (correct index based on actual structure)
           const player2Id = match[3]; // player2_id (correct index based on actual structure)
           const matchStatus = match[5]; // match_status (index 5)
           const winnerId = match[8]; // winner_id (index 8) - 修正: 実際の勝者IDはインデックス8に格納されている
-          
+
           // Count all matches regardless of status where player IDs are not empty
           if (player1Id && player1Id.trim() !== '') {
             matchCounts[player1Id] = (matchCounts[player1Id] || 0) + 1;
