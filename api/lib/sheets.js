@@ -3844,20 +3844,17 @@ class SheetsService {
     try {
       console.log('[YearlyReset] Starting yearly rating reset...');
 
-      // 全プレイヤーを取得
-      const players = await this.getPlayers();
-
-      if (players.length === 0) {
-        console.log('[YearlyReset] No players found');
-        return { success: true, message: 'No players to reset', resetCount: 0 };
-      }
-
-      // Players!A:Z を一度取得
+      // 全プレイヤーを取得（キャッシュを回避するため直接取得）
       const playersResponse = await this.sheets.spreadsheets.values.get({
         spreadsheetId: this.spreadsheetId,
         range: 'Players!A:Z'
       });
       const playerRows = playersResponse.data.values || [];
+
+      if (playerRows.length <= 1) {
+        console.log('[YearlyReset] No player rows found (only header)');
+        return { success: true, message: 'No players to reset', resetCount: 0 };
+      }
 
       // getPlayers() と同じインデックスを使用（スプレッドシートの列構造）
       // id: 0 (A列), current_rating: 3 (D列), annual_wins: 4 (E列), annual_losses: 5 (F列)
@@ -3866,46 +3863,50 @@ class SheetsService {
       const COL_ANNUAL_WINS = 4;
       const COL_ANNUAL_LOSSES = 5;
 
+      console.log(`[YearlyReset] Found ${playerRows.length - 1} player rows`);
+      console.log(`[YearlyReset] Header row: ${JSON.stringify(playerRows[0]?.slice(0, 6))}`);
+      console.log(`[YearlyReset] First player row: ${JSON.stringify(playerRows[1]?.slice(0, 6))}`);
+
       let resetCount = 0;
       const updates = [];
 
-      for (const player of players) {
-        // プレイヤーの行を探す
-        let playerRowIndex = -1;
-        for (let j = 1; j < playerRows.length; j++) {
-          if (playerRows[j][COL_ID] === player.id) {
-            playerRowIndex = j;
-            break;
-          }
+      // ヘッダー行（インデックス0）をスキップし、データ行から処理
+      for (let j = 1; j < playerRows.length; j++) {
+        const row = playerRows[j];
+        if (!row || !row[COL_ID]) {
+          continue; // 空行またはIDがない行はスキップ
         }
 
-        if (playerRowIndex > 0) {
-          // current_rating を 1200 にリセット
-          const ratingColumnLetter = this._columnToLetter(COL_RATING);
-          updates.push({
-            range: `Players!${ratingColumnLetter}${playerRowIndex + 1}`,
-            values: [[1200]]
-          });
+        const playerId = String(row[COL_ID] || '').trim();
+        const playerNickname = String(row[1] || '').trim() || 'Unknown';
+        const currentRating = parseInt(row[COL_RATING]) || 1200;
 
-          // annual_wins を 0 にリセット
-          const winsColumnLetter = this._columnToLetter(COL_ANNUAL_WINS);
-          updates.push({
-            range: `Players!${winsColumnLetter}${playerRowIndex + 1}`,
-            values: [[0]]
-          });
+        // スプレッドシートの行番号（1-indexed、ヘッダーは行1なのでデータは行2から）
+        const sheetRowNumber = j + 1;
 
-          // annual_losses を 0 にリセット
-          const lossesColumnLetter = this._columnToLetter(COL_ANNUAL_LOSSES);
-          updates.push({
-            range: `Players!${lossesColumnLetter}${playerRowIndex + 1}`,
-            values: [[0]]
-          });
+        // current_rating を 1200 にリセット
+        const ratingColumnLetter = this._columnToLetter(COL_RATING);
+        updates.push({
+          range: `Players!${ratingColumnLetter}${sheetRowNumber}`,
+          values: [[1200]]
+        });
 
-          resetCount++;
-          console.log(`[YearlyReset] Queued reset for ${player.nickname}: rating=1200, annual_wins=0, annual_losses=0`);
-        } else {
-          console.warn(`[YearlyReset] Player not found in sheet: ${player.nickname} (${player.id})`);
-        }
+        // annual_wins を 0 にリセット
+        const winsColumnLetter = this._columnToLetter(COL_ANNUAL_WINS);
+        updates.push({
+          range: `Players!${winsColumnLetter}${sheetRowNumber}`,
+          values: [[0]]
+        });
+
+        // annual_losses を 0 にリセット
+        const lossesColumnLetter = this._columnToLetter(COL_ANNUAL_LOSSES);
+        updates.push({
+          range: `Players!${lossesColumnLetter}${sheetRowNumber}`,
+          values: [[0]]
+        });
+
+        resetCount++;
+        console.log(`[YearlyReset] Queued reset for ${playerNickname} (${playerId}): rating ${currentRating} -> 1200`);
       }
 
       // バッチ更新を実行
