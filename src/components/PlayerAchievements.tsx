@@ -549,19 +549,27 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
       const matchHistory = await matchResponse.json();
       const tournaments = await tournamentsResponse.json();
 
-      // 大会ID→大会名のマップを作成
+      // 大会ID→大会名のマップを作成（t.id を優先、なければ t.tournament_id）
       const tournamentMap = new Map<string, { name: string; date: string }>();
       for (const t of tournaments) {
-        tournamentMap.set(t.tournament_id, {
-          name: t.tournament_name || t.name || '大会',
-          date: t.date || t.start_date || ''
-        });
+        const tid = t.id ?? t.tournament_id;
+        if (tid) {
+          tournamentMap.set(tid, {
+            name: t.tournament_name || t.name || '大会',
+            date: t.date || t.start_date || ''
+          });
+        }
       }
 
-      // 指定年度の試合をフィルタリング
+      // 指定年度の試合をフィルタリング（JSTベースで年度判定）
       const yearMatches = matchHistory.filter((match: any) => {
-        const matchDate = new Date(match.timestamp || match.match_date || match.created_at);
-        return matchDate.getFullYear() === year && (match.result === 'win' || match.result === 'lose');
+        const matchDateStr = match.timestamp || match.match_date || match.created_at;
+        if (!matchDateStr) return false;
+        // JSTに変換して年度を取得（UTC + 9時間）
+        const matchDate = new Date(matchDateStr);
+        const jstDate = new Date(matchDate.getTime() + 9 * 60 * 60 * 1000);
+        const matchYear = jstDate.getUTCFullYear();
+        return matchYear === year && (match.result === 'win' || match.result === 'lose');
       });
 
       // 大会ごとに集計
