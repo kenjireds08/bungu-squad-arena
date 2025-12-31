@@ -3690,7 +3690,10 @@ class SheetsService {
 
       // Playersシートのchampion_badgesを更新（上位3名）
       const championsToUpdate = rankedPlayers.slice(0, 3); // 上位3名
-      const { headers: playerHeaders, idx: playerIdx } = await this._getHeaders('Players!1:1');
+
+      // getPlayers()と同じ固定インデックスを使用（_getHeadersの問題を回避）
+      const COL_ID = 0;              // A列
+      const COL_CHAMPION_BADGES = 8; // I列
 
       // パフォーマンス最適化：Players!A:Zを一度だけ取得してループ内で使い回す
       const playersResponse = await this.sheets.spreadsheets.values.get({
@@ -3712,16 +3715,18 @@ class SheetsService {
         const newBadge = `${year}:${badge}`;
         let playerRowIndex = -1;
 
-        // プレイヤーの行を探す
+        // プレイヤーの行を探す（型の不一致を避けるためString().trim()で比較）
+        const targetId = String(player.id || '').trim();
         for (let j = 1; j < playerRows.length; j++) {
-          if (playerRows[j][playerIdx('id')] === player.id) {
+          const rowId = String(playerRows[j]?.[COL_ID] || '').trim();
+          if (rowId === targetId) {
             playerRowIndex = j;
             break;
           }
         }
 
         if (playerRowIndex > 0) {
-          const currentBadges = playerRows[playerRowIndex][playerIdx('champion_badges')] || '';
+          const currentBadges = String(playerRows[playerRowIndex][COL_CHAMPION_BADGES] || '');
           let updatedBadges = currentBadges;
 
           // 既にこの年度のバッジが存在するかチェック
@@ -3737,7 +3742,7 @@ class SheetsService {
             }
 
             // Playersシートを更新
-            const badgeColumnLetter = this._columnToLetter(playerIdx('champion_badges'));
+            const badgeColumnLetter = this._columnToLetter(COL_CHAMPION_BADGES);
             await this.sheets.spreadsheets.values.update({
               spreadsheetId: this.spreadsheetId,
               range: `Players!${badgeColumnLetter}${playerRowIndex + 1}`,
@@ -3751,6 +3756,8 @@ class SheetsService {
           } else {
             console.log(`[YearlyArchive] ${player.nickname} already has ${year} badge, skipping`);
           }
+        } else {
+          console.warn(`[YearlyArchive] Player not found in sheet: ${player.nickname} (${player.id})`);
         }
       }
 
