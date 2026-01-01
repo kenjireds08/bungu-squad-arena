@@ -129,7 +129,7 @@ export const PlayerRanking = ({ onClose }: PlayerRankingProps) => {
             <Card className="border-fantasy-frame bg-background/30 shadow-soft">
               <CardContent className="p-8 text-center">
                 <p className="text-muted-foreground text-lg mb-2">
-                  {new Date().getFullYear()}年度の大会はまだ開催されていません
+                  {new Date().getFullYear()}年度の大会は<br className="sm:hidden" />まだ開催されていません
                 </p>
                 <p className="text-sm text-muted-foreground">
                   大会に参加すると、ここにランキングが表示されます
