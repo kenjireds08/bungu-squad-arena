@@ -1086,7 +1086,20 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
                           axisLine={{ stroke: 'hsl(var(--muted-foreground) / 0.3)' }}
                         />
                         <YAxis
-                          domain={['dataMin - 20', 'dataMax + 20']}
+                          domain={[
+                            (dataMin: number) => Math.min(1200, Math.floor((dataMin - 20) / 50) * 50),
+                            (dataMax: number) => Math.ceil((dataMax + 20) / 50) * 50
+                          ]}
+                          ticks={(() => {
+                            const min = Math.min(1200, ...yearlyRatingHistory.map(d => d.rating));
+                            const max = Math.max(...yearlyRatingHistory.map(d => d.rating));
+                            const start = Math.floor((min - 20) / 50) * 50;
+                            const end = Math.ceil((max + 20) / 50) * 50;
+                            const ticks = [];
+                            for (let t = start; t <= end; t += 50) ticks.push(t);
+                            if (!ticks.includes(1200)) ticks.push(1200);
+                            return ticks.sort((a, b) => a - b);
+                          })()}
                           tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
                           tickLine={false}
                           axisLine={{ stroke: 'hsl(var(--muted-foreground) / 0.3)' }}
