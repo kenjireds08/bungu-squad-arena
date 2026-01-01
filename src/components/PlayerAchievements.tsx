@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import {
   Dialog,
   DialogContent,
@@ -64,6 +65,12 @@ interface OpponentStats {
   winRate: number;
 }
 
+interface RatingDataPoint {
+  date: string;
+  rating: number;
+  displayDate: string;
+}
+
 interface AchievementsData {
   championBadges: Achievement[];
   milestones: Milestone[];
@@ -80,6 +87,7 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
   const [yearlyDetailOpen, setYearlyDetailOpen] = useState(false);
   const [yearlyTournaments, setYearlyTournaments] = useState<TournamentStats[]>([]);
   const [yearlyOpponents, setYearlyOpponents] = useState<OpponentStats[]>([]);
+  const [yearlyRatingHistory, setYearlyRatingHistory] = useState<RatingDataPoint[]>([]);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
 
   // AbortController for canceling in-flight requests
@@ -539,6 +547,7 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
     setIsLoadingDetail(true);
     setYearlyTournaments([]);
     setYearlyOpponents([]);
+    setYearlyRatingHistory([]);
 
     try {
       // 試合履歴と大会一覧を並列取得
@@ -663,10 +672,44 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
         return b.total - a.total;
       });
 
+      // レート推移を計算（年初1200からスタート）
+      const sortedMatchesByDate = yearMatches.sort((a: any, b: any) => {
+        const dateA = new Date(a.timestamp || a.match_date || a.created_at).getTime();
+        const dateB = new Date(b.timestamp || b.match_date || b.created_at).getTime();
+        return dateA - dateB;
+      });
+
+      const ratingHistory: RatingDataPoint[] = [];
+      let currentRating = 1200;
+
+      // 年初のデータポイントを追加
+      ratingHistory.push({
+        date: `${year}-01-01`,
+        rating: currentRating,
+        displayDate: '年初'
+      });
+
+      // 各試合後のレートを記録
+      for (const match of sortedMatchesByDate) {
+        const ratingChange = parseInt(match.rating_change) || 0;
+        currentRating += ratingChange;
+
+        const matchDate = new Date(match.timestamp || match.match_date || match.created_at);
+        const jstDate = new Date(matchDate.getTime() + 9 * 60 * 60 * 1000);
+        const displayDate = `${jstDate.getUTCMonth() + 1}/${jstDate.getUTCDate()}`;
+
+        ratingHistory.push({
+          date: matchDate.toISOString(),
+          rating: currentRating,
+          displayDate
+        });
+      }
+
       // このリクエストがまだアクティブかチェック
       if (abortControllerRef.current === controller) {
         setYearlyTournaments(sortedStats);
         setYearlyOpponents(sortedOpponentStats);
+        setYearlyRatingHistory(ratingHistory);
       }
     } catch (error) {
       // AbortErrorは無視
@@ -1021,6 +1064,60 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
                   </div>
                 ))}
               </div>
+
+              {/* レート推移グラフ */}
+              {yearlyRatingHistory.length > 1 && (
+                <div className="pt-4 border-t border-fantasy-frame/20">
+                  <div className="flex items-center gap-2 mb-3">
+                    <TrendingUp className="h-4 w-4 text-primary" />
+                    <h4 className="font-medium text-sm">レート推移</h4>
+                  </div>
+                  <div className="h-48 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart
+                        data={yearlyRatingHistory}
+                        margin={{ top: 5, right: 10, left: -10, bottom: 5 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground) / 0.2)" />
+                        <XAxis
+                          dataKey="displayDate"
+                          tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                          tickLine={false}
+                          axisLine={{ stroke: 'hsl(var(--muted-foreground) / 0.3)' }}
+                        />
+                        <YAxis
+                          domain={['dataMin - 20', 'dataMax + 20']}
+                          tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                          tickLine={false}
+                          axisLine={{ stroke: 'hsl(var(--muted-foreground) / 0.3)' }}
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: 'hsl(var(--background))',
+                            border: '1px solid hsl(var(--border))',
+                            borderRadius: '8px',
+                            fontSize: '12px'
+                          }}
+                          formatter={(value: number) => [`${value}`, 'レート']}
+                          labelFormatter={(label: string) => label}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="rating"
+                          stroke="hsl(var(--primary))"
+                          strokeWidth={2}
+                          dot={{ fill: 'hsl(var(--primary))', strokeWidth: 0, r: 3 }}
+                          activeDot={{ r: 5, strokeWidth: 0 }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="flex justify-between text-xs text-muted-foreground mt-2">
+                    <span>初期: 1200</span>
+                    <span>最終: {yearlyRatingHistory[yearlyRatingHistory.length - 1]?.rating || 1200}</span>
+                  </div>
+                </div>
+              )}
 
               {/* 対戦相手別成績 */}
               {yearlyOpponents.length > 0 && (
