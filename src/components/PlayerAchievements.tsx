@@ -1029,7 +1029,7 @@ export const PlayerAchievements = ({ onClose, currentUserId = "player_001" }: Pl
                           }) : '日付不明'}
                         </div>
                       </div>
-                      <div className="text-right">
+                      <div className="text-right whitespace-nowrap flex-shrink-0">
                         <span className="text-success font-bold">{tournament.wins}勝</span>
                         <span className="text-muted-foreground mx-1">-</span>
                         <span className="text-destructive font-bold">{tournament.losses}敗</span>
